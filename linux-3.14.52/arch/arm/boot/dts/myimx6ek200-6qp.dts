@@ -1,0 +1,64 @@
+/*
+ * MYZR Technology Co.,Ltd
+ * http://www.myzr.com.cn
+ * Tang Bin <tangb@myzr.com.cn>
+ */
+
+#include "myimx6ek200-6q.dts"
+#include "imx6qp.dtsi"
+
+/ {
+	model = "MYZR i.MX6 Evaluation Kit (MY-IMX6-EK200-6QP)";
+};
+
+&mxcfb1 {
+	prefetch;
+};
+
+&mxcfb2 {
+	prefetch;
+};
+
+&mxcfb3 {
+	prefetch;
+};
+
+&mxcfb4 {
+	prefetch;
+};
+
+&pre1 {
+	status = "okay";
+};
+
+&pre2 {
+	status = "okay";
+};
+
+&pre3 {
+	status = "okay";
+};
+
+&pre4 {
+	status = "okay";
+};
+
+&prg1 {
+	memory-region = <&memory>;
+	status = "okay";
+};
+
+&prg2 {
+	memory-region = <&memory>;
+	status = "okay";
+};
+
+&pcie {
+	power-on-gpio = <&gpio6 8 0>;
+	reset-gpio = <&gpio6 7 0>;
+	status = "okay";
+};
+
+&sata {
+	status = "okay";
+};

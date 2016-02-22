@@ -1,0 +1,11 @@
+/*
+ * MYZR Technology Co.,Ltd
+ * http://www.myzr.com.cn
+ * Tang Bin <tangb@myzr.com.cn>
+ */
+
+#include "myimx6ek200-6q.dts"
+
+/ {
+	model = "MYZR i.MX6 Evaluation Kit (MY-IMX6-EK200-6Q-2G)";
+};

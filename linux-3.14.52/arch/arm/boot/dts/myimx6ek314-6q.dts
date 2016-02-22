@@ -1,0 +1,44 @@
+/*
+ * MYZR Technology Co.,Ltd
+ * http://www.myzr.com.cn
+ * Tang Bin <tangb@myzr.com.cn>
+ */
+
+/dts-v1/;
+#include "imx6q.dtsi"
+#include "myimx6ek314-6qu.dtsi"
+
+/ {
+	model = "MYZR i.MX6 Evaluation Kit (MY-IMX6-EK314-6Q)";
+	compatible = "myzr,myimx6", "myzr,myimx6ek314", "myzr,myimx6ek314-6q", "fsl,imx6q";
+};
+
+&ldb {
+	lvds-channel@0 {
+		crtc = "ipu2-di0";
+	};
+
+	lvds-channel@1 {
+		crtc = "ipu2-di1";
+	};
+};
+
+&mxcfb1 {
+	status = "okay";
+};
+
+&mxcfb2 {
+	status = "okay";
+};
+
+&mxcfb3 {
+	status = "okay";
+};
+
+&mxcfb4 {
+	status = "okay";
+};
+
+&sata {
+	status = "okay";
+};
