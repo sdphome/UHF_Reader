@@ -1,0 +1,11 @@
+config SYS_BOARD
+	default "myimx6"
+
+config SYS_VENDOR
+	default "myzr"
+
+config SYS_SOC
+	default "mx6"
+
+config SYS_CONFIG_NAME
+	default "myimx6"
