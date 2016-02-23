@@ -1,0 +1,5 @@
+# of module          name                 type                 compatible
+mxc_v4l2_capture     *                    *                    fsl,imx6q-v4l2-capture
+mx6s_capture         *                    *                    fsl,imx6s-csi
+mxc_vadc             *                    *                    fsl,imx6sx-vadc
+mxc_mipi_csi         *                    *                    fsl,imx7d-mipi-csi

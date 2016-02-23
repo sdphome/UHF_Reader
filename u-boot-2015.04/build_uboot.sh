@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir -p ../image-linux-31452
+
 make myimx6ek200-6q_defconfig
 
 # For signal core
@@ -11,7 +13,7 @@ echo
 make -j16
 
 echo
-echo "uboot image to image folder"
+echo "Copy uboot image to image folder"
 echo
 cp u-boot.imx ../image-linux-31452/uboot-myimx6ek200-6q.imx
 
