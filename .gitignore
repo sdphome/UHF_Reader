@@ -28,5 +28,8 @@
 *.x86_64
 *.hex
 
+# Cross complier tool
+gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux/*
+
 # Debug files
 *.dSYM/
