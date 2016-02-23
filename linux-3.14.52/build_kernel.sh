@@ -5,7 +5,7 @@ echo "Make zImage"
 echo
 make myimx6_defconfig
 make zImage -j16
-cp arch/arm/boot/zImage ../$IMAGE/zImagemyimx6
+cp arch/arm/boot/zImage ../$IMAGE/zImage-myimx6
 
 echo
 echo "Make dtb"
