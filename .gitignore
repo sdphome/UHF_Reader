@@ -31,5 +31,8 @@
 # Cross complier tool
 gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux/*
 
+# Image
+image-linux-31452/*
+
 # Debug files
 *.dSYM/
