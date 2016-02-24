@@ -36,3 +36,6 @@ image-linux-31452/*
 
 # Debug files
 *.dSYM/
+
+# Test
+test
