@@ -10,26 +10,10 @@
 #define FAILED                          1
 
 /* ---------- Package Fixed Value ---------- */
-#define PACK_HEADER                     0xFA
+#define PACK_HDR                        0xFA
 #define PACK_END                        0xFB
 #define REQUEST_TYPE                    0x0000
 #define RESPONSE_TYPE                   0x0001
-
-/* ---------- Genaral Package ---------- */
-
-typedef struct {
-    uint8_t header;
-    uint16_t type;
-    uint8_t cmd;
-    uint16_t length;
-} __attribute__ ((packed)) radio_pack_header;
-#define RADIO_PACK_HEADER_SIZE          6
-
-typedef struct {
-    uint16_t crc16;
-    uint8_t end;
-} __attribute__ ((packed)) radio_pack_end;
-#define RADIO_PACK_END                  3
 
 
 /* ---------- RADIO Commands ---------- */
@@ -186,13 +170,29 @@ typedef struct {
 
 #define GET_RADIO_STATUS                0x00FC
 
+/* ---------- Genaral Package ---------- */
+
+typedef struct {
+    uint8_t hdr;
+    uint16_t type;
+    uint8_t cmd;
+    uint16_t len;
+} __attribute__ ((packed)) radio_pack_hdr;
+#define RADIO_PACK_HDR_SIZE             6
+
+typedef struct {
+    uint16_t crc16;
+    uint8_t end;
+} __attribute__ ((packed)) radio_pack_end;
+#define RADIO_PACK_END_SIZE              3
+
 
 /* ---------- message related ---------- */
 typedef struct {
     uint8_t status;
-    uint16_t cmd;
-    uint16_t len;
+    radio_pack_hdr hdr;
     uint8_t *payload;
+    radio_pack_end end;
 } radio_result_t;
 
 typedef struct {
@@ -204,14 +204,15 @@ typedef struct {
 typedef struct {
     int fd;
     int status;
-    pthread_mutex_t s_lock;
-    pthread_cond_t s_cond;
+    pthread_mutex_t c_lock;
+    pthread_cond_t c_cond;
+    pthread_t read_thread;
     radio_result_list_t *result_list;
 } radio_info_t;
 
 /* ---------- helper function ---------- */
 /* TODO: fill the string */
-const char *cmd_to_string(uint16_t command)
+const char *radio_cmd_to_string(uint16_t command)
 {
     switch (command) {
 	case SET_VERSION: return "";
