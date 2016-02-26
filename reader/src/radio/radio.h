@@ -1,12 +1,16 @@
 #ifndef __RADIO_H
 #define __RADIO_H
 
-#include <linux/types.h>
+#include <sys/types.h>
+#include <stdint.h>
 
 #define RADIO_PORT      "/dev/ttymxc1"
 
+#define false                           0
+#define true                            1
+
 /* ---------- Response Result ---------- */
-#define SUCCESS                         0
+#define NO_ERROR                        0
 #define FAILED                          1
 
 /* ---------- Package Fixed Value ---------- */
@@ -65,6 +69,7 @@ typedef struct {
 #define SET_ANTENNA_ATTR                0x000D
 #define GET_ANTENNA_ATTR                0x000E
 typedef struct {
+#define NO_TO_ATTR(x)					(1 << (x - 1))
     uint8_t attribute;
 } __attribute__ ((packed)) antenna_attr_param;
 #define ANTENNA_ATTR_PARAM_SIZE         1
@@ -195,9 +200,9 @@ typedef struct {
     radio_pack_end end;
 } radio_result_t;
 
-typedef struct {
+typedef struct radio_result_list {
     radio_result_t result;
-    struct api_result_list *next;
+    struct radio_result_list *next;
 } radio_result_list_t;
 
 
@@ -209,6 +214,9 @@ typedef struct {
     pthread_t read_thread;
     radio_result_list_t *result_list;
 } radio_info_t;
+
+
+void radio_print_result(radio_result_t result);
 
 /* ---------- helper function ---------- */
 /* TODO: fill the string */
