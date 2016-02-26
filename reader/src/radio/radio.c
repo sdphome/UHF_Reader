@@ -229,8 +229,8 @@ int radio_write(int fd, uint8_t cmd, uint16_t len, uint8_t *payload)
     hdr.cmd = cmd;
     hdr.len = len;
     nwt = write(fd, &hdr, RADIO_PACK_HDR_SIZE);
-	if (payload != NULL && len != 0)
-    	nwt += write(fd, payload, len);
+    if (payload != NULL && len != 0)
+        nwt += write(fd, payload, len);
 
     end.crc16 = calc_crc16(&hdr, payload);
     end.end = PACK_END;
