@@ -1,0 +1,5 @@
+download gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux
+sudo apt-get update
+sudo apt-get install aptitude
+sudo aptitude install ia32-libs
+sudo aptitude install ncurses-dev

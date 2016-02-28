@@ -1,6 +1,8 @@
 #!/bin/bash
 
-mkdir -p ../image-linux-31452
+IMAGE=image-linux-31452
+
+mkdir -p ../$IMAGE
 
 make myimx6ek200-6q_defconfig
 
@@ -10,7 +12,7 @@ make myimx6ek200-6q_defconfig
 echo
 echo "begin complie"
 echo
-make -j16
+make -j4
 
 echo
 echo "Copy uboot image to image folder"
