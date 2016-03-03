@@ -233,10 +233,6 @@
 				MX6QDL_PAD_GPIO_0__CCM_CLKO1    	0x130b0
 				/* GPIO, J4 */
 				MX6QDL_PAD_NANDF_CS0__GPIO6_IO11	0x80000000
-				MX6QDL_PAD_EIM_RW__GPIO2_IO26		0x80000000
-				MX6QDL_PAD_SD1_CLK__GPIO1_IO20		0x80000000
-				MX6QDL_PAD_EIM_D21__GPIO3_IO21		0x80000000
-				MX6QDL_PAD_EIM_D22__GPIO3_IO22		0x80000000
 				MX6QDL_PAD_SD2_CLK__GPIO1_IO10		0x80000000
 				MX6QDL_PAD_SD2_CMD__GPIO1_IO11		0x80000000
 				/* J21:11,12 */
@@ -252,6 +248,14 @@
 			>;
 		};
 		
+		pinctrl_uhf_security: edt-uhfgrp {
+			fsl,pins = <
+				MX6QDL_PAD_SD1_CLK__GPIO1_IO20		0x80000000 /* Interrupt */
+				MX6QDL_PAD_EIM_D21__GPIO3_IO21		0x80000000 /* Status */
+				MX6QDL_PAD_EIM_D22__GPIO3_IO22		0x80000000 /* Reset */
+			>;
+		};
+
 		pinctrl_pwm1: pwm1grp {
 			fsl,pins = <
 				MX6QDL_PAD_SD1_DAT3__PWM1_OUT		0x1b0b1
@@ -586,10 +590,12 @@
 		compatible = "jzt,uhf_security";
 		spi-max-frequency = <15000000>;
 		reg = <0>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&pinctrl_uhf_security>;
 		interrupt-parent = <&gpio1>;
-		interrupts = <10 0>;
-		reset-gpio = <&gpio1 14 GPIO_ACTIVE_LOW>;
-		status-gpio = <&gpio1 15 GPIO_ACTIVE_LOW>;
+		interrupts = <20 0>;
+		status-gpio = <&gpio3 21 GPIO_ACTIVE_HIGH>;
+		reset-gpio = <&gpio3 22 GPIO_ACTIVE_LOW>;
 	};
 };
 

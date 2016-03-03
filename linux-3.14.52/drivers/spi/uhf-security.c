@@ -142,10 +142,9 @@ static int uhf_security_init_gpio(struct uhf_security *uhf)
      */
     ret = devm_gpio_request_one(&uhf->spi->dev, uhf->reset,
                                 GPIOF_OUT_INIT_HIGH, "uhf-reset");
+
     ret += devm_gpio_request_one(&uhf->spi->dev, uhf->status,
                                 GPIOF_IN, "uhf-status");
-
-    printk(KERN_ALERT "%s success, ret=%d\n", __func__, ret);
 
     return ret;
 }
@@ -256,9 +255,9 @@ static int uhf_security_probe(struct spi_device *spi)
         goto err3;
     }
 
-    uhf_security_init_gpio(uhf);
+    ret = uhf_security_init_gpio(uhf);
 
-    ret = device_create_file(uhf->dev, &dev_attr_uhf_security_sys);
+    ret += device_create_file(uhf->dev, &dev_attr_uhf_security_sys);
     if (ret)
         goto err3;
 
@@ -269,7 +268,7 @@ static int uhf_security_probe(struct spi_device *spi)
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
         goto err3;
     } else
-        disable_irq_wake(uhf->irq);
+        enable_irq(uhf->irq); /* FIXME : need disable_irq */
 
     INIT_DELAYED_WORK(&uhf->uhf_work, uhf_security_work_func);
     uhf->uhf_queue = create_workqueue("uhf_wq");
