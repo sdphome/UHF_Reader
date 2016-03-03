@@ -22,6 +22,32 @@
 #ifndef __LINUX_SPI_UHF_SECURITY_H__
 #define __LINUX_SPI_UHF_SECURITY_H__
 
+/* security module status */
+#define OK 0
+#define BUSY 1
 
+#define UHF_SECURITY_SPI_MAX_SPEED_HZ 15000000
+
+struct uhf_security {
+    struct spi_device *spi;
+
+    struct class *uhf_class;
+    struct cdev cdev;
+    int major;
+    int minor;
+    struct device *dev;
+
+    spinlock_t lock;
+    struct semaphore sem;
+
+    struct delayed_work uhf_work;
+    struct workqueue_struct *uhf_queue;
+
+    int irq;
+    int reset;
+    int status;
+
+    int open_idx;
+};
 
 #endif /* __LINUX_SPI_UHF_SECURITY_H__ */
