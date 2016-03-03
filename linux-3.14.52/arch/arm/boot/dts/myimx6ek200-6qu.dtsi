@@ -570,7 +570,7 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 		compatible = "sst,sst25vf016b";
-		spi-max-frequency = <20000000>;
+		spi-max-frequency = <15000000>;
 		reg = <0>;
 	};
 };
