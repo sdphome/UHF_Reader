@@ -83,7 +83,7 @@ static inline void uhf_security_disable_irq(struct uhf_security *uhf)
         disable_irq(uhf->irq);
         uhf->irq_enabled = false;
     } else {
-        printk(KERN_ALERT "%s: irq has been enabled\n", __func__);
+        printk(KERN_ALERT "%s: irq has been disabled\n", __func__);
     }
 }
 
@@ -463,8 +463,8 @@ static int uhf_security_probe(struct spi_device *spi)
     }
 
     /* Initializes uhf security INT irq. */
-    ret = devm_request_threaded_irq(&spi->dev, uhf->irq, NULL, uhf_security_handler,
-                                IRQF_TRIGGER_FALLING | IRQF_ONESHOT, "uhf_irq", uhf);
+    ret = request_irq(uhf->irq, uhf_security_handler,
+                      IRQF_TRIGGER_FALLING, "uhf_irq", uhf);
     if (ret) {
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
         goto irq_fail;
@@ -483,7 +483,7 @@ static int uhf_security_probe(struct spi_device *spi)
     return ret;
 
 queue_fail:
-    uhf_security_disable_irq(uhf);
+    free_irq(uhf->irq, uhf);
 irq_fail:
     device_remove_file(uhf->dev, &dev_attr_uhf_security_sys);
 sys_fail:
@@ -504,7 +504,7 @@ static int uhf_security_remove(struct spi_device *spi)
     uhf->spi = NULL;
     spin_unlock_irq(&uhf->lock);
 
-    uhf_security_disable_irq(uhf);
+    free_irq(uhf->irq, uhf);
 
     /* prevent new opens */
     mutex_lock(&device_list_lock);
@@ -518,7 +518,6 @@ static int uhf_security_remove(struct spi_device *spi)
 
     if (uhf->users == 0)
         kfree(uhf);
-
 
     if (uhf->uhf_queue)
         destroy_workqueue(uhf->uhf_queue);
