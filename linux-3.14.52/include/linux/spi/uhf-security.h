@@ -26,28 +26,54 @@
 #define OK 0
 #define BUSY 1
 
+#define UHF_SECURITY_NAME    "uhf_security"
+
 #define UHF_SECURITY_SPI_MAX_SPEED_HZ 15000000
+
+/*
+ * This supports access to SPI devices using normal userspace I/O calls.
+ * Note that while traditional UNIX/POSIX I/O semantics are half duplex,
+ * and often mask message boundaries, full SPI support requires full duplex
+ * transfers.  There are several kinds of internal message boundaries to
+ * handle chipselect management and other protocol options.
+ *
+ * SPI has a character major number assigned.  We allocate minor numbers
+ * dynamically using a bitmask.  You must use hotplug tools, such as udev
+ * (or mdev with busybox) to create and destroy the /dev/spidevB.C device
+ * nodes, since there is no fixed association of minor numbers with any
+ * particular SPI bus or device.
+ */
+#define UHF_SPI_MAJOR   153 /* assigned */
+#define UHF_SPI_MINORS  32  /* ... up to 256 */
+
+static DECLARE_BITMAP(minors, UHF_SPI_MINORS);
+
+/*-------------------------------------------------------------------------*/
 
 struct uhf_security {
     struct spi_device *spi;
+    struct list_head device_entry;
 
-    struct class *uhf_class;
-    struct cdev cdev;
-    int major;
-    int minor;
+    struct class *class;
+    dev_t devt;
     struct device *dev;
 
     spinlock_t lock;
+    struct mutex buf_lock;
     struct semaphore sem;
 
     struct delayed_work uhf_work;
     struct workqueue_struct *uhf_queue;
 
+    bool irq_enabled;
+
     int irq;
     int reset;
     int status;
 
-    int open_idx;
+    u8 *buffer;
+
+    int users;
 };
 
 #endif /* __LINUX_SPI_UHF_SECURITY_H__ */

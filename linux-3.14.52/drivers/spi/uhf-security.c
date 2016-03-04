@@ -44,38 +44,253 @@
 
 struct uhf_security *__uhf = NULL;
 
-static int device_open(struct inode *inode,struct file *filp)
+static LIST_HEAD(device_list);
+static DEFINE_MUTEX(device_list_lock);
+
+static unsigned bufsiz = 4096;
+
+/*-------------------------------------------------------------------------*/
+
+static int uhf_security_init_gpio(struct uhf_security *uhf)
 {
-    struct uhf_security *uhf = __uhf;
-    if (0 == uhf->open_idx) {
-        /* power on / reset */
-        printk(KERN_ALERT "unf security : open\n");
-        uhf->open_idx = 1;
+    int ret;
+    /*
+     * status   gpio3-21  J4-10
+     * reset    gpio3-22  J4-12
+     */
+    ret = devm_gpio_request_one(&uhf->spi->dev, uhf->reset,
+                                GPIOF_OUT_INIT_HIGH, "uhf-reset");
+
+    ret += devm_gpio_request_one(&uhf->spi->dev, uhf->status,
+                                GPIOF_IN, "uhf-status");
+
+    return ret;
+}
+
+static inline void uhf_security_enable_irq(struct uhf_security *uhf)
+{
+    if (!uhf->irq_enabled) {
+        enable_irq(uhf->irq);
+        uhf->irq_enabled = true;
     } else {
-        printk(KERN_ALERT "unf security : has opened\n");
+        printk(KERN_ALERT "%s: irq has been enabled\n", __func__);
+    }
+}
+
+static inline void uhf_security_disable_irq(struct uhf_security *uhf)
+{
+    if (uhf->irq_enabled) {
+        disable_irq(uhf->irq);
+        uhf->irq_enabled = false;
+    } else {
+        printk(KERN_ALERT "%s: irq has been enabled\n", __func__);
+    }
+}
+
+/*
+ * We can't use the standard synchronous wrappers for file I/O; we
+ * need to protect against async removal of the underlying spi_device.
+ */
+static void uhf_security_complete(void *arg)
+{
+    complete(arg);
+}
+
+static ssize_t uhf_security_sync(struct uhf_security *uhf, struct spi_message *message)
+{
+    DECLARE_COMPLETION_ONSTACK(done);
+    int status;
+
+    message->complete = uhf_security_complete;
+    message->context = &done;
+
+    spin_lock_irq(&uhf->lock);
+    if (uhf->spi == NULL)
+        status = -ESHUTDOWN;
+    else
+        status = spi_async(uhf->spi, message);
+    spin_unlock_irq(&uhf->lock);
+
+    if (status == 0) {
+        wait_for_completion(&done);
+        status = message->status;
+        if (status == 0)
+            status = message->actual_length;
     }
 
-    return 0;
+    return status;
 }
 
-static int device_release(struct inode *inode,struct file *filp)
+static inline ssize_t uhf_security_sync_write(struct uhf_security *uhf, size_t len)
 {
-    struct uhf_security *uhf = __uhf;
+    struct spi_transfer t = {
+            .tx_buf     = uhf->buffer,
+            .len        = len,
+    };
+    struct spi_message  m;
 
-    uhf->open_idx = 0;
-
-    return 0;
+    spi_message_init(&m);
+    spi_message_add_tail(&t, &m);
+    return uhf_security_sync(uhf, &m);
 }
 
-ssize_t device_read (struct file *filp, char *buf, size_t count, loff_t *f_pos)
+static inline ssize_t uhf_security_sync_read(struct uhf_security *uhf, size_t len)
+{
+    struct spi_transfer t = {
+            .tx_buf     = uhf->buffer,
+            .len        = len,
+    };
+    struct spi_message  m;
+
+    spi_message_init(&m);
+    spi_message_add_tail(&t, &m);
+    return uhf_security_sync(uhf, &m);
+}
+
+/*-------------------------------------------------------------------------*/
+
+static int uhf_security_open(struct inode *inode,struct file *filp)
+{
+    int status = -ENXIO;
+    struct uhf_security *uhf = NULL;
+
+    mutex_lock(&device_list_lock);
+
+    list_for_each_entry(uhf, &device_list, device_entry) {
+        if (uhf->devt == inode->i_rdev) {
+            status = 0;
+            break;
+        }
+    }
+
+    if (status == 0) {
+        if (!uhf->buffer) {
+            uhf->buffer = kmalloc(bufsiz, GFP_KERNEL);
+            if (!uhf->buffer) {
+                printk(KERN_ERR "%s: open/ENOMEM\n", __func__);
+                status = -ENOMEM;
+            }
+        }
+
+        if (status == 0) {
+            uhf->users ++;
+            filp->private_data = uhf;
+            nonseekable_open(inode, filp);
+        }
+    } else
+        printk(KERN_ALERT "%s: nothing for minor %d\n", __func__, iminor(inode));
+
+    mutex_unlock(&device_list_lock);
+
+    return status;
+}
+
+static int uhf_security_release(struct inode *inode,struct file *filp)
+{
+    int status = 0;
+    struct uhf_security *uhf = NULL;
+
+    mutex_lock(&device_list_lock);
+    uhf = filp->private_data;
+
+    filp->private_data = NULL;
+
+    /* last close? */
+    uhf->users--;
+    if (!uhf->users) {
+        int dofree;
+        kfree(uhf->buffer);
+        uhf->buffer = NULL;
+
+        /* ... after we unbound from the underlying device? */
+        spin_lock_irq(&uhf->lock);
+        dofree = (uhf->spi == NULL);
+        spin_unlock_irq(&uhf->lock);
+
+        if (dofree)
+            kfree(uhf);
+    }
+    mutex_unlock(&device_list_lock);
+
+    return status;
+}
+
+ssize_t uhf_security_read (struct file *filp, char *buf, size_t count, loff_t *f_pos)
+{
+    ssize_t ret = 0;
+    struct uhf_security *uhf = NULL;
+
+    /* chipselect only toggles at start or end of operation */
+    if (count > bufsiz)
+        return -EMSGSIZE;
+
+    uhf = filp->private_data;
+
+    mutex_lock(&uhf->buf_lock);
+    ret = uhf_security_sync_read(uhf, count);
+    if (ret > 0) {
+        unsigned long missing;
+
+        missing = copy_to_user(buf, uhf->buffer, ret);
+        if (missing == ret)
+            ret = -EFAULT;
+        else
+            ret = ret - missing;
+    }
+    mutex_unlock(&uhf->buf_lock);
+
+    return ret;
+}
+
+ssize_t uhf_security_write (struct file *filp, const char *buf, size_t count, loff_t *f_pos)
+{
+    ssize_t ret = 0;
+    unsigned long missing;
+    struct uhf_security *uhf = NULL;
+
+    /* chipselect only toggles at start or end of operation */
+    if (count > bufsiz)
+        return -EMSGSIZE;
+
+    uhf = filp->private_data;
+
+    mutex_lock(&uhf->buf_lock);
+    missing = copy_from_user(uhf->buffer, buf, count);
+    if (missing == 0)
+        ret = uhf_security_sync_write(uhf, count);
+    else
+        ret = -EFAULT;
+    mutex_unlock(&uhf->buf_lock);
+
+    return ret;
+}
+
+static long uhf_security_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     return 0;
 }
 
-ssize_t device_write (struct file *filp, const char *buf, size_t count, loff_t *f_pos)
+#ifdef CONFIG_COMPAT
+static long uhf_security_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    return 0;
+    return uhf_security_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
 }
+#else
+#define uhf_security_compat_ioctl NULL
+#endif /* CONFIG_COMPAT */
+
+struct file_operations uhf_fops = {
+    .owner =    THIS_MODULE,
+    .read = uhf_security_read,
+    .write = uhf_security_write,
+    .unlocked_ioctl = uhf_security_ioctl,
+    .compat_ioctl = uhf_security_compat_ioctl,
+    .open = uhf_security_open,
+    .release = uhf_security_release,
+    .llseek = no_llseek,
+};
+
+/*-------------------------------------------------------------------------*/
 
 static void uhf_security_work_func(struct work_struct *work)
 {
@@ -133,22 +348,6 @@ static ssize_t uhf_security_sys_store(struct device *dev,
 
 static DEVICE_ATTR(uhf_security_sys, 0664, uhf_security_sys_show, uhf_security_sys_store);
 
-static int uhf_security_init_gpio(struct uhf_security *uhf)
-{
-    int ret;
-    /*
-     * reset    gpio1-14  SD2_DATA1
-     * status   gpio1-15  SD2_DATA0
-     */
-    ret = devm_gpio_request_one(&uhf->spi->dev, uhf->reset,
-                                GPIOF_OUT_INIT_HIGH, "uhf-reset");
-
-    ret += devm_gpio_request_one(&uhf->spi->dev, uhf->status,
-                                GPIOF_IN, "uhf-status");
-
-    return ret;
-}
-
 static int uhf_security_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
 {
     struct device_node *np = spi->dev.of_node;
@@ -170,19 +369,11 @@ static int uhf_security_parse_dt(struct spi_device *spi, struct uhf_security *uh
     return 0;
 }
 
-/******File operations define******/
-struct file_operations uhf_fops = {
-    .open = device_open,
-    .release = device_release,
-    .read = device_read,
-    .write = device_write,
-};
-
 static int uhf_security_probe(struct spi_device *spi)
 {
     int ret = 0;
     struct uhf_security *uhf = NULL;
-    dev_t devid = MKDEV(0, 0);
+    unsigned long minor;
 
     printk(KERN_ALERT "Enter %s\n", __func__);
 
@@ -205,10 +396,9 @@ static int uhf_security_probe(struct spi_device *spi)
 
     spin_lock_init(&uhf->lock);
     sema_init(&uhf->sem, 1);
+    mutex_init(&uhf->buf_lock);
 
-    uhf->spi = spi;
-    uhf->irq = spi->irq;
-    spi_set_drvdata(spi, uhf);
+    INIT_LIST_HEAD(&uhf->device_entry);
 
     if (spi->irq <= 0) {
         dev_err(&spi->dev, "no irq\n");
@@ -223,75 +413,85 @@ static int uhf_security_probe(struct spi_device *spi)
         return -ENODEV;
     }
 
-    /* Initializes a character device. */
-    uhf->minor = 0;
-    alloc_chrdev_region(&devid, 0, 1, "uhf_security");
-    uhf->major = MAJOR(devid);
+    /*
+     * If we can allocate a minor number, hook up this device.
+     * Reusing minors is fine so long as udev or mdev is working.
+     */
 
-    cdev_init(&uhf->cdev, &uhf_fops);
-    uhf->cdev.owner = THIS_MODULE;
-
-    ret = cdev_add(&uhf->cdev, MKDEV(uhf->major, 0), 1);
-    if (ret) {
-        printk(KERN_ERR "register character device error");
-        goto err1;
+    ret = register_chrdev(UHF_SPI_MAJOR, "spi", &uhf_fops);
+    if (ret < 0) {
+        printk(KERN_ALERT "%s: register chardev failed.\n", __func__);
+        return -ENOMEM;
     }
 
     /* create class and device for udev information. */
-    uhf->uhf_class = class_create(THIS_MODULE, "uhf_security");
-    if (IS_ERR(uhf->uhf_class)) {
+    uhf->class = class_create(THIS_MODULE, "uhf_security");
+    if (IS_ERR(uhf->class)) {
         printk(KERN_ERR "failed to create uhf class\n");
-        goto err2;
+        goto class_fail;
     }
 
-    /*
-     * register device in sysfs, and this will cause udev to
-     * create corresponding device node.
-     */
-    uhf->dev = device_create(uhf->uhf_class, NULL,
-        MKDEV(uhf->major, uhf->minor), NULL, "uhf_security");
-    if (IS_ERR(uhf->dev)) {
-        printk(KERN_ERR "failed to create class device\n");
-        goto err3;
+    mutex_lock(&device_list_lock);
+    minor = find_first_zero_bit(minors, UHF_SPI_MINORS);
+    if (minor < UHF_SPI_MINORS) {
+        uhf->devt = MKDEV(UHF_SPI_MAJOR, minor);
+        uhf->dev = device_create(uhf->class, &spi->dev, uhf->devt,
+                    uhf, "uhf_security");
+        ret = PTR_ERR_OR_ZERO(uhf->dev);
+    } else {
+        printk(KERN_ALERT "%s: no minor number available!\n", __func__);
+        ret = -ENODEV;
+        goto device_fail;
     }
+
+    if (ret == 0) {
+        set_bit(minor, minors);
+        list_add(&uhf->device_entry, &device_list);
+    }
+    mutex_unlock(&device_list_lock);
+
+    uhf->spi = spi;
+    uhf->irq = spi->irq;
+    spi_set_drvdata(spi, uhf);
 
     ret = uhf_security_init_gpio(uhf);
 
     ret += device_create_file(uhf->dev, &dev_attr_uhf_security_sys);
-    if (ret)
-        goto err3;
+    if (ret) {
+        printk(KERN_ALERT "%s: create sys file failed.\n", __func__);
+        goto sys_fail;
+    }
 
     /* Initializes uhf security INT irq. */
     ret = devm_request_threaded_irq(&spi->dev, uhf->irq, NULL, uhf_security_handler,
-                                IRQF_TRIGGER_FALLING | IRQF_ONESHOT, "uhf_irq", (void *)uhf);
+                                IRQF_TRIGGER_FALLING | IRQF_ONESHOT, "uhf_irq", uhf);
     if (ret) {
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
-        goto err3;
-    } else
-        enable_irq(uhf->irq); /* FIXME : need disable_irq */
+        goto irq_fail;
+    }
+
+    uhf->irq_enabled = true;
 
     INIT_DELAYED_WORK(&uhf->uhf_work, uhf_security_work_func);
     uhf->uhf_queue = create_workqueue("uhf_wq");
     if (!uhf->uhf_queue){
         printk(KERN_ERR"create singlethread workqueue ERROR\n");
         ret = -ENOMEM;
-        goto err3;
+        goto queue_fail;
     }
 
-    __uhf = uhf;
+    return ret;
 
-    goto success;
-
-err3:
-    printk(KERN_ALERT "device_destroy\n");
-    device_destroy(uhf->uhf_class, MKDEV(uhf->major, uhf->minor));
-err2:
-    printk(KERN_ALERT "class_destroy\n");
-    class_destroy(uhf->uhf_class);
-err1:
-    printk(KERN_ALERT "cdev_del\n");
-    cdev_del(&uhf->cdev);
-success:
+queue_fail:
+    uhf_security_disable_irq(uhf);
+irq_fail:
+    device_remove_file(uhf->dev, &dev_attr_uhf_security_sys);
+sys_fail:
+    device_destroy(uhf->class, uhf->devt);
+device_fail:
+    class_destroy(uhf->class);
+class_fail:
+    unregister_chrdev(UHF_SPI_MAJOR, UHF_SECURITY_NAME);
     return ret;
 }
 
@@ -299,14 +499,29 @@ static int uhf_security_remove(struct spi_device *spi)
 {
     struct uhf_security *uhf = spi_get_drvdata(spi);
 
-    device_destroy(uhf->uhf_class, MKDEV(uhf->major, uhf->minor));
-    class_destroy(uhf->uhf_class);
-    cdev_del(&uhf->cdev);
+    /* make sure ops on existing fds can abort cleanly */
+    spin_lock_irq(&uhf->lock);
+    uhf->spi = NULL;
+    spin_unlock_irq(&uhf->lock);
+
+    uhf_security_disable_irq(uhf);
+
+    /* prevent new opens */
+    mutex_lock(&device_list_lock);
+    list_del(&uhf->device_entry);
+
+    device_destroy(uhf->class, uhf->devt);
+    class_destroy(uhf->class);
+    unregister_chrdev(UHF_SPI_MAJOR, UHF_SECURITY_NAME);
+    clear_bit(MINOR(uhf->devt), minors);
+    mutex_unlock(&device_list_lock);
+
+    if (uhf->users == 0)
+        kfree(uhf);
+
 
     if (uhf->uhf_queue)
         destroy_workqueue(uhf->uhf_queue);
-
-    kfree(uhf); 
 
     return 0;
 }
@@ -321,7 +536,7 @@ static const struct of_device_id uhf_security_of_match[] = {
 static struct spi_driver uhf_security_driver = {
     .driver = {
         .owner  = THIS_MODULE,
-        .name   = "uhf_security",
+        .name   = UHF_SECURITY_NAME,
         .of_match_table = of_match_ptr(uhf_security_of_match),
     },
     .probe = uhf_security_probe,
