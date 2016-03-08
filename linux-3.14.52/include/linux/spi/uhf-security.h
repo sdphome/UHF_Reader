@@ -46,9 +46,26 @@
 #define UHF_SPI_MAJOR   153 /* assigned */
 #define UHF_SPI_MINORS  32  /* ... up to 256 */
 
+#define UHF_SPI_MTU		1500
+
 static DECLARE_BITMAP(minors, UHF_SPI_MINORS);
 
 /*-------------------------------------------------------------------------*/
+
+struct uhf_security_data {
+	uint16_t len;
+	uint8_t data[UHF_SPI_MTU];
+} __packed;
+#define UHF_CACHE_NUM	50
+#define UHF_CACHE_SIZE	(sizeof(struct uhf_security_data) * UHF_CACHE_NUM)
+
+struct uhf_security_cache {
+	volatile unsigned long recv_buf;
+	volatile unsigned long recv_head;
+	volatile unsigned long recv_tail;
+
+	wait_queue_head_t inq;
+};
 
 struct uhf_security {
     struct spi_device *spi;
@@ -62,8 +79,8 @@ struct uhf_security {
     struct mutex buf_lock;
     struct semaphore sem;
 
-    struct delayed_work uhf_work;
-    struct workqueue_struct *uhf_queue;
+    struct work_struct recv_work;
+    struct workqueue_struct *recv_queue;
 
     bool irq_enabled;
 
@@ -71,9 +88,11 @@ struct uhf_security {
     int reset;
     int status;
 
-    u8 *buffer;
+	struct uhf_security_cache *cache;
 
     int users;
 };
+
+
 
 #endif /* __LINUX_SPI_UHF_SECURITY_H__ */

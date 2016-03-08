@@ -571,12 +571,6 @@ config SPI_TLE62X0
 	  sysfs interface, with each line presented as a kind of GPIO
 	  exposing both switch control and diagnostic feedback.
 
-config UHF_SECURITY
-	tristate "UHF security module driver"
-	depends on SYSFS
-	help
-	  SPI driver for uhf security module.
-
 #
 # Add new SPI protocol masters in alphabetical order above this line
 #
@@ -585,4 +579,11 @@ endif # SPI_MASTER
 
 # (slave support would go here)
 
+config UHF_SECURITY
+	tristate "UHF security module driver"
+	depends on SYSFS
+	help
+	  SPI driver for uhf security module.
+
 endif # SPI
+

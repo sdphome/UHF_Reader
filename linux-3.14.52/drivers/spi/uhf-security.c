@@ -47,11 +47,9 @@ struct uhf_security *__uhf = NULL;
 static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
 
-static unsigned bufsiz = 4096;
-
 /*-------------------------------------------------------------------------*/
 
-static int uhf_security_init_gpio(struct uhf_security *uhf)
+static int us_init_gpio(struct uhf_security *uhf)
 {
     int ret;
     /*
@@ -67,7 +65,32 @@ static int uhf_security_init_gpio(struct uhf_security *uhf)
     return ret;
 }
 
-static inline void uhf_security_enable_irq(struct uhf_security *uhf)
+static int us_init(struct uhf_security *uhf)
+{
+	uhf->cache = devm_kzalloc(uhf->dev, sizeof(struct uhf_security_cache), GFP_KERNEL);
+	if (NULL == uhf->cache) {
+		printk(KERN_ALERT "Allocate cache memory failed.\n");
+		return -ENOMEM;
+	}
+
+	uhf->cache->recv_buf = (unsigned long)devm_kzalloc(uhf->dev,
+				sizeof(struct uhf_security_data) * UHF_CACHE_NUM, GFP_KERNEL);
+	if (!uhf->cache->recv_buf) {
+		printk(KERN_ALERT "Allocate recv buffer memory failed.\n");
+		kfree(uhf->cache);
+		uhf->cache = NULL;
+		return -ENOMEM;
+	}
+
+	uhf->cache->recv_head = uhf->cache->recv_buf;
+	uhf->cache->recv_tail = uhf->cache->recv_buf;
+
+	init_waitqueue_head(&uhf->cache->inq);
+
+	return us_init_gpio(uhf);
+}
+
+static inline void us_enable_irq(struct uhf_security *uhf)
 {
     if (!uhf->irq_enabled) {
         enable_irq(uhf->irq);
@@ -77,7 +100,7 @@ static inline void uhf_security_enable_irq(struct uhf_security *uhf)
     }
 }
 
-static inline void uhf_security_disable_irq(struct uhf_security *uhf)
+static inline void us_disable_irq(struct uhf_security *uhf)
 {
     if (uhf->irq_enabled) {
         disable_irq(uhf->irq);
@@ -87,107 +110,129 @@ static inline void uhf_security_disable_irq(struct uhf_security *uhf)
     }
 }
 
+/*-------------------------------------------------------------------------*/
+
 /*
- * We can't use the standard synchronous wrappers for file I/O; we
- * need to protect against async removal of the underlying spi_device.
+ * Atomicly increment the cache tail pointer
  */
-static void uhf_security_complete(void *arg)
+static inline void us_incr_cache_tail(struct uhf_security *uhf, int delta)
 {
-    complete(arg);
+	unsigned long newvalue;
+	unsigned int n = delta / sizeof(struct uhf_security_data);
+
+	if (delta % sizeof(struct uhf_security_data))
+		delta = (n + 1) * sizeof(struct uhf_security_data);
+
+	newvalue = uhf->cache->recv_tail + delta;
+	barrier ();  /* Don't optimize these two together */
+	if (newvalue >= (uhf->cache->recv_buf + UHF_CACHE_SIZE))
+		uhf->cache->recv_tail = uhf->cache->recv_buf;
+	else
+		uhf->cache->recv_tail = newvalue;
 }
 
-static ssize_t uhf_security_sync(struct uhf_security *uhf, struct spi_message *message)
+/*
+ * Atomicly increment the cache head pointer
+ */
+static inline void us_incr_cache_head(struct uhf_security *uhf, int delta)
 {
-    DECLARE_COMPLETION_ONSTACK(done);
-    int status;
+	unsigned long newvalue;
+	unsigned int n = delta / sizeof(struct uhf_security_data);
 
-    message->complete = uhf_security_complete;
-    message->context = &done;
+	if (delta % sizeof(struct uhf_security_data))
+		delta = (n + 1) * sizeof(struct uhf_security_data);
 
-    spin_lock_irq(&uhf->lock);
-    if (uhf->spi == NULL)
-        status = -ESHUTDOWN;
-    else
-        status = spi_async(uhf->spi, message);
-    spin_unlock_irq(&uhf->lock);
-
-    if (status == 0) {
-        wait_for_completion(&done);
-        status = message->status;
-        if (status == 0)
-            status = message->actual_length;
-    }
-
-    return status;
+	newvalue = uhf->cache->recv_head + delta;
+	barrier ();  /* Don't optimize these two together */
+	if (newvalue >= (uhf->cache->recv_buf + UHF_CACHE_SIZE))
+		uhf->cache->recv_head = uhf->cache->recv_buf;
+	else
+		uhf->cache->recv_head = newvalue;
 }
 
-static inline ssize_t uhf_security_sync_write(struct uhf_security *uhf, size_t len)
+static inline void us_copy_to_cache(struct uhf_security *uhf, struct uhf_security_data datagram)
 {
-    struct spi_transfer t = {
-            .tx_buf     = uhf->buffer,
-            .len        = len,
-    };
-    struct spi_message  m;
-
-    spi_message_init(&m);
-    spi_message_add_tail(&t, &m);
-    return uhf_security_sync(uhf, &m);
-}
-
-static inline ssize_t uhf_security_sync_read(struct uhf_security *uhf, size_t len)
-{
-    struct spi_transfer t = {
-            .tx_buf     = uhf->buffer,
-            .len        = len,
-    };
-    struct spi_message  m;
-
-    spi_message_init(&m);
-    spi_message_add_tail(&t, &m);
-    return uhf_security_sync(uhf, &m);
+	memcpy((void *)uhf->cache->recv_head, &datagram, sizeof(struct uhf_security_data));
+	us_incr_cache_head(uhf, sizeof(struct uhf_security_data));
+	wake_up_interruptible(&(uhf->cache->inq)); /* awake any reading process */
 }
 
 /*-------------------------------------------------------------------------*/
 
-static int uhf_security_open(struct inode *inode,struct file *filp)
+static inline ssize_t us_sync_rw(struct uhf_security *uhf, struct uhf_security_data *us_data)
 {
-    int status = -ENXIO;
+    struct spi_transfer t = {
+            .tx_buf     = us_data->data,
+            .rx_buf     = us_data->data,
+            .len        = us_data->len,
+    };
+    struct spi_message m;
+
+    spi_message_init(&m);
+    spi_message_add_tail(&t, &m);
+    if (spi_sync(uhf->spi, &m) != 0 || m.status != 0)
+		return 0;
+
+	printk(KERN_ALERT "%s: len:%d, actual_length=%d, 4th:0x%x\n", __func__, us_data->len, m.actual_length, (us_data->data)[3]);
+
+	us_copy_to_cache(uhf, *us_data);
+
+	return (us_data->len - m.actual_length);
+}
+
+static inline ssize_t us_sync_read(struct uhf_security *uhf)
+{
+	struct uhf_security_data us_data;
+    struct spi_transfer t = {
+            .rx_buf     = us_data.data,
+            .len        = UHF_SPI_MTU,
+    };
+    struct spi_message m;
+
+    spi_message_init(&m);
+    spi_message_add_tail(&t, &m);
+
+    if (spi_sync(uhf->spi, &m) != 0 || m.status != 0)
+		return 0;
+
+	printk(KERN_ALERT "%s: len:%d, actual_length=%d\n", __func__, us_data.len, m.actual_length);
+
+	us_copy_to_cache(uhf, us_data);
+
+	return (UHF_SPI_MTU - m.actual_length);
+}
+
+/*-------------------------------------------------------------------------*/
+
+static int us_open(struct inode *inode,struct file *filp)
+{
+    int ret = -ENXIO;
     struct uhf_security *uhf = NULL;
 
     mutex_lock(&device_list_lock);
 
     list_for_each_entry(uhf, &device_list, device_entry) {
         if (uhf->devt == inode->i_rdev) {
-            status = 0;
+            ret = 0;
             break;
         }
     }
 
-    if (status == 0) {
-        if (!uhf->buffer) {
-            uhf->buffer = kmalloc(bufsiz, GFP_KERNEL);
-            if (!uhf->buffer) {
-                printk(KERN_ERR "%s: open/ENOMEM\n", __func__);
-                status = -ENOMEM;
-            }
-        }
-
-        if (status == 0) {
-            uhf->users ++;
-            filp->private_data = uhf;
-            nonseekable_open(inode, filp);
-        }
-    } else
-        printk(KERN_ALERT "%s: nothing for minor %d\n", __func__, iminor(inode));
+	if (ret == 0) {
+		uhf->users++;
+		filp->private_data = uhf;
+		nonseekable_open(inode, filp);
+		printk(KERN_ALERT "%s: successfully.\n", __func__);
+	}
 
     mutex_unlock(&device_list_lock);
 
-    return status;
+    return ret;
 }
 
-static int uhf_security_release(struct inode *inode,struct file *filp)
+static int us_release(struct inode *inode,struct file *filp)
 {
-    int status = 0;
+    int ret = 0;
     struct uhf_security *uhf = NULL;
 
     mutex_lock(&device_list_lock);
@@ -199,8 +244,6 @@ static int uhf_security_release(struct inode *inode,struct file *filp)
     uhf->users--;
     if (!uhf->users) {
         int dofree;
-        kfree(uhf->buffer);
-        uhf->buffer = NULL;
 
         /* ... after we unbound from the underlying device? */
         spin_lock_irq(&uhf->lock);
@@ -212,98 +255,135 @@ static int uhf_security_release(struct inode *inode,struct file *filp)
     }
     mutex_unlock(&device_list_lock);
 
-    return status;
+    return ret;
 }
 
-ssize_t uhf_security_read (struct file *filp, char *buf, size_t count, loff_t *f_pos)
+ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
-    ssize_t ret = 0;
+    ssize_t count0 = 0;
     struct uhf_security *uhf = NULL;
+	struct uhf_security_data *temp;
 
-    /* chipselect only toggles at start or end of operation */
-    if (count > bufsiz)
+    if (count > UHF_SPI_MTU)
         return -EMSGSIZE;
 
     uhf = filp->private_data;
 
-    mutex_lock(&uhf->buf_lock);
-    ret = uhf_security_sync_read(uhf, count);
-    if (ret > 0) {
-        unsigned long missing;
+    if (down_interruptible(&uhf->sem))
+		return -ERESTARTSYS;
 
-        missing = copy_to_user(buf, uhf->buffer, ret);
-        if (missing == ret)
-            ret = -EFAULT;
-        else
-            ret = ret - missing;
-    }
-    mutex_unlock(&uhf->buf_lock);
+	while (uhf->cache->recv_head== uhf->cache->recv_tail) { /* nothing to read */
+		up(&uhf->sem);
 
-    return ret;
+		if (filp->f_flags & O_NONBLOCK)
+			return -EAGAIN;
+
+		if (wait_event_interruptible(uhf->cache->inq, (uhf->cache->recv_head != uhf->cache->recv_tail)))
+			return -ERESTARTSYS; /* signal: tell the fs layer to handle it */
+
+		/* otherwise loop, but first reacquire the lock */
+		if (down_interruptible(&uhf->sem))
+			return -ERESTARTSYS;
+	}
+
+	/* ok, data is there, return something */
+	/* count0 is the number of readable data bytes */
+	count0 = uhf->cache->recv_head - uhf->cache->recv_tail;
+	printk(KERN_ALERT "%s: count0=%d, count=%d\n", __func__, count0, count);
+	if (count0 < 0) /* wrapped */
+		count0 = uhf->cache->recv_buf + UHF_CACHE_SIZE - uhf->cache->recv_tail;
+
+	if (count0 <= count)
+		count = count0; /* Be sure count equal with sizeof(struct uhf_security_data). */
+
+	temp = (struct uhf_security_data *)uhf->cache->recv_tail;
+	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
+
+	if (copy_to_user((uint8_t __user *)buf, (char *)uhf->cache->recv_tail, temp->len + 2)) {
+		up(&uhf->sem);
+		return -EFAULT;
+	}
+
+	us_incr_cache_tail(uhf, count);
+	up(&uhf->sem);
+
+	return count;
 }
 
-ssize_t uhf_security_write (struct file *filp, const char *buf, size_t count, loff_t *f_pos)
+ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
     ssize_t ret = 0;
     unsigned long missing;
     struct uhf_security *uhf = NULL;
+	struct uhf_security_data temp;
 
-    /* chipselect only toggles at start or end of operation */
-    if (count > bufsiz)
+    if (count > UHF_SPI_MTU)
         return -EMSGSIZE;
 
     uhf = filp->private_data;
 
-    mutex_lock(&uhf->buf_lock);
-    missing = copy_from_user(uhf->buffer, buf, count);
-    if (missing == 0)
-        ret = uhf_security_sync_write(uhf, count);
-    else
-        ret = -EFAULT;
-    mutex_unlock(&uhf->buf_lock);
+	missing = copy_from_user((uint8_t *)&temp, (const uint8_t __user *)(uintptr_t)buf, count);
+
+	if(down_interruptible(&uhf->sem))
+		return -ERESTARTSYS;
+
+	printk(KERN_ALERT "%s: 4th:0x%x\n", __func__, temp.data[3]);
+
+    ret = us_sync_rw(uhf, &temp);
+
+    up(&uhf->sem);
+    printk(KERN_ALERT "%s:ret:%d, count=%d\n", __func__, ret, count);
 
     return ret;
 }
 
-static long uhf_security_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static long us_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
     return 0;
 }
 
 #ifdef CONFIG_COMPAT
-static long uhf_security_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static long us_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    return uhf_security_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
+    return us_ioctl(filp, cmd, (unsigned long)compat_ptr(arg));
 }
 #else
-#define uhf_security_compat_ioctl NULL
+#define us_compat_ioctl NULL
 #endif /* CONFIG_COMPAT */
 
-struct file_operations uhf_fops = {
+struct file_operations us_fops = {
     .owner =    THIS_MODULE,
-    .read = uhf_security_read,
-    .write = uhf_security_write,
-    .unlocked_ioctl = uhf_security_ioctl,
-    .compat_ioctl = uhf_security_compat_ioctl,
-    .open = uhf_security_open,
-    .release = uhf_security_release,
+    .read = us_read,
+    .write = us_write,
+    .unlocked_ioctl = us_ioctl,
+    .compat_ioctl = us_compat_ioctl,
+    .open = us_open,
+    .release = us_release,
     .llseek = no_llseek,
 };
 
 /*-------------------------------------------------------------------------*/
 
-static void uhf_security_work_func(struct work_struct *work)
+static void us_recv_func(struct work_struct *work)
 {
+	struct uhf_security *uhf = __uhf;
     printk(KERN_ALERT "%s\n", __func__);
+
+	us_enable_irq(uhf);
 }
 
-static irqreturn_t uhf_security_handler(int irq, void *handle)
+static irqreturn_t us_intr_handler(int irq, void *handle)
 {
-    printk(KERN_ALERT "got a interupt!!\n");
+	struct uhf_security *uhf = (struct uhf_security *)handle;
+
+	us_disable_irq(uhf);
+
+	queue_work(uhf->recv_queue, &uhf->recv_work);
+
     return IRQ_HANDLED;
 }
 
-static inline void uhf_security_reset(int reset)
+static inline void us_reset(int reset)
 {
     gpio_set_value(reset, GPIOF_INIT_HIGH);
     msleep(1);
@@ -313,7 +393,7 @@ static inline void uhf_security_reset(int reset)
     printk(KERN_ALERT "reset security module\n");
 }
 
-static inline int uhf_security_get_status(int status)
+static inline int us_get_status(int status)
 {
     int value;
 
@@ -324,31 +404,31 @@ static inline int uhf_security_get_status(int status)
         return BUSY;
 }
 
-static ssize_t uhf_security_sys_show(struct device *dev,
+static ssize_t us_sys_show(struct device *dev,
             struct device_attribute *attr, char *buf)
 {
     return 0;
 }
 
-static ssize_t uhf_security_sys_store(struct device *dev,
+static ssize_t us_sys_store(struct device *dev,
             struct device_attribute *attr, const char *buf, size_t size)
 {
     int ret;
     struct uhf_security *uhf = __uhf;
 
     if (strstr(buf,"status") != NULL) {
-        ret = uhf_security_get_status(uhf->status);
+        ret = us_get_status(uhf->status);
         printk(KERN_ALERT "uhf security module status is %s.\n", ret == OK ? "OK" : "BUSY");
     } else if (strstr(buf,"reset") != NULL) {
-        uhf_security_reset(uhf->reset);
+        us_reset(uhf->reset);
     }
 
     return size;
 }
 
-static DEVICE_ATTR(uhf_security_sys, 0664, uhf_security_sys_show, uhf_security_sys_store);
+static DEVICE_ATTR(us_sys, 0664, us_sys_show, us_sys_store);
 
-static int uhf_security_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
+static int us_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
 {
     struct device_node *np = spi->dev.of_node;
 
@@ -369,7 +449,7 @@ static int uhf_security_parse_dt(struct spi_device *spi, struct uhf_security *uh
     return 0;
 }
 
-static int uhf_security_probe(struct spi_device *spi)
+static int us_probe(struct spi_device *spi)
 {
     int ret = 0;
     struct uhf_security *uhf = NULL;
@@ -407,7 +487,7 @@ static int uhf_security_probe(struct spi_device *spi)
 
     printk(KERN_ALERT "irq no:%d\n", spi->irq);
 
-    ret = uhf_security_parse_dt(spi, uhf);
+    ret = us_parse_dt(spi, uhf);
     if (ret < 0) {
         dev_err(&spi->dev, "parse dts failed\n");
         return -ENODEV;
@@ -418,7 +498,7 @@ static int uhf_security_probe(struct spi_device *spi)
      * Reusing minors is fine so long as udev or mdev is working.
      */
 
-    ret = register_chrdev(UHF_SPI_MAJOR, "spi", &uhf_fops);
+    ret = register_chrdev(UHF_SPI_MAJOR, "spi", &us_fops);
     if (ret < 0) {
         printk(KERN_ALERT "%s: register chardev failed.\n", __func__);
         return -ENOMEM;
@@ -454,16 +534,16 @@ static int uhf_security_probe(struct spi_device *spi)
     uhf->irq = spi->irq;
     spi_set_drvdata(spi, uhf);
 
-    ret = uhf_security_init_gpio(uhf);
+    ret = us_init(uhf);
 
-    ret += device_create_file(uhf->dev, &dev_attr_uhf_security_sys);
+    ret += device_create_file(uhf->dev, &dev_attr_us_sys);
     if (ret) {
         printk(KERN_ALERT "%s: create sys file failed.\n", __func__);
         goto sys_fail;
     }
 
     /* Initializes uhf security INT irq. */
-    ret = request_irq(uhf->irq, uhf_security_handler,
+    ret = request_irq(uhf->irq, us_intr_handler,
                       IRQF_TRIGGER_FALLING, "uhf_irq", uhf);
     if (ret) {
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
@@ -472,20 +552,22 @@ static int uhf_security_probe(struct spi_device *spi)
 
     uhf->irq_enabled = true;
 
-    INIT_DELAYED_WORK(&uhf->uhf_work, uhf_security_work_func);
-    uhf->uhf_queue = create_workqueue("uhf_wq");
-    if (!uhf->uhf_queue){
+    INIT_WORK(&uhf->recv_work, us_recv_func);
+    uhf->recv_queue = create_singlethread_workqueue("us_wq");
+    if (!uhf->recv_queue){
         printk(KERN_ERR"create singlethread workqueue ERROR\n");
         ret = -ENOMEM;
         goto queue_fail;
     }
+
+	__uhf = uhf;
 
     return ret;
 
 queue_fail:
     free_irq(uhf->irq, uhf);
 irq_fail:
-    device_remove_file(uhf->dev, &dev_attr_uhf_security_sys);
+    device_remove_file(uhf->dev, &dev_attr_us_sys);
 sys_fail:
     device_destroy(uhf->class, uhf->devt);
 device_fail:
@@ -495,7 +577,7 @@ class_fail:
     return ret;
 }
 
-static int uhf_security_remove(struct spi_device *spi)
+static int us_remove(struct spi_device *spi)
 {
     struct uhf_security *uhf = spi_get_drvdata(spi);
 
@@ -519,30 +601,32 @@ static int uhf_security_remove(struct spi_device *spi)
     if (uhf->users == 0)
         kfree(uhf);
 
-    if (uhf->uhf_queue)
-        destroy_workqueue(uhf->uhf_queue);
+    if (uhf->recv_queue)
+        destroy_workqueue(uhf->recv_queue);
+
+	__uhf = NULL;
 
     return 0;
 }
 
 #ifdef CONFIG_OF
-static const struct of_device_id uhf_security_of_match[] = {
+static const struct of_device_id us_of_match[] = {
     { .compatible = "jzt,uhf_security" },
     { /* sentinel */ }
 };
 #endif
 
-static struct spi_driver uhf_security_driver = {
+static struct spi_driver us_driver = {
     .driver = {
         .owner  = THIS_MODULE,
         .name   = UHF_SECURITY_NAME,
-        .of_match_table = of_match_ptr(uhf_security_of_match),
+        .of_match_table = of_match_ptr(us_of_match),
     },
-    .probe = uhf_security_probe,
-    .remove = uhf_security_remove,
+    .probe = us_probe,
+    .remove = us_remove,
 };
 
-module_spi_driver(uhf_security_driver);
+module_spi_driver(us_driver);
 
 
 MODULE_AUTHOR("Shao Depeng <dp.shao@gmail.com>");
