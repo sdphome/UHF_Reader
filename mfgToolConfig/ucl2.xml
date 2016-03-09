@@ -1,0 +1,411 @@
+
+<UCL>
+  <CFG>
+    <STATE name="BootStrap" dev="MX6D" vid="15A2" pid="0061"/>
+    <STATE name="BootStrap" dev="MX6Q" vid="15A2" pid="0054"/>
+    <STATE name="Updater"   dev="MSC" vid="066F" pid="37FF"/>
+  </CFG>
+  
+  <LIST name="LOAD_UBOOT_BIN" desc="load u-boot.bin">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="u-boot.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to u-boot.bin </CMD>
+  </LIST> 
+  
+  <LIST name="LOAD_UBOOT_IMX" desc="update u-boot.imx">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="u-boot.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to u-boot.imx </CMD>
+  </LIST>
+
+  <LIST name="UPDATE_UBOOT_BIN" desc="update u-boot.bin">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-jzt-uhf" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="u-boot.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST> 
+  
+  <LIST name="UPDATE_UBOOT_IMX" desc="update u-boot.imx">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-31452/uboot-%ek_name%-%ek_spec%.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/mfg-zImage-jzt-uhf" address="0x12000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/initramfs-imx_mfgtools.cpio.gz.u-boot" address="0x12C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Initramfs.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/%ek_name%-%ek_spec%.dtb" address="0x18000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading device tree.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+	
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="u-boot.imx">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512 seek=2">write U-Boot to SPI-NOR</CMD>
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST>
+  
+  <LIST name="UPDATA_L314_RTFS_PKGS" desc="update: linux-3.14 rootfs package">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-31452/uboot-%ek_name%-%ek_spec%.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/mfg-zImage-myimx6" address="0x12000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/initramfs-imx_mfgtools.cpio.gz.u-boot" address="0x12C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Initramfs.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/%ek_name%-%ek_spec%.dtb" address="0x18000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading device tree.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk3p2"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk3p2 /mnt/mmcblk3p2"/>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk3p2" file="image-linux-31452/rtfs_file.tar.bz2">Sending and writting modules</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing modules write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk3p2">Unmounting rootfs partition</CMD>
+	
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST>
+
+  <LIST name="Linux-3.0.35" desc="Target OS: Linux-3.0.35">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uboot-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+
+	<!-- partitioning the eMMC: -->
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-l3035.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk0"> Partitioning SD card now...</CMD>
+
+	<!-- burn the kernel: -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uImage-%ek_name%">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk0 bs=1M seek=1 conv=fsync">write kernel image to emmc</CMD>
+
+	<!-- burn the rootfs: -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk0p1">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk0p1 /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk0p1" file="image-linux-3035/%rootfs_l3035_file%">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk0p1">Unmounting rootfs partition</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST> 
+  
+  <LIST name="Linux-3.0.35-SD" desc="Target OS: Linux-3.0.35">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uboot-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+
+	<!-- partitioning the eMMC: -->
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-l3035.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk1"> Partitioning SD card now...</CMD>
+
+	<!-- burn the kernel: -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uImage-%ek_name%">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk1 bs=1M seek=1 conv=fsync">write kernel image to emmc</CMD>
+
+	<!-- burn the rootfs: -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk1p1">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk1p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk1p1 /mnt/mmcblk1p1"/>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk1p1" file="image-linux-3035/%rootfs_l3035_file%">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk1p1">Unmounting rootfs partition</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST> 
+  
+  <LIST name="Linux-3.14.28" desc="Target OS: Linux-3.14.28">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-31428/uboot-%ek_name%-%ek_spec%.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31428/mfg-zImage-myimx6" address="0x12000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31428/mfg-initramfs-imx6qus.cpio.gz.u-boot" address="0x12C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Initramfs.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31428/%ek_name%-%ek_spec%.dtb" address="0x18000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading device tree.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-31428/uboot-%ek_name%-%ek_spec%.imx">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512 seek=2">write U-Boot to SPI-NOR</CMD>
+
+	<!-- create partition -->
+	<CMD state="Updater" type="push" body="send" file="firmware-31428/mksdcard-31428.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk3"> Partitioning...</CMD>
+
+	<!-- create fat partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.vfat /dev/mmcblk3p1">Formatting kernel partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk3p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t vfat /dev/mmcblk3p1 /mnt/mmcblk3p1"/>
+	<!-- burn zImage -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31428/zImage-myimx6">Sending kernel zImage</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk3p1/zImage-myimx6">write kernel image to sd card</CMD>
+	<!-- burn dtb -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31428/%ek_name%-%ek_spec%.dtb">Sending Device Tree file</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk3p1/%ek_name%-%ek_spec%.dtb">write device tree to sd card</CMD>
+	<!-- umount -->
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk3p1">Unmounting vfat partition</CMD>
+
+	<!-- create ext3 partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk3p2">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk3p2"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk3p2 /mnt/mmcblk3p2"/>
+	<!-- burn rootfs -->
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk3p2" file="image-linux-31428/%rootfs_l31428_file%">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk3p2">Unmounting rootfs partition</CMD>
+	
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST>
+
+  <LIST name="Linux-3.14.52" desc="Target OS: Linux-3.14.52">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-31452/uboot-%ek_name%-%ek_spec%.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/mfg-zImage-jzt-uhf" address="0x12000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/initramfs-imx_mfgtools.cpio.gz.u-boot" address="0x12C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Initramfs.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/%ek_name%-%ek_spec%.dtb" address="0x18000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading device tree.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/uboot-%ek_name%-%ek_spec%.imx">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512 seek=2">write U-Boot to SPI-NOR</CMD>
+
+	<!-- create partition -->
+	<CMD state="Updater" type="push" body="send" file="firmware-31452/mksdcard-31452.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk3"> Partitioning...</CMD>
+
+	<!-- create fat partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.vfat /dev/mmcblk3p1">Formatting kernel partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk3p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t vfat /dev/mmcblk3p1 /mnt/mmcblk3p1"/>
+	<!-- burn zImage -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/zImage-jzt-uhf">Sending kernel zImage</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk3p1/zImage-jzt-uhf">write kernel image to sd card</CMD>
+	<!-- burn dtb -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/%ek_name%-%ek_spec%.dtb">Sending Device Tree file</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk3p1/%ek_name%-%ek_spec%.dtb">write device tree to sd card</CMD>
+	<!-- umount -->
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk3p1">Unmounting vfat partition</CMD>
+
+	<!-- create ext3 partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk3p2">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk3p2"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk3p2 /mnt/mmcblk3p2"/>
+	<!-- burn rootfs -->
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk3p2" file="image-linux-31452/%rootfs_l31452_file%">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk3p2" file="image-linux-31452/modules.tar.bz2">Sending and writting modules</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing modules write</CMD>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk3p2" file="image-linux-31452/rtfs_file.tar.bz2">Sending and writting modules</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing modules write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk3p2">Unmounting rootfs partition</CMD>
+	
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST>
+
+  <LIST name="Linux-3.14.52-SD" desc="Target OS: Linux-3.14.52">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-31452/uboot-%ek_name%-%ek_spec%.imx">Loading U-boot</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/mfg-zImage-myimx6" address="0x12000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/initramfs-imx_mfgtools.cpio.gz.u-boot" address="0x12C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading Initramfs.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-31452/%ek_name%-%ek_spec%.dtb" address="0x18000000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE">Loading device tree.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/uboot-%ek_name%-%ek_spec%.imx">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512 seek=2">write U-Boot to SPI-NOR</CMD>
+
+	<!-- create partition -->
+	<CMD state="Updater" type="push" body="send" file="firmware-31452/mksdcard-31452.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk2"> Partitioning...</CMD>
+
+	<!-- create fat partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.vfat /dev/mmcblk2p1">Formatting kernel partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk2p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t vfat /dev/mmcblk2p1 /mnt/mmcblk2p1"/>
+	<!-- burn zImage -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/zImage-myimx6">Sending kernel zImage</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk2p1/zImage-myimx6">write kernel image to sd card</CMD>
+	<!-- burn dtb -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-31452/%ek_name%-%ek_spec%.dtb">Sending Device Tree file</CMD>
+	<CMD state="Updater" type="push" body="$ cp $FILE /mnt/mmcblk2p1/%ek_name%-%ek_spec%.dtb">write device tree to sd card</CMD>
+	<!-- umount -->
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk2p1">Unmounting vfat partition</CMD>
+
+	<!-- create ext3 partition -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk2p2">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk2p2"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk2p2 /mnt/mmcblk2p2"/>
+	<!-- burn rootfs -->
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk2p2" file="image-linux-31452/%rootfs_l31452_file%">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk2p2" file="image-linux-31452/modules.tar.bz2">Sending and writting modules</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing modules write</CMD>
+	<CMD state="Updater" type="push" body="pipe tar -jxv -C /mnt/mmcblk2p2" file="image-linux-31452/rtfs_file.tar.bz2">Sending and writting modules</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing modules write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk2p2">Unmounting rootfs partition</CMD>
+	
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST>
+
+  <LIST name="Android-4.2.2" desc="Target OS: Android-4.2.2">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+	
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-android-422/uboot-ard422-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+	
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-ard422.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard-android.sh /dev/mmcblk0"> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ ls -l /dev/mmc* ">Formatting sd partition</CMD>
+	
+	<CMD state="Updater" type="push" body="send" file="image-android-422/boot-ard422-%ek_name%.img">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk0p1">write boot.img</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 -b 4096 -m 0 /dev/mmcblk0p4">Formatting data partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p5">Formatting system partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p6">Formatting cache partition</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p7">Formatting device partition</CMD>
+	<CMD state="Updater" type="push" body="pipe dd of=/dev/mmcblk0p5 bs=512" file="image-android-422/system-ard422-%ek_name%.img">Sending and writting system.img</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	<CMD state="Updater" type="push" body="pipe dd of=/dev/mmcblk0p2 bs=512" file="image-android-422/recovery-ard422-%ek_name%.img">Sending and writting recovery.img</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD> 
+  </LIST>
+
+  <LIST name="Android-4.4.2" desc="Target OS: Android-4.4.2">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+	
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-android-442/uboot-ard442-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+	
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-ard442.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard-android.sh /dev/mmcblk0"> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ ls -l /dev/mmc* ">Formatting sd partition</CMD>
+	
+	<CMD state="Updater" type="push" body="send" file="image-android-442/boot-ard442-%ek_name%.img">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk0p1">write boot.img</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 -b 4096 -m 0 /dev/mmcblk0p4">Formatting data partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p5">Formatting system partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p6">Formatting cache partition</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	<CMD state="Updater" type="push" body="$ mkfs.ext4 /dev/mmcblk0p7">Formatting device partition</CMD>
+	<CMD state="Updater" type="push" body="pipe dd of=/dev/mmcblk0p5 bs=512" file="image-android-442/system-ard442-%ek_name%.img">Sending and writting system.img</CMD>
+	<CMD state="Updater" type="push" body="frf">flush the memory.</CMD>
+	<CMD state="Updater" type="push" body="pipe dd of=/dev/mmcblk0p2 bs=512" file="image-android-442/recovery-ard442-%ek_name%.img">Sending and writting recovery.img</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD> 
+  </LIST>
+
+  <LIST name="Ubuntu-11.10" desc="Target OS: Ubuntu-11.10">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+	
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uboot-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+	
+	<!-- partitioning the eMMC: -->
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-l3035.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk0"> Partitioning SD card now...</CMD>
+	
+	<!-- burn the kernel: -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uImage-%ek_name%">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk0 bs=1M seek=1 conv=fsync">write kernel image to emmc</CMD>
+	
+	<!-- burn the rootfs: -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk0p1">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk0p1 /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="pipe tar --numeric-owner -zxv -C /mnt/mmcblk0p1" file="image-ubuntu/ubuntu-11.10.tgz">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk0p1">Unmounting rootfs partition</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST> 
+
+  <LIST name="Ubuntu-12.04" desc="Target OS: Ubuntu-12.04">
+	<CMD state="BootStrap" type="boot" body="BootStrap" file ="firmware-3035/mfg-uboot-%ek_name%-%ek_spec%.bin" >Loading uboot.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/mfg-uImage-myimx6" address="0x10800000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Kernel.</CMD>
+	<CMD state="BootStrap" type="load" file="firmware-3035/initramfs.cpio.gz.uboot" address="0x10C00000"
+		loadSection="OTH" setSection="OTH" HasFlashHeader="FALSE" >Doing Initramfs.</CMD>
+	<CMD state="BootStrap" type="jump" > Jumping to OS image. </CMD>
+	
+	<!--burn the uboot to SPI-NOR: -->
+	<CMD state="Updater" type="push" body="$ flash_erase /dev/mtd0 0 0">Erasing Boot partition</CMD>
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uboot-%ek_name%-%ek_spec%.bin">Sending U-Boot</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mtd0 bs=512">write U-Boot to SPI-NOR</CMD>
+	
+	<!-- partitioning the eMMC: -->
+	<CMD state="Updater" type="push" body="send" file="firmware-3035/mksdcard-l3035.sh.tar">Sending partition shell</CMD>
+	<CMD state="Updater" type="push" body="$ tar xf $FILE "> Partitioning...</CMD>
+	<CMD state="Updater" type="push" body="$ sh mksdcard.sh /dev/mmcblk0"> Partitioning SD card now...</CMD>
+	
+	<!-- burn the kernel: -->
+	<CMD state="Updater" type="push" body="send" file="image-linux-3035/uImage-%ek_name%">Sending kernel uImage</CMD>
+	<CMD state="Updater" type="push" body="$ dd if=$FILE of=/dev/mmcblk0 bs=1M seek=1 conv=fsync">write kernel image to emmc</CMD>
+	
+	<!-- burn the rootfs: -->
+	<CMD state="Updater" type="push" body="$ mkfs.ext3 -j /dev/mmcblk0p1">Formatting rootfs partition</CMD>
+	<CMD state="Updater" type="push" body="$ mkdir -p /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="$ mount -t ext3 /dev/mmcblk0p1 /mnt/mmcblk0p1"/>
+	<CMD state="Updater" type="push" body="pipe tar --numeric-owner -zxv -C /mnt/mmcblk0p1" file="image-ubuntu/ubuntu-12.04.tgz">Sending and writting rootfs</CMD>
+	<CMD state="Updater" type="push" body="frf">Finishing rootfs write</CMD>
+	<CMD state="Updater" type="push" body="$ umount /mnt/mmcblk0p1">Unmounting rootfs partition</CMD>
+
+	<CMD state="Updater" type="push" body="$ echo Update Complete!">Done</CMD>
+  </LIST> 
+
+</UCL>
