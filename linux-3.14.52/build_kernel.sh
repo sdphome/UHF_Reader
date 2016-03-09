@@ -1,11 +1,13 @@
 #!/bin/bash
 
+IMAGE=image-linux-31452
+
 echo
 echo "Make zImage"
 echo
 make jzt_uhf_defconfig
 make zImage -j16
-cp arch/arm/boot/zImage ../$IMAGE/zImage-myimx6
+cp arch/arm/boot/zImage ../$IMAGE/zImage-jzt-uhf
 
 echo
 echo "Make dtb"

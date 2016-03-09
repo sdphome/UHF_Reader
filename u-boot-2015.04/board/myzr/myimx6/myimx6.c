@@ -58,7 +58,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define I2C_PAD MUX_PAD_CTRL(I2C_PAD_CTRL)
 
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 #define DISP0_PWR_EN	IMX_GPIO_NR(1, 21)
 #elif defined(CONFIG_TARGET_MYIMX6EK314)
 #define DISP0_PWR_EN	IMX_GPIO_NR(4, 20)
@@ -74,7 +74,7 @@ int dram_init(void)
 
 /* UART ********************************************************************* */
 static iomux_v3_cfg_t const uart1_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_CSI0_DAT10__UART1_TX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 	MX6_PAD_CSI0_DAT11__UART1_RX_DATA | MUX_PAD_CTRL(UART_PAD_CTRL),
 #endif
@@ -82,14 +82,14 @@ static iomux_v3_cfg_t const uart1_pads[] = {
 
 static void setup_iomux_uart(void)
 {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	imx_iomux_v3_setup_multiple_pads(uart1_pads, ARRAY_SIZE(uart1_pads));
 #endif
 }
 
 /* SPI ********************************************************************** */
 static iomux_v3_cfg_t const ecspi1_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_EIM_D16__ECSPI1_SCLK	| MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_D17__ECSPI1_MISO	| MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_D18__ECSPI1_MOSI	| MUX_PAD_CTRL(SPI_PAD_CTRL),
@@ -99,7 +99,7 @@ static iomux_v3_cfg_t const ecspi1_pads[] = {
 };
 
 static iomux_v3_cfg_t const ecspi2_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_EIM_CS0__ECSPI2_SCLK	| MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_OE__ECSPI2_MISO		| MUX_PAD_CTRL(SPI_PAD_CTRL),
 	MX6_PAD_EIM_CS1__ECSPI2_MOSI	| MUX_PAD_CTRL(SPI_PAD_CTRL),
@@ -112,7 +112,7 @@ static iomux_v3_cfg_t const ecspi2_pads[] = {
 
 static void setup_spi(void)
 {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	imx_iomux_v3_setup_multiple_pads(ecspi1_pads, ARRAY_SIZE(ecspi1_pads));
 	imx_iomux_v3_setup_multiple_pads(ecspi2_pads, ARRAY_SIZE(ecspi2_pads));
 #endif
@@ -120,7 +120,7 @@ static void setup_spi(void)
 
 int board_spi_cs_gpio(unsigned bus, unsigned cs)
 {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	int ret = -1;
 	
 	if (bus == 0 && cs == 1)
@@ -140,7 +140,7 @@ int board_spi_cs_gpio(unsigned bus, unsigned cs)
 
 /* ENET ********************************************************************* */
 static iomux_v3_cfg_t const enet_pads[] = {
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_ENET_MDIO__ENET_MDIO		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_ENET_MDC__ENET_MDC		| MUX_PAD_CTRL(ENET_PAD_CTRL),
 	MX6_PAD_GPIO_16__ENET_REF_CLK		| MUX_PAD_CTRL(ENET_PAD_CTRL),
@@ -178,7 +178,7 @@ static void setup_iomux_enet(void)
 {
 	imx_iomux_v3_setup_multiple_pads(enet_pads, ARRAY_SIZE(enet_pads));
 
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 	gpio_direction_output(IMX_GPIO_NR(1, 23) , 0);
 	udelay(500);
 	gpio_set_value(IMX_GPIO_NR(1, 23), 1);
@@ -262,7 +262,7 @@ int board_eth_init(bd_t *bis)
 
 	return 0;
 }
-#elif defined(CONFIG_TARGET_MYIMX6EK200)
+#elif (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 int board_eth_init(bd_t *bis)
 {
 	int ret;
@@ -287,7 +287,7 @@ int board_eth_init(bd_t *bis)
 
 /* DISPLAY ****************************************************************** */
 static iomux_v3_cfg_t const rgb_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK | MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_DI0_PIN15__IPU1_DI0_PIN15 | MUX_PAD_CTRL(NO_PAD_CTRL),
 	MX6_PAD_DI0_PIN2__IPU1_DI0_PIN02 | MUX_PAD_CTRL(NO_PAD_CTRL),
@@ -318,14 +318,14 @@ static iomux_v3_cfg_t const rgb_pads[] = {
 	MX6_PAD_DISP0_DAT23__IPU1_DISP0_DATA23 | MUX_PAD_CTRL(NO_PAD_CTRL),
 #if defined(CONFIG_TARGET_MYIMX6EK314)
 	MX6_PAD_DI0_PIN4__GPIO4_IO20 | MUX_PAD_CTRL(NO_PAD_CTRL),
-#elif defined(CONFIG_TARGET_MYIMX6EK200)
+#elif (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_SD1_DAT3__GPIO1_IO21 | MUX_PAD_CTRL(NO_PAD_CTRL),
 #endif
 #endif
 };
 
 iomux_v3_cfg_t const di0_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_DI0_DISP_CLK__IPU1_DI0_DISP_CLK,	/* DISP0_CLK */
 	MX6_PAD_DI0_PIN2__IPU1_DI0_PIN02,		/* DISP0_HSYNC */
 	MX6_PAD_DI0_PIN3__IPU1_DI0_PIN03,		/* DISP0_VSYNC */
@@ -334,7 +334,7 @@ iomux_v3_cfg_t const di0_pads[] = {
 
 static void enable_rgb(struct display_info_t const *dev)
 {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	imx_iomux_v3_setup_multiple_pads(rgb_pads, ARRAY_SIZE(rgb_pads));
 	gpio_direction_output(DISP0_PWR_EN, 1);
 #endif
@@ -529,7 +529,7 @@ int board_ehci_power(int port, int on)
 
 /* uSDHC ******************************************************************** */
 static iomux_v3_cfg_t const usdhc3_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_SD3_CLK__SD3_CLK		| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD3_CMD__SD3_CMD		| MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD3_DAT0__SD3_DATA0		| MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -541,7 +541,7 @@ static iomux_v3_cfg_t const usdhc3_pads[] = {
 };
 
 static iomux_v3_cfg_t const usdhc4_pads[] = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_SD4_CLK__SD4_CLK   | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD4_CMD__SD4_CMD   | MUX_PAD_CTRL(USDHC_PAD_CTRL),
 	MX6_PAD_SD4_DAT0__SD4_DATA0 | MUX_PAD_CTRL(USDHC_PAD_CTRL),
@@ -555,7 +555,7 @@ static iomux_v3_cfg_t const usdhc4_pads[] = {
 #endif
 };
 
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 struct fsl_esdhc_cfg usdhc_cfg[2] = {
 	{USDHC3_BASE_ADDR},
 	{USDHC4_BASE_ADDR},
@@ -625,7 +625,7 @@ int board_mmc_init(bd_t *bis)
 /* PCI-E ******************************************************************** */
 iomux_v3_cfg_t const pcie_pads[] = {
 	MX6_PAD_NANDF_ALE__GPIO6_IO08 | MUX_PAD_CTRL(NO_PAD_CTRL),	/* POWER */
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 	MX6_PAD_NANDF_CLE__GPIO6_IO07 | MUX_PAD_CTRL(NO_PAD_CTRL),	/* RESET */
 #elif defined(CONFIG_TARGET_MYIMX6EK314)
 	MX6_PAD_NANDF_CS1__GPIO6_IO14 | MUX_PAD_CTRL(NO_PAD_CTRL),	/* RESET */
@@ -639,7 +639,7 @@ static void setup_pcie(void)
 
 /* I2C ********************************************************************** */
 static struct i2c_pads_info i2c_pad_info1 = {
-#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314))
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6EK314) || defined(CONFIG_TARGET_MYIMX6JZT))
 	.scl = {
 		.i2c_mode = MX6_PAD_KEY_COL3__I2C2_SCL | I2C_PAD,
 		.gpio_mode = MX6_PAD_KEY_COL3__GPIO4_IO12 | I2C_PAD,
@@ -672,14 +672,20 @@ void ldo_mode_set(int ldo_bypass)
 /* Board ******************************************************************** */
 int checkboard(void)
 {
+#if defined(CONFIG_TARGET_MYIMX6JZT)
+	puts("Board: golden-sky i.MX6\nModel: ");
+#else
 	puts("Board: MYZR i.MX6 Evaluation Kit\nModel: ");
-	
+#endif
+
 #if defined(CONFIG_TARGET_MYIMX6EK200)
 	puts("MY-IMX6-EK200");
 #elif defined(CONFIG_TARGET_MYIMX6EK314)
 	puts("MY-IMX6-EK314");
 #elif defined(CONFIG_TARGET_MYIMX6EKPOB)
 	puts("MY-IMX6-EKPOB");
+#elif defined(CONFIG_TARGET_MYIMX6JZT)
+	puts("MY-IMX6-JZT-UHF");
 #endif
 
 #if defined(CONFIG_MX6QP)

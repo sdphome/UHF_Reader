@@ -138,7 +138,7 @@
 #define CONFIG_ETHPRIME			"FEC"
 #define CONFIG_PHYLIB
 
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 #define CONFIG_FEC_XCV_TYPE			RMII
 #define CONFIG_FEC_MXC_PHYADDR		0
 #define CONFIG_FEC_ENET_DEV			0
@@ -206,7 +206,7 @@
 #define CONFIG_PCI_SCAN_SHOW
 #define CONFIG_PCIE_IMX
 #define CONFIG_PCIE_IMX_POWER_GPIO	IMX_GPIO_NR(6, 8)
-#if defined(CONFIG_TARGET_MYIMX6EK200)
+#if (defined(CONFIG_TARGET_MYIMX6EK200) || defined(CONFIG_TARGET_MYIMX6JZT))
 #define CONFIG_PCIE_IMX_PERST_GPIO	IMX_GPIO_NR(6, 7)
 #elif defined(CONFIG_TARGET_MYIMX6EK314)
 #define CONFIG_PCIE_IMX_PERST_GPIO	IMX_GPIO_NR(6, 14)
@@ -258,6 +258,9 @@
 #elif defined(CONFIG_TARGET_MYIMX6EKPOB)
 #define CONFIG_BOARD_NAME		"myimx6ekpob"
 #define CONFIG_MACH_TYPE		7464
+#elif defined(CONFIG_TARGET_MYIMX6JZT)
+#define CONFIG_BOARD_NAME       "jzt-uhf"
+#define CONFIG_MACH_TYPE        7462
 #endif
 
 #if defined(CONFIG_MX6QP)
@@ -338,7 +341,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONFIG_MFG_ENV_SETTINGS \
 	"uboot_file=uboot-"CONFIG_BOARD_NAME"-"EK_SPEC".imx\0" \
-	"image_file=zImage-myimx6\0" \
+	"image_file=zImage-jzt-uhf\0" \
 	"fdt_file="CONFIG_BOARD_NAME"-"EK_SPEC".dtb\0" \
 	"fdt_addr=0x18000000\0" \
 	"console=" CONFIG_CONSOLE_DEV "\0" \
