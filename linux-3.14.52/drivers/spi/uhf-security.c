@@ -103,7 +103,7 @@ static inline void us_enable_irq(struct uhf_security *uhf)
 static inline void us_disable_irq(struct uhf_security *uhf)
 {
     if (uhf->irq_enabled) {
-        disable_irq(uhf->irq);
+        disable_irq_nosync(uhf->irq);
         uhf->irq_enabled = false;
     } else {
         printk(KERN_ALERT "%s: irq has been disabled\n", __func__);
@@ -152,6 +152,8 @@ static inline void us_incr_cache_head(struct uhf_security *uhf, int delta)
 
 static inline void us_copy_to_cache(struct uhf_security *uhf, struct uhf_security_data datagram)
 {
+	// FIXME: memcpy could be datagram.len + 2
+	// conside: If security module can send more than 1 packet
 	memcpy((void *)uhf->cache->recv_head, &datagram, sizeof(struct uhf_security_data));
 	us_incr_cache_head(uhf, sizeof(struct uhf_security_data));
 	wake_up_interruptible(&(uhf->cache->inq)); /* awake any reading process */
@@ -366,9 +368,11 @@ struct file_operations us_fops = {
 
 static void us_recv_func(struct work_struct *work)
 {
-	struct uhf_security *uhf = __uhf;
-    printk(KERN_ALERT "%s\n", __func__);
+	struct uhf_security *uhf = container_of(work, struct uhf_security, recv_work);
 
+	printk(KERN_ALERT "%s: irq no:%d\n", __func__, uhf->spi->irq);
+
+	us_sync_read(uhf);
 	us_enable_irq(uhf);
 }
 
@@ -377,6 +381,8 @@ static irqreturn_t us_intr_handler(int irq, void *handle)
 	struct uhf_security *uhf = (struct uhf_security *)handle;
 
 	us_disable_irq(uhf);
+
+	printk(KERN_ALERT "%s Enter\n", __func__);
 
 	queue_work(uhf->recv_queue, &uhf->recv_work);
 
