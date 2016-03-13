@@ -59,96 +59,59 @@ class CMyApplication
 {
   public:
     /** Verbose level, incremented by each -v on command line */
-    int                         m_Verbose;
+    int m_Verbose;
 
     /** Connection to the LLRP reader */
-    CConnection *               m_pConnectionToReader;
+    CConnection * m_pConnectionToReader;
 
-    inline
-    CMyApplication (void)
-     : m_Verbose(0), m_pConnectionToReader(NULL)
-    {}
+    inline CMyApplication (void): m_Verbose(0), m_pConnectionToReader(NULL){}
+
+    int run (char *pReaderHostName);
+
+    int checkConnectionStatus(void);
+
+    int scrubConfiguration(void);
+
+    int resetConfigurationToFactoryDefaults(void);
+
+    int deleteAllROSpecs(void);
+
+    int addROSpec(void);
+
+    int enableROSpec(void);
+
+    int startROSpec(void);
+
+    int awaitAndPrintReport (void);
+
+    void printTagReportData(CRO_ACCESS_REPORT *pRO_ACCESS_REPORT);
+
+    void printOneTagReportData(CTagReportData *pTagReportData);
+
+    void handleReaderEventNotification(CReaderEventNotificationData *pNtfData);
+
+    void handleAntennaEvent(CAntennaEvent *pAntennaEvent);
+
+    void handleReaderExceptionEvent(CReaderExceptionEvent *   pReaderExceptionEvent);
+
+    int checkLLRPStatus(CLLRPStatus *pLLRPStatus, char *pWhatStr);
+
+    CMessage *transact(CMessage *pSendMsg);
+
+    CMessage *recvMessage(int nMaxMS);
 
     int
-    run (
-      char *                    pReaderHostName);
-
-    int
-    checkConnectionStatus (void);
-
-    int
-    scrubConfiguration (void);
-
-    int
-    resetConfigurationToFactoryDefaults (void);
-
-    int
-    deleteAllROSpecs (void);
-
-    int
-    addROSpec (void);
-
-    int
-    enableROSpec (void);
-
-    int
-    startROSpec (void);
-
-    int
-    awaitAndPrintReport (void);
+    sendMessage(CMessage *pSendMsg);
 
     void
-    printTagReportData (
-      CRO_ACCESS_REPORT *       pRO_ACCESS_REPORT);
-
-    void
-    printOneTagReportData (
-      CTagReportData *          pTagReportData);
-
-    void
-    handleReaderEventNotification (
-      CReaderEventNotificationData *pNtfData);
-
-    void
-    handleAntennaEvent (
-      CAntennaEvent *           pAntennaEvent);
-
-    void
-    handleReaderExceptionEvent (
-      CReaderExceptionEvent *   pReaderExceptionEvent);
-
-    int
-    checkLLRPStatus (
-      CLLRPStatus *             pLLRPStatus,
-      char *                    pWhatStr);
-
-    CMessage *
-    transact (
-      CMessage *                pSendMsg);
-
-    CMessage *
-    recvMessage (
-      int                       nMaxMS);
-
-    int
-    sendMessage (
-      CMessage *                pSendMsg);
-
-    void
-    printXMLMessage (
-      CMessage *                pMessage);
+    printXMLMessage(CMessage *pMessage);
 };
 
 
 /* BEGIN forward declarations */
-int
-main (
-  int                           ac,
-  char *                        av[]);
+int main(int ac, char *av[]);
 
-void
-usage (
-  char *                        pProgName);
+void usage(char *pProgName);
 /* END forward declarations */
 
 
@@ -167,26 +130,20 @@ usage (
  **
  *****************************************************************************/
 
-int
-main (
-  int                           ac,
-  char *                        av[])
+int main(int ac, char *av[])
 {
-    CMyApplication              myApp;
-    char *                      pReaderHostName;
-    int                         rc;
+    CMyApplication myApp;
+    char *pReaderHostName;
+    int rc;
 
     /*
      * Process comand arguments, determine reader name
      * and verbosity level.
      */
-    if(ac == 2)
-    {
+    if(ac == 2) {
         pReaderHostName = av[1];
-    }
-    else if(ac == 3)
-    {
-        char *                  p = av[1];
+    } else if(ac == 3) {
+        char *p = av[1];
 
         while(*p)
         {
@@ -209,9 +166,7 @@ main (
         }
 
         pReaderHostName = av[2];
-    }
-    else
-    {
+    } else {
         usage(av[0]);
         /* no return */
     }
@@ -229,9 +184,7 @@ main (
     if(0 == rc)
     {
         exit(0);
-    }
-    else
-    {
+    } else {
         exit(2);
     }
     /*NOTREACHED*/
@@ -298,12 +251,11 @@ usage (
  *****************************************************************************/
 
 int
-CMyApplication::run (
-  char *                        pReaderHostName)
+CMyApplication::run(char *pReaderHostName)
 {
-    CTypeRegistry *             pTypeRegistry;
-    CConnection *               pConn;
-    int                         rc;
+    CTypeRegistry *pTypeRegistry;
+    CConnection *pConn;
+    int rc;
 
     /*
      * Allocate the type registry. This is needed
