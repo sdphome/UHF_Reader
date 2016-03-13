@@ -215,29 +215,41 @@ int radio_read(int fd, radio_result_t *rsp)
     return ret;
 }
 
-int radio_write(int fd, uint8_t cmd, uint16_t len, uint8_t *payload)
+int radio_write(radio_info_t *radio_info, uint8_t cmd, uint16_t len, uint8_t *payload)
 {
     int nwt;
     int ret = NO_ERROR;
     radio_pack_hdr hdr;
     radio_pack_end end;
+    uint8_t *data = radio_info->data;
+    uint16_t total_len = RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE + len;
 
     printf("radio_write +\n");
+
+    if (total_len > RADIO_MTU) {
+        printf("%s: payload is too long.\n", __func__);
+        return -FAILED;
+    }
 
     hdr.hdr = PACK_HDR;
     hdr.type = REQUEST_TYPE;
     hdr.cmd = cmd;
     hdr.len = len;
-    nwt = write(fd, &hdr, RADIO_PACK_HDR_SIZE);
-    if (payload != NULL && len != 0)
-        nwt += write(fd, payload, len);
 
     end.crc16 = calc_crc16(&hdr, payload);
     end.end = PACK_END;
-    nwt += write(fd, &end, RADIO_PACK_END_SIZE);
 
-    if (nwt != RADIO_PACK_HDR_SIZE + len + RADIO_PACK_END_SIZE) {
-        printf("write failed.\n");
+    data = memcpy(data, &hdr, RADIO_PACK_HDR_SIZE);
+    if (payload != NULL && len != 0)
+        data = memcpy(data, payload, len);
+    memcpy(data, &end, RADIO_PACK_END_SIZE);
+    nwt = write(radio_info->fd, radio_info->data, total_len);
+
+    if (nwt < 0) {
+        printf("write failed\n");
+        ret = nwt;
+    } else if (nwt != total_len) {
+        printf("write failed, nwt=%d, total_len=%d\n", nwt, total_len);
         ret = -FAILED;
     }
 
@@ -303,7 +315,7 @@ int radio_set_version(radio_info_t *radio_info)
 
     lock_radio(&radio_info->c_lock);
 
-    ret = radio_write(fd, SET_VERSION, VERSION_PARAM_SIZE, (char *)&version);
+    ret = radio_write(radio_info, SET_VERSION, VERSION_PARAM_SIZE, (char *)&version);
     if (ret != NO_ERROR) {
         printf("Set version failed!\n");
         return -FAILED;
@@ -325,14 +337,13 @@ int radio_set_version(radio_info_t *radio_info)
 int radio_(radio_info_t *radio_info)
 {
 	int ret = NO_ERROR;
-    int fd = radio_info->fd;
     radio_result_t result;
 
 	printf("%s +\n", __func__);
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(fd, , _PARAM_SIZE, (char *)&);
+	ret = radio_write(radio_info, , _PARAM_SIZE, (char *)&);
     if (ret != NO_ERROR) {
         printf("%s write failed!\n", __func__);
         return -FAILED;
@@ -356,7 +367,6 @@ int radio_(radio_info_t *radio_info)
 int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 {
 	int ret = NO_ERROR;
-    int fd = radio_info->fd;
     radio_result_t result;
 	fhss_enable_param fhss;
 
@@ -366,7 +376,7 @@ int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(fd, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (char *)&fhss);
+	ret = radio_write(radio_info, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (char *)&fhss);
     if (ret != NO_ERROR) {
         printf("set fhss failed!\n");
         return -FAILED;
@@ -387,7 +397,6 @@ int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 {
 	int ret = NO_ERROR;
-    int fd = radio_info->fd;
     radio_result_t result;
 	antenna_attr_param antenna_attr;
 
@@ -397,7 +406,7 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(fd, SET_ANTENNA_ATTR, ANTENNA_ATTR_PARAM_SIZE, (char *)&antenna_attr);
+	ret = radio_write(radio_info, SET_ANTENNA_ATTR, ANTENNA_ATTR_PARAM_SIZE, (char *)&antenna_attr);
     if (ret != NO_ERROR) {
         printf("%s write failed!\n", __func__);
         return -FAILED;
@@ -418,7 +427,6 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 {
 	int ret = NO_ERROR;
-    int fd = radio_info->fd;
     radio_result_t result;
 	dig_atten_param dig_atten;
 
@@ -428,7 +436,7 @@ int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(fd, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (char *)&dig_atten);
+	ret = radio_write(radio_info, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (char *)&dig_atten);
     if (ret != NO_ERROR) {
         printf("%s write failed!\n", __func__);
         return -FAILED;
@@ -449,7 +457,6 @@ int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 int radio_set_carr(radio_info_t *radio_info, uint8_t enable)
 {
 	int ret = NO_ERROR;
-    int fd = radio_info->fd;
     radio_result_t result;
 	carr_enable_param carr_enable;
 
@@ -458,7 +465,7 @@ int radio_set_carr(radio_info_t *radio_info, uint8_t enable)
 	carr_enable.enable = enable;
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(fd, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (char *)&carr_enable);
+	ret = radio_write(radio_info, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (char *)&carr_enable);
     if (ret != NO_ERROR) {
         printf("%s write failed!\n", __func__);
         return -FAILED;

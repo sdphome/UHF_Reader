@@ -18,7 +18,7 @@
 #define PACK_END                        0xFB
 #define REQUEST_TYPE                    0x0000
 #define RESPONSE_TYPE                   0x0001
-
+#define RADIO_MTU                       512
 
 /* ---------- RADIO Commands ---------- */
 
@@ -213,6 +213,7 @@ typedef struct {
     pthread_cond_t c_cond;
     pthread_t read_thread;
     radio_result_list_t *result_list;
+    uint8_t data[RADIO_MTU];
 } radio_info_t;
 
 
