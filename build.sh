@@ -5,6 +5,7 @@ export IMAGE=image-linux-31452
 UBOOT=u-boot-2015.04
 KERNEL=linux-3.14.52
 ROOTFS=rootfs
+ROOTFS_2=rtfs_file
 ROOT_DIR=$PWD
 
 mkdir -p $IMAGE
@@ -28,6 +29,23 @@ else
     if [ $? -ne 0 ]
     then
         echo "====== tar rootfs.tar.bz2 err[$?] ======"
+        exit 1
+    else
+        echo "OK"
+    fi
+fi
+
+cd $ROOT_DIR/$ROOTFS_2
+if [ $? -ne 0 ]
+then
+    echo "no rtfs_file found! exit"
+    exit 1
+else
+    echo "tar rtfs_file.tar.bz2..."
+    tar -jcf $ROOT_DIR/$IMAGE/rtfs_file.tar.bz2 *
+    if [ $? -ne 0 ]
+    then
+        echo "====== tar rtfs_file.tar.bz2 err[$?] ======"
         exit 1
     else
         echo "OK"
