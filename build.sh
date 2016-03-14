@@ -18,7 +18,7 @@ cd $ROOT_DIR/$KERNEL
 
 echo
 echo "====== Creating i.MX6 fs ======"
-cd $ROOT_DIR/$ROOTFS
+cd $ROOT_DIR/rootfs/$ROOTFS
 if [ $? -ne 0 ]
 then
     echo "no rootfs found! exit"
@@ -35,7 +35,7 @@ else
     fi
 fi
 
-cd $ROOT_DIR/$ROOTFS_2
+cd $ROOT_DIR/rootfs/$ROOTFS_2
 if [ $? -ne 0 ]
 then
     echo "no rtfs_file found! exit"
