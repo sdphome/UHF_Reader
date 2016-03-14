@@ -9,6 +9,8 @@
 #define false                           0
 #define true                            1
 
+#define RADIO_TIMEOUT					2
+
 /* ---------- Response Result ---------- */
 #define NO_ERROR                        0
 #define FAILED                          1

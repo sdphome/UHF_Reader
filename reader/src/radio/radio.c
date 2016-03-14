@@ -94,13 +94,22 @@ void inline unlock_radio(pthread_mutex_t *lock)
     pthread_mutex_unlock(lock);
 }
 
-void radio_wait_result(radio_info_t *radio_info, uint8_t cmd, radio_result_t *result)
+int radio_wait_result(radio_info_t *radio_info, uint8_t cmd, radio_result_t *result)
 {
+	int ret = NO_ERROR;
     int resultReceived = 0;
+	struct timeval now;
+	struct timespec outtime;
 
     while  (!resultReceived) {
-        /* FIXME: It may need a timeout */
-        pthread_cond_wait(&radio_info->c_cond, &radio_info->c_lock);
+		gettimeofday(&now, NULL);
+		outtime.tv_sec = now.tv_sec + RADIO_TIMEOUT;
+		outtime.tv_nsec = now.tv_usec * 1000;
+        ret = pthread_cond_timedwait(&radio_info->c_cond, &radio_info->c_lock, &outtime);
+		if (ret == ETIMEDOUT) {
+			printf("%s: timeout for cmd %d\n", __func__, cmd);
+			return ret;
+		}
         if (radio_info->result_list != NULL) {
             radio_result_list_t *result_list = radio_info->result_list;
             radio_result_list_t *result_list_prev = radio_info->result_list;
@@ -152,7 +161,7 @@ malloc_failed:
 
 uint16_t calc_crc16(radio_pack_hdr *hdr, uint8_t *payload)
 {
-    uint16_t crc16;
+    uint16_t crc16 = 0;
     uint8_t temp;
     uint8_t *th= (uint8_t *)hdr;
     int i, j;
@@ -178,40 +187,42 @@ uint16_t calc_crc16(radio_pack_hdr *hdr, uint8_t *payload)
     return crc16;
 }
 
-int radio_read(int fd, radio_result_t *rsp)
+int radio_read(radio_info_t *radio_info, radio_result_t *rsp)
 {
     int nrd;
-    int ret = NO_ERROR;
+    int ret = -FAILED;
+	int fd = radio_info->fd;
+	uint8_t *data = radio_info->data;
 
-    /* read package header */
-    nrd = read(fd, &rsp->hdr, RADIO_PACK_HDR_SIZE);
-/*    if (nrd != RADIO_PACK_HDR_SIZE || rsp->hdr.hdr != PACK_HDR
-        || rsp->hdr.type != RESPONSE_TYPE) {
-        printf("ERROR: Read package failed, read number = %d.
-                SOF:%x, TYPE:%x, cmd:%x, len:%d\n", ret, rsp->hdr.header,
-                rsp->hdr.type, rsp->hdr.cmd, rsp->hdr.len);
-        ret = -FAILED;
-    } else {
-*/
-        rsp->payload = (uint8_t *)malloc(rsp->hdr.len);
-        if (rsp->payload == NULL) {
-            printf("Error: Malloc memory for payload failed\n.");
-        } else {
-            /* FIXME: maybe need a while for payload */
-            nrd = read(fd, rsp->payload, rsp->hdr.len);
-            nrd += read(fd, &rsp->end, RADIO_PACK_END_SIZE);
-/*
-            if (nrd != rsp->hdr.len + RADIO_PACK_END_SIZE || rsp->end.end != PACK_END
-                || rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload)) {
-                printf("read data/end package failed.\n");
-                ret = -FAILED;
-            }
-*/
-        }
-/*
-    }
-*/
+	printf("%s: +\n", __func__);
 
+    nrd = read(fd, data, RADIO_MTU);
+	if (nrd >= RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
+		memcpy(&rsp->hdr, data, RADIO_PACK_HDR_SIZE);
+		if (nrd == rsp->hdr.len + RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
+			data += RADIO_PACK_HDR_SIZE * sizeof(data);
+			if (rsp->hdr.len != 0) {
+				rsp->payload = (uint8_t *)malloc(rsp->hdr.len); /* free in main thread */
+				memcpy(rsp->payload, data, rsp->hdr.len);
+				data += rsp->hdr.len * sizeof(data);
+			}
+			memcpy(&rsp->end, data, RADIO_PACK_END_SIZE);
+
+			radio_print_result(*rsp);
+
+			if (rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload))
+				printf("%s: crc by read:%d, crc by calc:%d\n", __func__,
+							rsp->end.crc16, calc_crc16(&rsp->hdr, rsp->payload));
+			else
+				ret = NO_ERROR;
+		} else {
+			printf("%s: oops, nrd=%d, payload len=%d.\n", __func__, nrd, rsp->hdr.len);
+		}
+	} else {
+		printf("%s: read data is too few, nrd=%d\n", __func__, nrd);
+	}
+
+	printf("%s: +, nrd=%d\n", __func__, nrd);
     return ret;
 }
 
@@ -239,9 +250,12 @@ int radio_write(radio_info_t *radio_info, uint8_t cmd, uint16_t len, uint8_t *pa
     end.crc16 = calc_crc16(&hdr, payload);
     end.end = PACK_END;
 
-    data = memcpy(data, &hdr, RADIO_PACK_HDR_SIZE);
-    if (payload != NULL && len != 0)
-        data = memcpy(data, payload, len);
+    memcpy(data, (uint8_t *)&hdr, RADIO_PACK_HDR_SIZE);
+	data += RADIO_PACK_HDR_SIZE * sizeof(data);
+    if (payload != NULL && len != 0) {
+        memcpy(data, payload, len);
+		data = data + len * sizeof(data);
+	}
     memcpy(data, &end, RADIO_PACK_END_SIZE);
     nwt = write(radio_info->fd, radio_info->data, total_len);
 
@@ -252,7 +266,7 @@ int radio_write(radio_info_t *radio_info, uint8_t cmd, uint16_t len, uint8_t *pa
         printf("write failed, nwt=%d, total_len=%d\n", nwt, total_len);
         ret = -FAILED;
     }
-
+	printf("nwt=%d\n", nwt);
     printf("radio_write -\n");
     return ret;
 }
@@ -279,7 +293,7 @@ void *radio_reader_loop(void *data)
         if (ret <= 0) {
             printf("radio_reader_loop: select error, ret = %d\n", ret);
         } else if (FD_ISSET(radio_info->fd, &fds)) {
-            ret = radio_read(radio_info->fd, &rsp);
+            ret = radio_read(radio_info, &rsp);
             if (ret != NO_ERROR) {
                 printf("read failed\n");
                 free(rsp.payload);
@@ -287,7 +301,7 @@ void *radio_reader_loop(void *data)
             } else {
                 radio_signal_result(radio_info, &rsp);
             }
-/* The payload free by main thread
+/* The payload free by main thread, need process it.
             if (rsp.payload != NULL) {
                 free(rsp.payload);
                 rsp.payload = NULL;
@@ -307,9 +321,9 @@ int radio_set_version(radio_info_t *radio_info)
     printf("Enter radio_set_version\n");
 
     version.hw_version[0] = 0x12;
-    version.hw_version[1] = 0x34;
+    version.hw_version[1] = 0x00;
     version.hw_version[2] = 0x56;
-    version.sw_version[0] = 0x23;
+    version.sw_version[0] = 0x00;
     version.sw_version[1] = 0x45;
     version.sw_version[2] = 0x67;
 
@@ -323,7 +337,7 @@ int radio_set_version(radio_info_t *radio_info)
 
     radio_wait_result(radio_info, SET_VERSION, &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -351,7 +365,7 @@ int radio_(radio_info_t *radio_info)
 
     radio_wait_result(radio_info, , &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -384,7 +398,7 @@ int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 
     radio_wait_result(radio_info, SET_FHSS_ENABLE, &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -414,7 +428,7 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 
     radio_wait_result(radio_info, SET_ANTENNA_ATTR, &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -444,7 +458,7 @@ int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 
     radio_wait_result(radio_info, SET_DIG_ATTEN, &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -473,7 +487,7 @@ int radio_set_carr(radio_info_t *radio_info, uint8_t enable)
 
     radio_wait_result(radio_info, SET_CARR_ENABLE, &result);
 
-    radio_print_result(result);
+    //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
 
@@ -595,4 +609,5 @@ test_fail:
 int main(int argc, char** argv)
 {
     test_radio();
+	return 0;
 }
