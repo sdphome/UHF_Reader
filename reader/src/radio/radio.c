@@ -133,6 +133,8 @@ int radio_wait_result(radio_info_t *radio_info, uint8_t cmd, radio_result_t *res
             }
         }
     }
+
+	return ret;
 }
 
 void radio_signal_result(radio_info_t *radio_info, radio_result_t *result)
@@ -333,6 +335,7 @@ int radio_set_version(radio_info_t *radio_info)
 
     ret = radio_write(radio_info, SET_VERSION, VERSION_PARAM_SIZE, (char *)&version);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("Set version failed!\n");
         return -FAILED;
     }
@@ -361,6 +364,7 @@ int radio_(radio_info_t *radio_info)
 
 	ret = radio_write(radio_info, , _PARAM_SIZE, (char *)&);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
         return -FAILED;
     }
@@ -394,6 +398,7 @@ int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 
 	ret = radio_write(radio_info, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (char *)&fhss);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("set fhss failed!\n");
         return -FAILED;
     }
@@ -424,6 +429,7 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 
 	ret = radio_write(radio_info, SET_ANTENNA_ATTR, ANTENNA_ATTR_PARAM_SIZE, (char *)&antenna_attr);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
         return -FAILED;
     }
@@ -454,6 +460,7 @@ int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 
 	ret = radio_write(radio_info, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (char *)&dig_atten);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
         return -FAILED;
     }
@@ -483,6 +490,7 @@ int radio_set_carr(radio_info_t *radio_info, uint8_t enable)
 
 	ret = radio_write(radio_info, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (char *)&carr_enable);
     if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
         return -FAILED;
     }
