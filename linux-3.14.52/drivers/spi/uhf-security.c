@@ -175,7 +175,8 @@ static inline ssize_t us_sync_rw(struct uhf_security *uhf, struct uhf_security_d
     if (spi_sync(uhf->spi, &m) != 0 || m.status != 0)
 		return 0;
 
-	printk(KERN_ALERT "%s: len:%d, actual_length=%d, 4th:0x%x\n", __func__, us_data->len, m.actual_length, (us_data->data)[3]);
+	printk(KERN_ALERT "%s: len:%d, actual_length=%d, 4th:0x%x\n", __func__,
+							us_data->len, m.actual_length, (us_data->data)[3]);
 
 	us_copy_to_cache(uhf, *us_data);
 
@@ -274,7 +275,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
     if (down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
 
-	while (uhf->cache->recv_head== uhf->cache->recv_tail) { /* nothing to read */
+	while (uhf->cache->recv_head == uhf->cache->recv_tail) { /* nothing to read */
 		up(&uhf->sem);
 
 		if (filp->f_flags & O_NONBLOCK)
@@ -301,7 +302,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	temp = (struct uhf_security_data *)uhf->cache->recv_tail;
 	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
 
-	if (copy_to_user((uint8_t __user *)buf, (char *)uhf->cache->recv_tail, temp->len + 2)) {
+	if (copy_to_user((uint8_t __user *)buf, (char *)temp->data, temp->len)) {
 		up(&uhf->sem);
 		return -EFAULT;
 	}
@@ -315,7 +316,6 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
 {
     ssize_t ret = 0;
-    unsigned long missing;
     struct uhf_security *uhf = NULL;
 	struct uhf_security_data temp;
 
@@ -324,7 +324,10 @@ ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t
 
     uhf = filp->private_data;
 
-	missing = copy_from_user((uint8_t *)&temp, (const uint8_t __user *)(uintptr_t)buf, count);
+	if(copy_from_user(temp.data, (const uint8_t __user *)(uintptr_t)buf, count))
+		return -EFAULT;
+
+	temp.len = count;
 
 	if(down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
