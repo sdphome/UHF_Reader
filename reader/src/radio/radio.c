@@ -210,9 +210,11 @@ int radio_read(radio_info_t *radio_info, radio_result_t *rsp)
 
 			radio_print_result(*rsp);
 
-			if (rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload))
+			if (rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload)) {
 				printf("%s: crc by read:%d, crc by calc:%d\n", __func__,
 							rsp->end.crc16, calc_crc16(&rsp->hdr, rsp->payload));
+				if (rsp->hdr.len != 0) free(rsp->payload);
+			}
 			else
 				ret = NO_ERROR;
 		} else {
@@ -301,7 +303,7 @@ void *radio_reader_loop(void *data)
             } else {
                 radio_signal_result(radio_info, &rsp);
             }
-/* The payload free by main thread, need process it.
+/* The payload free by main thread, need process it in main thread.
             if (rsp.payload != NULL) {
                 free(rsp.payload);
                 rsp.payload = NULL;
@@ -559,6 +561,17 @@ void release_radio(radio_info_t *radio_info)
     pthread_mutex_destroy(&radio_info->c_lock);
     pthread_cond_destroy(&radio_info->c_cond);
 
+	/* free all pending api result here */
+	if (radio_info->result_list != NULL) {
+		radio_result_list_t *result_list = radio_info->result_list;
+		radio_result_list_t *result_list_next;
+		while (result_list != NULL) {
+			result_list_next = result_list->next;
+			free(result_list);
+			result_list = result_list_next;
+		}
+	}
+
     free(radio_info);
     radio_info = NULL;
 }
@@ -586,6 +599,9 @@ int test_radio()
         return -FAILED;
 
     ret = start_radio(pr);
+	if (ret < 0) {
+		goto test_failed;
+	}
 
 	/* set version */
     radio_set_version(pr);

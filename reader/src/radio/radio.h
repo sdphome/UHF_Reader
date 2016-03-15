@@ -196,7 +196,6 @@ typedef struct {
 
 /* ---------- message related ---------- */
 typedef struct {
-    uint8_t status;
     radio_pack_hdr hdr;
     uint8_t *payload;
     radio_pack_end end;
