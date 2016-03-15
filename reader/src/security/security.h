@@ -8,6 +8,8 @@
 #define false							0
 #define true							1
 
+#define TEST
+
 #define SECURITY_MTU					1500
 #define SECURITY_TIMEOUT				2
 
@@ -68,7 +70,6 @@
 #define VERIFY_SIGN_FAILED				0x2
 #define SERIAL_NOT_MATCH				0x3
 
-
 //UPLOAD_INFO_TYPE
 #define REPORT_TID						0x1
 #define REPORT_PART						0x2
@@ -83,11 +84,34 @@
 #define UPGRADE_ENCR_MODULE				0x1
 #define UPLOAD_FIRMWARE					0x2
 
+#define NO_PARAM_SIZE					1
 
 typedef struct {
 	uint64_t time;
 } __attribute__ ((packed)) timestamp_param;
 #define TIMESTAMP_PARAM_SIZE			8
+
+typedef struct {
+	uint16_t type;
+} __attribute__ ((packed)) get_params_param;
+#define GET_PARAMS_PARAM_SIZE			2
+
+typedef struct {
+	uint16_t type;
+	uint16_t hw_ver;
+	uint16_t ctrl_boot_ver;
+	uint16_t encry_boot_ver;
+	uint16_t ctrl_ver;
+	uint16_t encry1_ver;
+	uint16_t encry2_ver;
+} __attribute__ ((packed)) firmware_version_param;
+#define FIRMWARE_VERSION_PARAM_SIZE		14
+
+typedef struct {
+	uint16_t type;
+	uint64_t serial_num;
+} __attribute__ ((packed)) serial_num_param;
+#define SERIAL_NUM_PARAM_SIZE			10
 
 typedef struct {
 	uint16_t type;
@@ -100,6 +124,96 @@ typedef struct {
 	uint32_t interval;
 } __attribute__ ((packed)) filtr_interv_param;
 #define FILTR_INTERV_PARAM_SIZE			6
+
+typedef struct {
+	uint8_t part_num;
+	uint8_t part_indi;
+	uint8_t ciphertext:4;
+	uint8_t high_speed:4;
+	uint16_t read_index;
+	uint16_t read_len;
+} __attribute__ ((packed)) part_info_param;
+#define PART_INFO_PARAM_SIZE			7
+
+typedef struct {
+	uint8_t num;
+	uint8_t data[0];
+} __attribute__ ((packed)) work_mode_param;
+#define WORK_MODE_PARAM_SIZE			1
+
+typedef struct {
+	uint8_t part[12];
+} __attribute__ ((packed)) perm_table_param;
+#define PERM_TABLE_PARAM_SIZE			12
+
+typedef struct {
+	uint64_t sec_rand;
+} __attribute__ ((packed)) rand_num_param;
+#define RAND_NUM_PARAM_SIZE				8
+
+//7.6.1
+typedef struct {
+	uint64_t host_rand;
+	uint64_t sec_rand;
+	uint64_t serial;
+	uint64_t reserve;
+	uint8_t sign[64];
+	uint8_t x509[0];
+} __attribute__ ((packed)) auth_data_param;
+#define AUTH_DATA_PARAM_SIZE			96
+
+// 7.6.2
+typedef struct {
+	uint8_t province[10];
+	uint8_t city[10];
+	uint8_t longitude[6];
+	uint8_t use[20];
+	uint8_t model[8];
+	uint8_t company[40];
+	uint8_t contact[10];
+	uint8_t tele1[5];
+	uint8_t tele2[5];
+	uint8_t email[30];
+	uint8_t reg_data[5];
+	uint8_t remark[75];
+} __attribute__ ((packed)) user_info_param;
+#define USER_INFO_PARAM_SIZE			224
+
+// 7.6.3
+typedef struct {
+#define TO_BE_ACTIVED					0x8
+#define RE_ACTIVE						0x9
+	uint8_t active_flag;
+	uint16_t len;
+	uint8_t mode;
+	uint64_t serial;
+	uint8_t reserve[5];
+	uint8_t forward[424];
+	uint8_t x509[0];
+} __attribute__ ((packed)) active_req_param;
+#define ACTIVE_REQ_PARAM_SIZE			441
+
+//7.6.4
+typedef struct {
+	uint16_t len;
+	uint8_t mode;
+	uint64_t serial;
+	uint8_t reserve[5];
+	uint8_t forward[200];
+} __attribute__ ((packed)) active_auth_param;
+#define ACTIVE_AUTH_PARAM_SIZE			216
+
+// 7.6.5
+typedef struct {
+#define GRADE_ZERO						0
+#define GRADE_ONE						1
+	uint8_t curr_grade;
+#define TWO_GRADE						1
+#define THREE_GRADE						2
+	uint8_t total_grade;
+	uint8_t x509[0];
+} __attribute__ ((packed)) cert_chain_param;
+#define CERT_CHAIN_PARAM_SIZE			2
 
 
 /* ---------- message related ---------- */
@@ -136,6 +250,10 @@ typedef struct security_info {
 
 	uint8_t rbuf[SECURITY_MTU];
 	uint8_t wbuf[SECURITY_MTU];
+
+	/* security module info */
+	uint64_t serial;
+	char x509_path[20];
 } security_info_t;
 
 #endif

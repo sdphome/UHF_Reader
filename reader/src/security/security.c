@@ -71,6 +71,8 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
 	struct timeval now;
 	struct timespec outtime;
 
+	memset(result, 0, sizeof(security_package_t));
+
 	gettimeofday(&now, NULL);
 	outtime.tv_sec = now.tv_sec + SECURITY_TIMEOUT;
 	outtime.tv_nsec = now.tv_usec * 1000;
@@ -86,8 +88,13 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
             security_result_list_t *result_list = info->result_list;
             security_result_list_t *result_list_prev = info->result_list;
             while (result_list != NULL) {
+#ifdef TEST
                 if (result_list->result.hdr.cmd == cmd &&
+						result_list->result.hdr.type == type + 1) {
+#else
+				if (result_list->result.hdr.cmd == cmd &&
 						result_list->result.hdr.type == type) {
+#endif
                     resultReceived = 1;
                     *result = result_list->result;
                     security_print_result(result);
@@ -107,6 +114,8 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
             }
         }
 	}
+
+	return ret;
 }
 
 void security_signal_result(security_info_t *info, security_package_t *result)
@@ -232,11 +241,19 @@ int security_set_rtc(security_info_t *info)
 
 	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_PARAM_SIZE + 1, (uint8_t *)&time);
 	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
-	security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
 
 	ret = *result.payload;
 	if (ret == FAILED) {
@@ -248,8 +265,6 @@ int security_set_rtc(security_info_t *info)
 		free(result.payload);
 		result.payload = NULL;
 	}
-
-	unlock_security(&info->lock);
 
 	return ret;
 }
@@ -262,21 +277,27 @@ uint64_t security_get_rtc(security_info_t *info)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, GET_RTC, 1, NULL);
+	ret = security_write(info, SETUP_TYPE, GET_RTC, NO_PARAM_SIZE, NULL);
 	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d.\n", __func__, ret);
 		return ret;
 	}
 
-	security_wait_result(info, SETUP_TYPE, GET_RTC, &result);
+	ret = security_wait_result(info, SETUP_TYPE, GET_RTC, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
 
 	memcpy(&time, result.payload, TIMESTAMP_PARAM_SIZE);
 	if (result.payload != NULL) {
 		free(result.payload);
 		result.payload = NULL;
 	}
-
-	unlock_security(&info->lock);
 
 	return time.time;
 }
@@ -287,21 +308,32 @@ int security_set_params(security_info_t *info, uint8_t *param)
 	security_package_t result;
 	uint16_t len;
 
-	lock_security(&info->lock);
-
 	if (*(uint16_t *)param == REPEAT_READ) {
 		len = REPEAT_READ_PARAM_SIZE + 1;
 	} else if (*(uint16_t *)param == FILTR_INTERV) {
 		len = FILTR_INTERV_PARAM_SIZE + 1;
+	} else {
+		printf("%s: can't get this param, type=%d.\n", __func__, *(uint16_t *)param);
+		return -FAILED;
 	}
+
+	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, SETUP_PARAM, len, param);
 	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
-	security_wait_result(info, SETUP_TYPE, SETUP_PARAM, &result);
+	ret = security_wait_result(info, SETUP_TYPE, SETUP_PARAM, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
 
 	ret = *result.payload;
 	if (ret == FAILED) {
@@ -313,8 +345,6 @@ int security_set_params(security_info_t *info, uint8_t *param)
 		free(result.payload);
 		result.payload = NULL;
 	}
-
-	unlock_security(&info->lock);
 
 	return ret;
 }
@@ -337,6 +367,340 @@ int security_set_filtr_interv(security_info_t *info, uint32_t interval)
 	param.interval = interval;
 
 	return security_set_params(info, (uint8_t *)&param);
+}
+
+uint8_t* security_get_params(security_info_t *info, uint16_t type)
+{
+	int ret = NO_ERROR;
+	get_params_param param;
+	security_package_t result;
+
+	param.type = type;
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *)&param);
+	if (ret != NO_ERROR) {
+		printf("%s: write failed, ret = %d\n", __func__, ret);
+		unlock_security(&info->lock);
+		return NULL;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, GET_PARAM, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return NULL;
+	}
+
+	return (uint8_t *)result.payload;
+}
+
+int security_get_firmware_version(security_info_t *info, firmware_version_param *param)
+{
+	int ret = NO_ERROR;
+	uint8_t *payload = NULL;
+
+	payload = security_get_params(info, FIRMWARE_VERSION);
+	if (payload == NULL) {
+		printf("%s: get version failed.\n", __func__);
+		return -FAILED;
+	}
+
+	memcpy(param, payload, FIRMWARE_VERSION_PARAM_SIZE);
+
+	free(payload);
+
+	return ret;
+}
+
+int security_get_serial_number(security_info_t *info, serial_num_param *param)
+{
+	int ret = NO_ERROR;
+	uint8_t *payload = NULL;
+
+	payload = security_get_params(info, SECURITY_SERIAL);
+	if (payload == NULL) {
+		printf("%s: get serial number failed.\n", __func__);
+		return -FAILED;
+	}
+
+	memcpy(param, payload, SERIAL_NUM_PARAM_SIZE);
+
+	free(payload);
+
+	return ret;
+}
+
+int security_get_repeat_read_flag(security_info_t *info, repeat_read_param *param)
+{
+	int ret = NO_ERROR;
+	uint8_t *payload = NULL;
+
+	payload = security_get_params(info, REPEAT_READ);
+	if (payload == NULL) {
+		printf("%s: get repeat read flag failed.\n", __func__);
+		return -FAILED;
+	}
+
+	memcpy(param, payload, REPEAT_READ_PARAM_SIZE);
+
+	free(payload);
+
+	return ret;
+}
+
+work_mode_param* security_get_work_mode(security_info_t *info)
+{
+	uint8_t num = 0;
+	uint8_t *payload = NULL;
+	work_mode_param *param;
+
+	payload = security_get_params(info, REPEAT_READ);
+	if (payload == NULL) {
+		printf("%s: get work mode information failed.\n", __func__);
+		return NULL;
+	}
+
+	num = *payload;
+	/* Need free in main thread */
+	param = (work_mode_param *)malloc(WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
+	if (param == NULL) {
+		printf("%s: malloc memory failed.\n", __func__);
+		free(payload);
+		return NULL;
+	}
+
+	memcpy(param, payload, WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
+	free(payload);
+
+	return param;
+}
+
+int security_get_key_version(security_info_t *info, security_package_t *result)
+{
+	int ret = NO_ERROR;
+	get_params_param param;
+
+	param.type = KEY_VERSION;
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *)&param);
+	if (ret != NO_ERROR) {
+		printf("%s: write failed, ret = %d\n", __func__, ret);
+		unlock_security(&info->lock);
+		return -FAILED;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, GET_PARAM, result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return -FAILED;
+	}
+
+	return ret;
+}
+
+int security_get_filtr_interv(security_info_t *info, repeat_read_param *param)
+{
+	int ret = NO_ERROR;
+	uint8_t *payload = NULL;
+
+	payload = security_get_params(info, FILTR_INTERV);
+	if (payload == NULL) {
+		printf("%s: get param failed.\n", __func__);
+		return -FAILED;
+	}
+
+	memcpy(param, payload, FILTR_INTERV_PARAM_SIZE);
+
+	free(payload);
+
+	return ret;
+}
+
+int security_get_perm(security_info_t *info, perm_table_param *param)
+{
+	int ret = NO_ERROR;
+	security_package_t result;
+
+	if (param == NULL) {
+		printf("%s: get permission failed.\n", __func__);
+		return -FAILED;
+	}
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, SETUP_TYPE, GET_PERMI, NO_PARAM_SIZE, NULL);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		printf("%s: write failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, GET_RTC, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	memcpy(param, result.payload, PERM_TABLE_PARAM_SIZE);
+	if (result.payload != NULL) {
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	return ret;
+}
+
+int security_set_work_mode(security_info_t *info, work_mode_param *param)
+{
+	int ret = NO_ERROR;
+	security_package_t result;
+
+	if (param == NULL) {
+		printf("%s: param is null.\n", __func__);
+		return -FAILED;
+	}
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, SETUP_TYPE, SETUP_MODE,
+					PART_INFO_PARAM_SIZE * param->num + 2, (uint8_t *)param);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		printf("%s: write failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, SETUP_MODE, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	if (*result.payload)
+		ret = -FAILED;
+
+	free(result.payload);
+	result.payload = NULL;
+
+	return ret;
+}
+
+int security_request_rand_num(security_info_t *info, rand_num_param *param)
+{
+	int ret = NO_ERROR;
+	security_package_t result;
+
+	if (param == NULL) {
+		printf("%s: param is null.\n", __func__);
+		return -FAILED;
+	}
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, AUTH_TYPE, REQ_RAND_NUM, NO_PARAM_SIZE, NULL);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		printf("%s: write failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	ret = security_wait_result(info, AUTH_TYPE, REQ_RAND_NUM, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return ret;
+	}
+
+	if (result.payload != NULL) {
+		memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
+		free(result.payload);
+		result.payload = NULL;
+	} else
+		ret = -FAILED;
+
+	return ret;
+}
+
+unsigned long security_get_file_size(const char *path)
+{
+	unsigned long size = -1;
+	FILE *fp;
+
+	fp = fopen(path, "r");
+	if(fp == NULL)
+		return size;
+
+	fseek(fp, 0L, SEEK_END);
+	filesize = ftell(fp);
+	fclose(fp);
+
+	return size;
+}
+
+int security_read_x509(uint8_t *x509, char *path, unsigned long size)
+{
+	unsigned long nrd;
+	FILE *fp = fopen(path, "r");
+
+	rewind(fp);
+	nrd = fread(x509, 1, size, fp);
+
+	if (nrd == size)
+		return NO_ERROR;
+	else
+		return -FAILED;
+}
+
+int security_send_auth_data(security_info_t *info, rand_num_param *param)
+{
+	int ret = NO_ERROR;
+	uint64_t rand_num = 0;
+	unsigned long size = -1;
+	auth_data_param *param = NULL;
+
+	size = security_get_file_size(info->x509_path);
+	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
+		printf("%s: x509 size error, size = %ld.\n", size);
+		return -FAILED;
+	}
+
+	param = (auth_data_param *)malloc(AUTH_DATA_PARAM_SIZE + size);
+
+	/* 1. generate random number */
+	srand((unsigned)time(NULL));
+	param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
+
+	/* 2. fill data */
+	param->sec_rand = param->sec_rand;
+	param->serial = info->serial;
+	param->reserve = 0;
+	ret = security_read_x509(param->x509, info->x509_path, size);
+	if (ret != NO_ERROR) {
+		printf("%s: read x509 failed.\n", __func__);
+		free(param);
+		return ret;
+	}
+
+	/* 3. digital signature */
+
+	return ret;
 }
 
 int start_security(security_info_t *security_info)
