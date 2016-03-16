@@ -13,6 +13,7 @@
 #include <pthread.h>
 
 #include "security.h"
+#include "../utils/sm2.hpp"
 
 static inline int security_open(char *dev)
 {
@@ -473,6 +474,7 @@ work_mode_param* security_get_work_mode(security_info_t *info)
 		return NULL;
 	}
 
+	/* FIXME: maybe also can resurn payload derectly */
 	memcpy(param, payload, WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
 	free(payload);
 
@@ -648,7 +650,7 @@ unsigned long security_get_file_size(const char *path)
 		return size;
 
 	fseek(fp, 0L, SEEK_END);
-	filesize = ftell(fp);
+	size = ftell(fp);
 	fclose(fp);
 
 	return size;
@@ -668,12 +670,43 @@ int security_read_x509(uint8_t *x509, char *path, unsigned long size)
 		return -FAILED;
 }
 
-int security_send_auth_data(security_info_t *info, rand_num_param *param)
+int security_digi_sign(security_info_t *info, auth_data_param *param)
+{
+	int ret = NO_ERROR;
+	uint8_t hash[32] = {0};
+	uint8_t message[32] = {0};
+	int rlen, slen;
+
+	memcpy(message, (uint8_t *)&param->host_rand, 8);
+	memcpy(message + 8, (uint8_t *)&param->sec_rand, 8);
+	memcpy(message + 16, (uint8_t *)&param->serial, 8);
+	memcpy(message + 24, (uint8_t *)&param->reserve, 8);
+
+	ret = sm3_e((uint8_t *)&info->serial, 8, info->pub_key, 32,
+		info->pub_key + 32, 32, message, 32, hash);
+	if (ret != NO_ERROR)
+		return ret;
+
+	sm2_sign(hash, 32, info->priv_key, 32, param->sign, &rlen, param->sign + 32, &slen);
+}
+
+
+/**
+ * ret
+ * 0 : auth pass
+ * 1 : verify sign failed
+ * 2 : verify rand number faild
+ * 3 : the module hasn't actived
+ * 4 : security module has actived by other reader
+ * A : reader serial number failed
+*/
+int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 {
 	int ret = NO_ERROR;
 	uint64_t rand_num = 0;
 	unsigned long size = -1;
 	auth_data_param *param = NULL;
+	security_package_t result;
 
 	size = security_get_file_size(info->x509_path);
 	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
@@ -688,7 +721,7 @@ int security_send_auth_data(security_info_t *info, rand_num_param *param)
 	param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
 
 	/* 2. fill data */
-	param->sec_rand = param->sec_rand;
+	param->sec_rand = rand_param->sec_rand;
 	param->serial = info->serial;
 	param->reserve = 0;
 	ret = security_read_x509(param->x509, info->x509_path, size);
@@ -699,8 +732,73 @@ int security_send_auth_data(security_info_t *info, rand_num_param *param)
 	}
 
 	/* 3. digital signature */
+	/* CARE: Need use big endian data */
+	ret = security_digi_sign(info, param);
+	if (ret != NO_ERROR) {
+		free(param);
+		printf("%s: sign failed\n", __func__);
+		return ret;
+	}
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, AUTH_TYPE, IDEN_AUTH, AUTH_DATA_PARAM_SIZE + size + 1, (uint8_t *)param);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		free(param);
+		printf("%s: write failed, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		free(param);
+		return ret;
+	}
+
+	/* upper level check the result */
+	ret = *result.payload;
+
+	if (result.payload != NULL) {
+		free(result.payload);
+		result.payload = NULL;
+	}
 
 	return ret;
+}
+
+uint8_t *security_send_user_info(security_info_t *security_info)
+{
+	int ret = NO_ERROR;
+	user_info_param user_info;
+	security_package_t result;
+
+	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
+	/* TODO: fill user_info */
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, AUTH_TYPE, USER_INFO, USER_INFO_PARAM_SIZE + 1, (uint8_t *)&user_info);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		printf("%s: write failed, ret = %d\n", __func__, ret);
+		return NULL;
+	}
+
+	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+
+	unlock_security(&info->lock);
+
+	if (ret != NO_ERROR) {
+		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
+		return NULL;
+	}
+
+	return result->payload;
 }
 
 int start_security(security_info_t *security_info)
@@ -710,7 +808,7 @@ int start_security(security_info_t *security_info)
 
 	assert(security_info != NULL);
 
-	security_info->fd = security_open(SECURITY_DEV);
+	security_info->fd = security_open((char *)SECURITY_DEV);
 	if (security_info->fd < 0) {
 		printf("%s: open security device node failed.\n", __func__);
 		return -FAILED;

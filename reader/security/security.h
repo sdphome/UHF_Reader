@@ -51,7 +51,7 @@
 
 // AUTH_TYPE & AUTH_ACK_TYPE
 #define REQ_RAND_NUM					0x1
-#define SEND_RAND_NUM					0x2
+#define IDEN_AUTH						0x2
 #define USER_INFO						0x3
 #define SEND_AUTH						0x4
 #define SEND_CERT						0x5
@@ -254,6 +254,8 @@ typedef struct security_info {
 	/* security module info */
 	uint64_t serial;
 	char x509_path[20];
+	uint8_t pub_key[64];
+	uint8_t priv_key[32];
 } security_info_t;
 
 #endif

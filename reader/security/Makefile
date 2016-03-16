@@ -1,8 +1,8 @@
 security: security.o
-	${CROSS_COMPILE}gcc security.o -o security -lpthread
+	${CROSS_COMPILE}g++ security.o -o security -lpthread -L ../utils -lsm2
 
 security.o: security.c security.h
-	${CROSS_COMPILE}gcc -c security.c -o security.o
+	${CROSS_COMPILE}g++ -c security.c -o security.o
 
 clean:
 	rm *.o security
