@@ -15,6 +15,9 @@
 #include "security.h"
 #include "../utils/sm2.hpp"
 
+/* FIXME: undef it */
+#define TEST
+
 static inline int security_open(char *dev)
 {
 	return open(dev, O_RDWR);
@@ -91,11 +94,16 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
             while (result_list != NULL) {
 #ifdef TEST
                 if (result_list->result.hdr.cmd == cmd &&
-						result_list->result.hdr.type == type + 1) {
-#else
-				/* TODO: add error type check */
-				if (result_list->result.hdr.cmd == cmd &&
 						result_list->result.hdr.type == type) {
+#else
+				/* Check if got a error frame */
+				if (result_list->result.hdr.type == ERROR_TYPE) {
+					printf("%s: Got a error frame, errno=%d.\n", __func__, result_list->result.hdr.cmd);
+					return result_list->result.hdr.cmd;
+				}
+
+				if (result_list->result.hdr.cmd == cmd &&
+						result_list->result.hdr.type == type + 1) {
 #endif
                     resultReceived = 1;
                     *result = result_list->result;
@@ -108,8 +116,6 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
                     result_list = NULL;
                     break;
                 } else {
-                    /* TODO: maybe need to process this event */
-					/* TODO: for security, need add new list to process it in other thread */
                     result_list_prev = result_list;
                     result_list = result_list->next;
                 }
@@ -135,7 +141,6 @@ void security_signal_result(security_info_t *info, security_package_t *result)
 
 	if (info->result_list == NULL) info->result_list = curr_result;
 	else {
-		/* TODO:Need check the message type to distinguish which list this result to add */
 		security_result_list_t *result_list = info->result_list;
 		while (result_list != NULL) result_list = result_list->next;
 		result_list->next = curr_result;
@@ -146,58 +151,29 @@ malloc_failed:
 	unlock_security(&info->lock);
 }
 
-void *security_read_loop(void *data)
+void security_signal_upload(security_info_t *info, security_package_t *upload)
 {
-	int ret;
-	int nrd;
-	security_info_t *info = (security_info_t *)data;
-	int fd = info->fd;
-	security_package_t result;
-	uint8_t *buf = NULL;
+	lock_security(&info->upload_lock);
 
-	while(true) {
-		buf = info->rbuf;
-		memset(&result, 0, sizeof(security_package_t));
-		nrd = read(fd, buf, SECURITY_MTU);
-		if (nrd < 6) {
-			printf("%s: the data is too few. ignore it.\n", __func__);
-			continue;
-		}
-
-		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
-		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {
-			printf("%s: oops, nrd=%d, hdr.len=%d.\n", nrd, result.hdr.len);
-			continue;
-		}
-
-		buf += SECURITY_PACK_HDR_SIZE * sizeof(buf);
-		if (result.hdr.len > 1) {
-			result.payload = (uint8_t *)malloc(result.hdr.len - 1);
-			if (result.payload == NULL) {
-				printf("%s: can't alloc memory for payload.\n", __func__);
-				continue;
-			}
-			memcpy(result.payload, buf, result.hdr.len - 1);
-			buf += result.hdr.len - 1;
-		}
-		result.crc = *buf;
-
-		/* check if crc match */
-		if (result.crc != security_crc(&result.hdr, result.payload)) {
-			printf("%s: crc isn't right, read crc=%d, calc crc=%d.\n", __func__,
-							result.crc, security_crc(&result.hdr, result.payload));
-			continue;
-		}
-
-		/* TODO: add error type check */
-		if (result.hdr.type == ERROR_TYPE) {
-			printf("%s: Occur a error, cmd = %d\n", __func__, result.hdr.cmd);
-		}
-
-		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list */
-
-		security_signal_result(info, &result);
+	security_result_list_t *curr_upload = (security_result_list_t *)malloc(sizeof(security_result_list_t));
+	if (curr_upload == NULL) {
+		printf("ERROR: malloc for security result failed, Result will not be sent\n");
+		goto malloc_failed;
 	}
+
+	curr_upload->result = *upload;
+	curr_upload->next = NULL;
+
+	if (info->upload_list == NULL) info->upload_list = curr_upload;
+	else {
+		security_result_list_t *upload_list = info->upload_list;
+		while (upload_list != NULL) upload_list = upload_list->next;
+		upload_list->next = curr_upload;
+	}
+
+malloc_failed:
+	pthread_cond_broadcast(&info->upload_cond);
+	unlock_security(&info->upload_lock);
 }
 
 /* len include cmd, so len = payload_size + 1 */
@@ -966,6 +942,100 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	return ret;
 }
 
+void *security_upload_loop(void *data)
+{
+	int ret;
+	int upload_received = false;
+	security_info_t *info = (security_info_t *)data;
+	security_package_t upload;
+
+	while(true) {
+		lock_security(&info->upload_lock);
+		pthread_cond_wait(&info->cond, &info->lock);
+
+        if (info->upload_list != NULL) {
+            security_result_list_t *upload_list = info->upload_list;
+            security_result_list_t *upload_list_prev = info->upload_list;
+            while (upload_list != NULL) {
+				upload_received = false;
+				if (upload_list->result.hdr.type == UPLOAD_INFO_TYPE) {
+                    upload = upload_list->result;	/* Got the upload info */
+                    security_print_result(&upload);
+					upload_received = true;
+				}
+                upload_list_prev->next = upload_list->next;  /* cross upload_list */
+                if (upload_list == info->upload_list) {  /* list head, move list head to next */
+					info->upload_list = upload_list->next;
+                }
+				if (upload_received == true) {
+					/* TODO: we can process the upload now */
+				}
+
+                free(upload_list);
+                upload_list = NULL;
+				free(upload.payload);
+            }
+        }
+		unlock_security(&info->upload_lock);
+	}
+}
+
+void *security_read_loop(void *data)
+{
+	int ret;
+	int nrd;
+	security_info_t *info = (security_info_t *)data;
+	int fd = info->fd;
+	security_package_t result;
+	uint8_t *buf = NULL;
+
+	while(true) {
+		buf = info->rbuf;
+		memset(&result, 0, sizeof(security_package_t));
+		nrd = read(fd, buf, SECURITY_MTU);
+		if (nrd < 6) {
+			printf("%s: the data is too few. ignore it.\n", __func__);
+			continue;
+		}
+
+		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
+		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {
+			printf("%s: oops, nrd=%d, hdr.len=%d.\n", nrd, result.hdr.len);
+			continue;
+		}
+
+		buf += SECURITY_PACK_HDR_SIZE * sizeof(buf);
+		if (result.hdr.len > 1) {
+			result.payload = (uint8_t *)malloc(result.hdr.len - 1);
+			if (result.payload == NULL) {
+				printf("%s: can't alloc memory for payload.\n", __func__);
+				continue;
+			}
+			memcpy(result.payload, buf, result.hdr.len - 1);
+			buf += result.hdr.len - 1;
+		}
+		result.crc = *buf;
+
+		/* check if crc match */
+		if (result.crc != security_crc(&result.hdr, result.payload)) {
+			printf("%s: crc isn't right, read crc=%d, calc crc=%d.\n", __func__,
+							result.crc, security_crc(&result.hdr, result.payload));
+			continue;
+		}
+
+		if (result.hdr.type == ERROR_TYPE) {
+			printf("%s: Occur a error, errno = %d\n", __func__, result.hdr.cmd);
+		}
+
+		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list */
+
+		if (result.hdr.type == UPLOAD_INFO_TYPE)
+			security_signal_upload(info, &result);
+		else
+			security_signal_result(info, &result);
+	}
+}
+
 int start_security(security_info_t *info)
 {
 	int ret;
@@ -983,6 +1053,12 @@ int start_security(security_info_t *info)
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	ret = pthread_create(&info->read_thread, &attr, security_read_loop, (void *)info);
+	if (ret < 0) {
+		printf("create security thread failed.\n");
+		goto create_thread_failed;
+	}
+
+	ret = pthread_create(&info->upload_thread, &attr, security_upload_loop, (void *)info);
 	if (ret < 0) {
 		printf("create security thread failed.\n");
 		goto create_thread_failed;
@@ -1006,7 +1082,7 @@ int alloc_security(security_info_t **security_info)
 {
 	int ret;
 
-	*security_info = (security_info_t *)malloc(sizeof(security_info));
+	*security_info = (security_info_t *)malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
 		return -ENOMEM;
@@ -1014,24 +1090,33 @@ int alloc_security(security_info_t **security_info)
 
 	(*security_info)->fd = -1;
 	(*security_info)->result_list = NULL;
+	(*security_info)->upload_list = NULL;
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
 	pthread_cond_init(&(*security_info)->cond, NULL);
+	pthread_mutex_init(&(*security_info)->upload_lock, NULL);
+	pthread_cond_init(&(*security_info)->upload_cond, NULL);
 
 	return NO_ERROR;
 }
 
 void release_security(security_info_t *security_info)
 {
+	//pthread_join(upload_thread, NULL);
+	//pthread_join(read_thread, NULL);
+
 	pthread_mutex_destroy(&security_info->lock);
 	pthread_cond_destroy(&security_info->cond);
+	pthread_mutex_destroy(&security_info->upload_lock);
+	pthread_cond_destroy(&security_info->upload_cond);
 
-	/* free all pending api result here */
+	/* free all pending result here */
 	if (security_info->result_list != NULL) {
 		security_result_list_t *result_list = security_info->result_list;
 		security_result_list_t *result_list_next;
 		while (result_list != NULL) {
 			result_list_next = result_list->next;
+			free(result_list->result.payload);
 			free(result_list);
 			result_list = result_list_next;
 		}

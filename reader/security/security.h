@@ -8,8 +8,6 @@
 #define false							0
 #define true							1
 
-#define TEST
-
 #define SECURITY_MTU					1500
 #define SECURITY_TIMEOUT				2
 
@@ -263,12 +261,17 @@ typedef struct security_result_list {
 typedef struct security_info {
 	int fd;
 	int status;
-	pthread_t read_thread;
 
+	pthread_t read_thread;
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
 
+	pthread_t upload_thread;
+	pthread_mutex_t upload_lock;
+	pthread_cond_t upload_cond;
+
 	security_result_list_t *result_list;
+	security_result_list_t *upload_list;
 
 	uint8_t rbuf[SECURITY_MTU];
 	uint8_t wbuf[SECURITY_MTU];
