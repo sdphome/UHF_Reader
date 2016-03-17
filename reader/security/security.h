@@ -20,7 +20,8 @@
 #define PACK_SEND_HDR					0xAA
 #define PACK_RECV_HDR					0xAB
 
-#define SECURITY_VERSION				0x1
+#define SECURITY_VERSION_1				0x1
+#define SECURITY_VERSION_2				0x2
 
 /* -------- Security Frame Type -------- */
 #define SETUP_TYPE						0x1
@@ -83,6 +84,14 @@
 // DATA_FORWA_TYPE & DATA_FORWA_ACK_TYPE
 #define UPGRADE_ENCR_MODULE				0x1
 #define UPLOAD_FIRMWARE					0x2
+
+// ERROR_TYPE
+#define UNKNOWN_TYPE					0xB
+#define DATA_ERROR						0xC
+#define PACK_ILLE						0xD
+#define CRC_FAILED						0xE
+#define PROGRAM_MISSING					0x60
+#define VERIFY_ENCR_FAILED				0x61
 
 #define NO_PARAM_SIZE					1
 
@@ -150,6 +159,19 @@ typedef struct {
 	uint64_t sec_rand;
 } __attribute__ ((packed)) rand_num_param;
 #define RAND_NUM_PARAM_SIZE				8
+
+typedef struct {
+	uint8_t boot_version;
+	uint8_t firmware_version;
+	uint32_t file_size;
+	uint32_t firmware_size;
+	uint16_t block_size;
+	uint8_t cmd;
+	uint8_t reserve[19];
+	uint8_t block[0];
+} __attribute__ ((packed)) firmware_data;
+#define FIRMWARE_DATA_HDR_SIZE			32
+
 
 //7.6.1
 typedef struct {
