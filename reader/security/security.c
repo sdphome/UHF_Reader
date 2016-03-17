@@ -216,7 +216,7 @@ int security_set_rtc(security_info_t *info)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
-	timestamp_param time;
+	timestamp_v2_param time;
 	struct timeval now;
 
 	gettimeofday(&now, NULL);
@@ -224,7 +224,7 @@ int security_set_rtc(security_info_t *info)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_PARAM_SIZE + 1, (uint8_t *)&time);
+	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -258,7 +258,7 @@ uint64_t security_get_rtc(security_info_t *info)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
-	timestamp_param time;
+	timestamp_v2_param time;
 
 	lock_security(&info->lock);
 
@@ -280,7 +280,7 @@ uint64_t security_get_rtc(security_info_t *info)
 
 	/* May need check version */
 
-	memcpy(&time, result.payload, TIMESTAMP_PARAM_SIZE);
+	memcpy(&time, result.payload, TIMESTAMP_V2_PARAM_SIZE);
 	if (result.payload != NULL) {
 		free(result.payload);
 		result.payload = NULL;
@@ -968,7 +968,7 @@ void *security_upload_loop(void *data)
 					info->upload_list = upload_list->next;
                 }
 				if (upload_received == true) {
-					/* TODO: we can process the upload now */
+					/* TODO: we can process the upload now, TBD */
 				}
 
                 free(upload_list);

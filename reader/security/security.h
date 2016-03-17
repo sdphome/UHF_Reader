@@ -94,9 +94,14 @@
 #define NO_PARAM_SIZE					1
 
 typedef struct {
+	uint32_t time;
+} __attribute__ ((packed)) timestamp_v1_param;
+#define TIMESTAMP_V1_PARAM_SIZE			4
+
+typedef struct {
 	uint64_t time;
-} __attribute__ ((packed)) timestamp_param;
-#define TIMESTAMP_PARAM_SIZE			8
+} __attribute__ ((packed)) timestamp_v2_param;
+#define TIMESTAMP_V2_PARAM_SIZE			8
 
 typedef struct {
 	uint16_t type;
@@ -235,6 +240,79 @@ typedef struct {
 } __attribute__ ((packed)) cert_chain_param;
 #define CERT_CHAIN_PARAM_SIZE			2
 
+typedef struct {
+	uint8_t errno;
+	uint64_t tid;
+	uint8_t ante_no;
+	uint64_t time;  /* FIXME: make sure which version */
+} __attribute__ ((packed)) tid_upload_param;
+#define TID_UPLOAD_PARAM_SIZE			17
+
+typedef struct {
+	uint8_t errno;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint64_t time;
+	uint8_t tid_en[16];
+} __attribute__ ((packed)) tid_upload_err1_param;
+#define TID_UPLOAD_ERR1_PARAM_SIZE		25
+
+typedef struct {
+	uint8_t errno;
+	uint8_t ante_no;
+	uint64_t time;
+} __attribute__ ((packed)) tid_upload_err3_param;
+#define TID_UPLOAD_ERR3_PARAM_SIZE		8
+
+typedef struct {
+	uint8_t errno;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint64_t time;
+	uint8_t data[0];
+} __attribute__ ((packed)) part_data_upload_param;
+#define PART_DATA_UPLOAD_PARAM_SIZE		18
+
+typedef struct {
+	uint8_t errno;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint64_t time;
+	uint8_t tid_en[16];
+} __attribute__ ((packed)) part_data_upload_err1_param;
+#define PART_DATA_UPLOAD_ERR1_PARAM_SIZE     26
+
+typedef struct {
+	uint8_t errno;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint64_t time;
+} __attribute__ ((packed)) part_data_upload_err2_param;
+#define PART_DATA_UPLOAD_ERR2_PARAM_SIZE     18
+
+typedef struct {
+	uint8_t errno;
+	uint8_t ante_no;
+	uint64_t time;
+} __attribute__ ((packed)) part_data_upload_err3_param;
+#define PART_DATA_UPLOAD_ERR3_PARAM_SIZE     10
+
+typedef struct {
+	uint8_t errno;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint64_t time;
+	uint8_t data[0];
+} __attribute__ ((packed)) part_data_upload_err4_param;
+#define PART_DATA_UPLOAD_ERR1_PARAM_SIZE     18
 
 /* ---------- message related ---------- */
 
@@ -277,6 +355,7 @@ typedef struct security_info {
 	uint8_t wbuf[SECURITY_MTU];
 
 	/* security module info */
+	uint8_t version;
 	uint64_t serial;
 	char x509_path[20];
 	uint8_t pub_key[64];
