@@ -13,7 +13,7 @@
 #include <pthread.h>
 
 #include "security.h"
-#include "../utils/sm2.hpp"
+#include <sm2.hpp>
 
 /* FIXME: undef it */
 #define TEST

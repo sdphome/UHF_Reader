@@ -312,7 +312,7 @@ typedef struct {
 	uint64_t time;
 	uint8_t data[0];
 } __attribute__ ((packed)) part_data_upload_err4_param;
-#define PART_DATA_UPLOAD_ERR1_PARAM_SIZE     18
+#define PART_DATA_UPLOAD_ERR4_PARAM_SIZE     18
 
 /* ---------- message related ---------- */
 
