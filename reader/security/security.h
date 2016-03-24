@@ -11,9 +11,19 @@
 #define SECURITY_MTU					1500
 #define SECURITY_TIMEOUT				2
 
+#define US_IOC_MAGIC            		'u'
+#define US_IOC_RESET            		_IO(US_IOC_MAGIC, 1)
+#define US_IOC_GET_STATUS       		_IO(US_IOC_MAGIC, 2)
+#define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
+
+/* security module status */
+#define OK 								0
+#define BUSY							1
+
 /* ---------- Response Result ---------- */
 #define NO_ERROR						0
 #define FAILED							1
+
 
 #define PACK_SEND_HDR					0xAA
 #define PACK_RECV_HDR					0xAB

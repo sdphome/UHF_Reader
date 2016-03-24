@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sys/ioctl.h>
 
 #include "security.h"
 #include <sm2.hpp>
@@ -66,6 +67,21 @@ void inline lock_security(pthread_mutex_t *lock)
 void inline unlock_security(pthread_mutex_t *lock)
 {
 	pthread_mutex_unlock(lock);
+}
+
+int inline security_reset(int fd)
+{
+	return ioctl(fd, US_IOC_RESET, NULL);
+}
+
+int inline security_get_status(int fd)
+{
+	return ioctl(fd, US_IOC_GET_STATUS, NULL);
+}
+
+int inline security_reset_radio(int fd)
+{
+	return ioctl(fd, US_IOC_RESET_RADIO, NULL);
 }
 
 int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, security_package_t *result)
@@ -1062,6 +1078,15 @@ int start_security(security_info_t *info)
 	if (ret < 0) {
 		printf("create security thread failed.\n");
 		goto create_thread_failed;
+	}
+
+	security_reset(info->fd);
+	security_reset_radio(info->fd);
+	sleep(3);
+	/* wait for ready */
+	while(security_get_status(info->fd) == BUSY) {
+		printf("%s: wait security module get ready.\n", __func__);
+		sleep(1);
 	}
 
 	printf("Start security successfully...\n");

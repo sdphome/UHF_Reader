@@ -53,16 +53,51 @@ static int us_init_gpio(struct uhf_security *uhf)
 {
     int ret;
     /*
-     * status   gpio3-21  J4-10
-     * reset    gpio3-22  J4-12
+     * radio_status   	gpio2-26  J4-6
+     * status   		gpio3-21  J4-10
+     * reset    		gpio3-22  J4-12
      */
-    ret = devm_gpio_request_one(&uhf->spi->dev, uhf->reset,
+    ret = devm_gpio_request_one(&uhf->spi->dev, uhf->radio_reset,
+                                GPIOF_OUT_INIT_HIGH, "radio-reset");
+
+    ret += devm_gpio_request_one(&uhf->spi->dev, uhf->reset,
                                 GPIOF_OUT_INIT_HIGH, "uhf-reset");
 
     ret += devm_gpio_request_one(&uhf->spi->dev, uhf->status,
                                 GPIOF_IN, "uhf-status");
 
     return ret;
+}
+
+static inline void us_reset(int reset)
+{
+    gpio_set_value(reset, GPIOF_INIT_HIGH);
+    msleep(2);
+    gpio_set_value(reset, GPIOF_INIT_LOW);
+    msleep(3);
+    gpio_set_value(reset, GPIOF_INIT_HIGH);
+    printk(KERN_ALERT "reset security module\n");
+}
+
+static inline void us_reset_radio(int reset)
+{
+    gpio_set_value(reset, GPIOF_INIT_HIGH);
+    msleep(1);
+    gpio_set_value(reset, GPIOF_INIT_LOW);
+    msleep(3);
+    gpio_set_value(reset, GPIOF_INIT_HIGH);
+    printk(KERN_ALERT "reset radio module\n");
+}
+
+static inline int us_get_status(int status)
+{
+    int value;
+
+    value = gpio_get_value(status);
+    if (value == 0)
+        return OK;
+    else
+        return BUSY;
 }
 
 static int us_init(struct uhf_security *uhf)
@@ -344,7 +379,27 @@ ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t
 
 static long us_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-    return 0;
+	int ret = 0;
+	struct uhf_security *uhf = filp->private_data;
+
+	if (_IOC_TYPE(cmd) != US_IOC_MAGIC)
+		return -ENOTTY;
+
+	switch (cmd) {
+		case US_IOC_RESET:
+			us_reset(uhf->reset);
+			break;
+		case US_IOC_GET_STATUS:
+			ret = us_get_status(uhf->status);
+			break;
+		case US_IOC_RESET_RADIO:
+			us_reset_radio(uhf->radio_reset);
+			break;
+		default:
+			printk(KERN_ALERT "%s: no this cmd.\n", __func__);
+	};
+
+    return ret;
 }
 
 #ifdef CONFIG_COMPAT
@@ -392,27 +447,6 @@ static irqreturn_t us_intr_handler(int irq, void *handle)
     return IRQ_HANDLED;
 }
 
-static inline void us_reset(int reset)
-{
-    gpio_set_value(reset, GPIOF_INIT_HIGH);
-    msleep(1);
-    gpio_set_value(reset, GPIOF_INIT_LOW);
-    msleep(3);
-    gpio_set_value(reset, GPIOF_INIT_HIGH);
-    printk(KERN_ALERT "reset security module\n");
-}
-
-static inline int us_get_status(int status)
-{
-    int value;
-
-    value = gpio_get_value(status);
-    if (value == 0)
-        return OK;
-    else
-        return BUSY;
-}
-
 static ssize_t us_sys_show(struct device *dev,
             struct device_attribute *attr, char *buf)
 {
@@ -453,7 +487,14 @@ static int us_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
         return -EINVAL;
     }
 
-    printk(KERN_ALERT "@%s: reset = %d, status=%d\n", __func__, uhf->reset, uhf->status);
+    uhf->radio_reset = of_get_named_gpio(np, "radio_reset-gpio", 0);
+    if (!gpio_is_valid(uhf->radio_reset)) {
+        dev_err(&spi->dev, "no radio reset gpio setting in dts\n");
+        return -EINVAL;
+    }
+
+    printk(KERN_ALERT "@%s: reset = %d, status=%d, radio_reset=%d\n",
+					__func__, uhf->reset, uhf->status, uhf->radio_reset);
 
     return 0;
 }
