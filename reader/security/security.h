@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define SECURITY_DEV        "/dev/uhf-security"
+#define SECURITY_DEV        "/dev/uhf_security"
 
 #define false							0
 #define true							1

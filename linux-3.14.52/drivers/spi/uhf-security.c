@@ -263,6 +263,9 @@ static int us_open(struct inode *inode,struct file *filp)
 		printk(KERN_ALERT "%s: successfully.\n", __func__);
 	}
 
+	uhf->cache->recv_head = uhf->cache->recv_buf;
+	uhf->cache->recv_tail = uhf->cache->recv_buf;
+
     mutex_unlock(&device_list_lock);
 
     return ret;
@@ -327,7 +330,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	/* ok, data is there, return something */
 	/* count0 is the number of readable data bytes */
 	count0 = uhf->cache->recv_head - uhf->cache->recv_tail;
-	printk(KERN_ALERT "%s: count0=%d, count=%d\n", __func__, count0, count);
+	//printk(KERN_ALERT "%s: count0=%d, count=%d\n", __func__, count0, count);
 	if (count0 < 0) /* wrapped */
 		count0 = uhf->cache->recv_buf + UHF_CACHE_SIZE - uhf->cache->recv_tail;
 
@@ -345,7 +348,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	us_incr_cache_tail(uhf, count);
 	up(&uhf->sem);
 
-	return count;
+	return temp->len;
 }
 
 ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
@@ -366,8 +369,6 @@ ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t
 
 	if(down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
-
-	printk(KERN_ALERT "%s: 4th:0x%x\n", __func__, temp.data[3]);
 
     ret = us_sync_rw(uhf, &temp);
 

@@ -18,6 +18,7 @@
 
 /* FIXME: undef it */
 #define TEST
+#define DEBUG
 
 static inline int security_open(char *dev)
 {
@@ -48,15 +49,17 @@ uint8_t security_crc(security_pack_hdr *hdr, uint8_t *buf)
 
 void security_print_result(security_package_t *result)
 {
+#ifdef DEBUG
 	int i;
 	printf("===============SECURITY================\n");
 	printf("hdr:%x, type:%x, version:%x, cmd:%x, len:%x, crc:%x\n", result->hdr.hdr,
 			result->hdr.type, result->hdr.version, result->hdr.cmd, result->hdr.len, result->crc);
 	printf("payload: ");
-	for (i = 0; i < result->hdr.len; i ++) {
-		printf("%3x", result->payload[i]);
+	for (i = 0; i < result->hdr.len - 1; i ++) {
+		printf("%3x", *(result->payload + i));
 	}
 	printf("\n===============SECURITY================\n");
+#endif
 }
 
 void inline lock_security(pthread_mutex_t *lock)
@@ -202,29 +205,40 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 
 	hdr.hdr = PACK_SEND_HDR;
 	hdr.type = type;
-	hdr.version = SECURITY_VERSION_1;   /* TODO: Attention the version */
+	hdr.version = SECURITY_VERSION_2;   /* TODO: Attention the version */
 	hdr.len = len;
 	hdr.cmd = cmd;
 
 	memcpy(buf, (uint8_t *)&hdr, SECURITY_PACK_HDR_SIZE);
-	buf += SECURITY_PACK_HDR_SIZE * sizeof(buf);
+	buf += SECURITY_PACK_HDR_SIZE;
 	if (payload != NULL && len > 1) {
 		memcpy(buf, payload, len - 1);
-		buf += (len - 1) * sizeof(buf);
+		buf += (len - 1);
 	}
 
 	*buf = security_crc(&hdr, payload);
 
+	printf("before security_write:");
+	for (int i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
+		printf("%4x", *(info->wbuf + i));
+	printf("\n");
+
 	nwt = write(info->fd, info->wbuf, SECURITY_PACK_HDR_SIZE + len);
 
+	printf("security write finish\n");
+
 	if (nwt < 0) {
-		printf("write failed, ret = %d\n", nwt);
+		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
-	} else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
+	}
+/*
+	else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
 		ret = -FAILED;
 	}
+*/
 
+	printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
 }
 
@@ -240,7 +254,7 @@ int security_set_rtc(security_info_t *info)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time);
+	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time.time);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -266,6 +280,8 @@ int security_set_rtc(security_info_t *info)
 		free(result.payload);
 		result.payload = NULL;
 	}
+
+	printf("%s: end.\n", __func__);
 
 	return ret;
 }
@@ -294,7 +310,11 @@ uint64_t security_get_rtc(security_info_t *info)
 		return ret;
 	}
 
-	/* May need check version */
+	/* FIXME: May need check version */
+
+	if (result.payload == NULL) {
+		return -FAILED;
+	}
 
 	memcpy(&time, result.payload, TIMESTAMP_V2_PARAM_SIZE);
 	if (result.payload != NULL) {
@@ -338,15 +358,18 @@ int security_set_params(security_info_t *info, uint8_t *param)
 		return ret;
 	}
 
-	ret = *result.payload;
-	if (ret == FAILED) {
-		printf("%s: setup rtc failed\n", __func__);
-		ret = -ret;
-	}
-
 	if (result.payload != NULL) {
+		ret = *result.payload;
+		if (ret == FAILED) {
+			printf("%s: setup rtc failed\n", __func__);
+			ret = -ret;
+		}
+
 		free(result.payload);
 		result.payload = NULL;
+	} else {
+		printf("%s: can't get the params.\n", __func__);
+		ret = -FAILED;
 	}
 
 	return ret;
@@ -1008,11 +1031,13 @@ void *security_read_loop(void *data)
 	while(true) {
 		buf = info->rbuf;
 		memset(&result, 0, sizeof(security_package_t));
+		memset(buf, 0, SECURITY_MTU);
 		nrd = read(fd, buf, SECURITY_MTU);
 		if (nrd < 6) {
 			printf("%s: the data is too few. ignore it.\n", __func__);
 			continue;
 		}
+		printf("%s: nrd = %d\n", __func__, nrd);
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
 		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {
@@ -1020,7 +1045,7 @@ void *security_read_loop(void *data)
 			continue;
 		}
 
-		buf += SECURITY_PACK_HDR_SIZE * sizeof(buf);
+		buf += SECURITY_PACK_HDR_SIZE;
 		if (result.hdr.len > 1) {
 			result.payload = (uint8_t *)malloc(result.hdr.len - 1);
 			if (result.payload == NULL) {
@@ -1084,11 +1109,12 @@ int start_security(security_info_t *info)
 	security_reset_radio(info->fd);
 	sleep(3);
 	/* wait for ready */
+#ifndef TEST
 	while(security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);
 	}
-
+#endif
 	printf("Start security successfully...\n");
 
 	return NO_ERROR;
@@ -1161,6 +1187,10 @@ void test_security()
 		return;
 
 	ret = start_security(pr);
+
+	security_set_rtc(pr);
+
+	security_get_rtc(pr);
 
 test_fail:
 	stop_security(pr);
