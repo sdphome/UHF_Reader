@@ -42,6 +42,7 @@ static u32 wdog_source = 1; /* use WDOG1 default */
 void mxc_restart(enum reboot_mode mode, const char *cmd)
 {
 	unsigned int wcr_enable;
+	unsigned int val;
 
 	if (wdog_clk)
 		clk_enable(wdog_clk);
@@ -62,7 +63,7 @@ void mxc_restart(enum reboot_mode mode, const char *cmd)
 		wcr_enable = 0x14;
 	else
 		wcr_enable = (1 << 2);
-
+#if 0
 	/* Assert SRS signal */
 	__raw_writew(wcr_enable, wdog_base);
 	/*
@@ -74,9 +75,29 @@ void mxc_restart(enum reboot_mode mode, const char *cmd)
 	 */
 	__raw_writew(wcr_enable, wdog_base);
 	__raw_writew(wcr_enable, wdog_base);
+#else
+#define IMX2_WDT_WCR        0x00        /* Control Register */
+#define IMX2_WDT_WCR_WT     (0xFF << 8) /* -> Watchdog Timeout Field */
+#define IMX2_WDT_WCR_WRE    (1 << 3)    /* -> WDOG Reset Enable */
+#define IMX2_WDT_WCR_WDE    (1 << 2)    /* -> Watchdog Enable */
+#define IMX2_WDT_WCR_WDZST  (1 << 0)    /* -> Watchdog timer Suspend */
+#define WDOG_SEC_TO_COUNT(s)    ((s * 2 - 1) << 8)
 
+	wdog_base = (void __iomem *)0xc0a48000;
+
+	val = __raw_readw(wdog_base);
+	val |= IMX2_WDT_WCR_WDZST;
+	val &= ~IMX2_WDT_WCR_WT;
+	val &= ~IMX2_WDT_WCR_WRE;
+	val &= ~IMX2_WDT_WCR_WDE;
+	val |= WDOG_SEC_TO_COUNT(1);
+	__raw_writew(val, wdog_base);
+
+	val |= IMX2_WDT_WCR_WDE;
+	__raw_writew(val, wdog_base);
+#endif
 	/* wait for reset to assert... */
-	mdelay(500);
+	mdelay(1500);
 
 	pr_err("%s: Watchdog reset failed to assert reset\n", __func__);
 
