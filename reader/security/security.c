@@ -12,12 +12,14 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "security.h"
 #include <sm2.hpp>
 
 /* FIXME: undef it */
-#define TEST
+//#define TEST
 #define DEBUG
 
 static inline int security_open(char *dev)
@@ -36,7 +38,7 @@ uint8_t security_crc(security_pack_hdr *hdr, uint8_t *buf)
 	uint8_t crc = 0;
 	uint8_t *tmp = (uint8_t *)hdr;
 
-	for (i = 0; i < SECURITY_PACK_HDR_SIZE; i++) {
+	for (i = 1; i < SECURITY_PACK_HDR_SIZE; i++) {
 		crc ^= *(tmp + i);
 	}
 
@@ -79,7 +81,12 @@ int inline security_reset(int fd)
 
 int inline security_get_status(int fd)
 {
-	return ioctl(fd, US_IOC_GET_STATUS, NULL);
+	int status = OK;
+
+	status = ioctl(fd, US_IOC_GET_STATUS, NULL);
+	printf("%s: status is %s\n", __func__, (status ? "BUSY" : "OK"));
+
+	return status;
 }
 
 int inline security_reset_radio(int fd)
@@ -99,6 +106,8 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
 	gettimeofday(&now, NULL);
 	outtime.tv_sec = now.tv_sec + SECURITY_TIMEOUT;
 	outtime.tv_nsec = now.tv_usec * 1000;
+
+	printf("%s: +\n", __func__);
 
 	while (!resultReceived) {
 		ret = pthread_cond_timedwait(&info->cond, &info->lock, &outtime);
@@ -141,6 +150,8 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
             }
         }
 	}
+
+	printf("%s: -\n", __func__);
 
 	return ret;
 }
@@ -205,7 +216,7 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 
 	hdr.hdr = PACK_SEND_HDR;
 	hdr.type = type;
-	hdr.version = SECURITY_VERSION_2;   /* TODO: Attention the version */
+	hdr.version = SECURITY_VERSION_1;   /* TODO: Attention the version */
 	hdr.len = len;
 	hdr.cmd = cmd;
 
@@ -246,15 +257,23 @@ int security_set_rtc(security_info_t *info)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
-	timestamp_v2_param time;
+	timestamp_v2_param time_ms;
 	struct timeval now;
+	time_t rawtime;
+	struct tm *timeinfo;
+
+	time(&rawtime);
+	printf("%s: %x\n", __func__, rawtime);
+	timeinfo = localtime (&rawtime);
+	printf("The current date/time is: %s\n", asctime(timeinfo));
 
 	gettimeofday(&now, NULL);
-	time.time = ((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000;
+	printf("%s: now.tv_sec=%x\n", __func__, now.tv_sec);
+	time_ms.time = ((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000;
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time.time);
+	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time_ms.time);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -291,6 +310,7 @@ uint64_t security_get_rtc(security_info_t *info)
 	int ret = NO_ERROR;
 	security_package_t result;
 	timestamp_v2_param time;
+	time_t lt;
 
 	lock_security(&info->lock);
 
@@ -317,10 +337,15 @@ uint64_t security_get_rtc(security_info_t *info)
 	}
 
 	memcpy(&time, result.payload, TIMESTAMP_V2_PARAM_SIZE);
+
 	if (result.payload != NULL) {
 		free(result.payload);
 		result.payload = NULL;
 	}
+
+	lt = (time_t)(time.time/1000);
+
+	printf("%s: time is %s\n", __func__, asctime(localtime(&lt)));
 
 	return time.time;
 }
@@ -1029,9 +1054,11 @@ void *security_read_loop(void *data)
 	uint8_t *buf = NULL;
 
 	while(true) {
+		printf("read loop begin +++++++\n");
 		buf = info->rbuf;
 		memset(&result, 0, sizeof(security_package_t));
 		memset(buf, 0, SECURITY_MTU);
+
 		nrd = read(fd, buf, SECURITY_MTU);
 		if (nrd < 6) {
 			printf("%s: the data is too few. ignore it.\n", __func__);
@@ -1041,7 +1068,8 @@ void *security_read_loop(void *data)
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
 		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {
-			printf("%s: oops, nrd=%d, hdr.len=%d.\n", nrd, result.hdr.len);
+			printf("%s: oops, nrd=%d, hdr.hdr=%x, hdr.type=%x, hdr.version=%x, hdr.len=%x, hdr.cmd=%x.\n",
+					__func__, nrd, result.hdr.hdr, result.hdr.type, result.hdr.version, result.hdr.len, result.hdr.cmd);
 			continue;
 		}
 
@@ -1090,6 +1118,8 @@ int start_security(security_info_t *info)
 		return -FAILED;
 	}
 
+	security_get_status(info->fd);
+
 	pthread_attr_init (&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
@@ -1106,8 +1136,11 @@ int start_security(security_info_t *info)
 	}
 
 	security_reset(info->fd);
+	security_get_status(info->fd);
 	security_reset_radio(info->fd);
-	sleep(3);
+	security_get_status(info->fd);
+	sleep(6);
+	/* FIXME : sequential */
 	/* wait for ready */
 #ifndef TEST
 	while(security_get_status(info->fd) == BUSY) {

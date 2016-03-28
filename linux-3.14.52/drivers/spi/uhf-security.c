@@ -53,7 +53,7 @@ static int us_init_gpio(struct uhf_security *uhf)
 {
     int ret;
     /*
-     * radio_status   	gpio2-26  J4-6
+     * radio_reset   	gpio2-26  J4-6
      * status   		gpio3-21  J4-10
      * reset    		gpio3-22  J4-12
      */
@@ -196,11 +196,10 @@ static inline void us_copy_to_cache(struct uhf_security *uhf, struct uhf_securit
 
 /*-------------------------------------------------------------------------*/
 
-static inline ssize_t us_sync_rw(struct uhf_security *uhf, struct uhf_security_data *us_data)
+static inline ssize_t us_sync_write(struct uhf_security *uhf, struct uhf_security_data *us_data)
 {
     struct spi_transfer t = {
             .tx_buf     = us_data->data,
-            .rx_buf     = us_data->data,
             .len        = us_data->len,
     };
     struct spi_message m;
@@ -209,11 +208,6 @@ static inline ssize_t us_sync_rw(struct uhf_security *uhf, struct uhf_security_d
     spi_message_add_tail(&t, &m);
     if (spi_sync(uhf->spi, &m) != 0 || m.status != 0)
 		return 0;
-
-	printk(KERN_ALERT "%s: len:%d, actual_length=%d, 4th:0x%x\n", __func__,
-							us_data->len, m.actual_length, (us_data->data)[3]);
-
-	us_copy_to_cache(uhf, *us_data);
 
 	return (us_data->len - m.actual_length);
 }
@@ -232,6 +226,8 @@ static inline ssize_t us_sync_read(struct uhf_security *uhf)
 
     if (spi_sync(uhf->spi, &m) != 0 || m.status != 0)
 		return 0;
+
+	us_data.len = m.actual_length;
 
 	printk(KERN_ALERT "%s: len:%d, actual_length=%d\n", __func__, us_data.len, m.actual_length);
 
@@ -310,6 +306,8 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
     uhf = filp->private_data;
 
+	printk(KERN_ALERT "%s: +\n", __func__);
+
     if (down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
 
@@ -338,6 +336,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 		count = count0; /* Be sure count equal with sizeof(struct uhf_security_data). */
 
 	temp = (struct uhf_security_data *)uhf->cache->recv_tail;
+	temp->len = *(uint16_t *)(temp->data + 2) + 5;
 	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
 
 	if (copy_to_user((uint8_t __user *)buf, (char *)temp->data, temp->len)) {
@@ -348,6 +347,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	us_incr_cache_tail(uhf, count);
 	up(&uhf->sem);
 
+	printk(KERN_ALERT "%s: -\n", __func__);
 	return temp->len;
 }
 
@@ -370,7 +370,7 @@ ssize_t us_write(struct file *filp, const char __user *buf, size_t count, loff_t
 	if(down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
 
-    ret = us_sync_rw(uhf, &temp);
+    ret = us_sync_write(uhf, &temp);
 
     up(&uhf->sem);
     printk(KERN_ALERT "%s:ret:%d, count=%d\n", __func__, ret, count);

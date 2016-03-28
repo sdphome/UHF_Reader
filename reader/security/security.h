@@ -9,7 +9,7 @@
 #define true							1
 
 #define SECURITY_MTU					1500
-#define SECURITY_TIMEOUT				2
+#define SECURITY_TIMEOUT				5
 
 #define US_IOC_MAGIC            		'u'
 #define US_IOC_RESET            		_IO(US_IOC_MAGIC, 1)
@@ -328,8 +328,8 @@ typedef struct {
 
 typedef struct {
 	uint8_t hdr;
-	uint8_t type:4;
 	uint8_t version:4;
+	uint8_t type:4;
 	uint16_t len;
 	uint8_t cmd;
 } __attribute__ ((packed)) security_pack_hdr;
