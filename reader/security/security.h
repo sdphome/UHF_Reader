@@ -148,10 +148,10 @@ typedef struct {
 #define FILTR_INTERV_PARAM_SIZE			6
 
 typedef struct {
-	uint8_t part_num;
+	uint8_t part_no;
 	uint8_t part_indi;
-	uint8_t ciphertext:4;
 	uint8_t high_speed:4;
+	uint8_t ciphertext:4;
 	uint16_t read_index;
 	uint16_t read_len;
 } __attribute__ ((packed)) part_info_param;
@@ -161,7 +161,7 @@ typedef struct {
 	uint8_t num;
 	uint8_t data[0];
 } __attribute__ ((packed)) work_mode_param;
-#define WORK_MODE_PARAM_SIZE			1
+#define WORK_MODE_PARAM_SIZE			2
 
 typedef struct {
 	uint8_t part[12];
@@ -169,7 +169,7 @@ typedef struct {
 #define PERM_TABLE_PARAM_SIZE			12
 
 typedef struct {
-	uint64_t sec_rand;
+	uint8_t sec_rand[8];
 } __attribute__ ((packed)) rand_num_param;
 #define RAND_NUM_PARAM_SIZE				8
 
@@ -188,8 +188,8 @@ typedef struct {
 
 //7.6.1
 typedef struct {
-	uint64_t host_rand;
-	uint64_t sec_rand;
+	uint8_t host_rand[8];
+	uint8_t sec_rand[8];
 	uint64_t serial;
 	uint64_t reserve;
 	uint8_t sign[64];

@@ -94,6 +94,46 @@ int inline security_reset_radio(int fd)
 	return ioctl(fd, US_IOC_RESET_RADIO, NULL);
 }
 
+const char *security_upload_err_to_str(uint8_t errno)
+{
+	switch (errno) {
+		case NO_ERROR:
+			return "success.\n";
+		case TID_DECIP_FAILED:
+			return "tid verify failed, got tid'\n";
+		case READ_PART_FAILED:
+			return "tid is right, but read user part data failed.\n";
+		case WRONG_CHECK:
+			return "security receive error check framw from radio module.\n";
+		case USER_PART_FAILED:
+			return "read user part verify failed, return data directly\n";
+		default:
+			return "unknow error.\n";
+	}
+}
+
+const char* security_errno_to_str(uint8_t errno)
+{
+	switch (errno) {
+		case NO_ERROR:
+			return "success.\n";
+		case UNKNOWN_TYPE:
+			return "unknown frame type.\n";
+		case DATA_ERROR:
+			return "frame payload error.\n";
+		case PACK_ILLE:
+			return "illegal frame.\n";
+		case CRC_FAILED:
+			return "crc verify failed.\n";
+		case PROGRAM_MISSING:
+			return "security module user program failed.\n";
+		case VERIFY_ENCR_FAILED:
+			return "security module user program sign the check failed.\n";
+		default:
+			return "unknown error.\n";
+	}
+}
+
 int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, security_package_t *result)
 {
 	int ret = NO_ERROR;
@@ -106,9 +146,9 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
 	gettimeofday(&now, NULL);
 	outtime.tv_sec = now.tv_sec + SECURITY_TIMEOUT;
 	outtime.tv_nsec = now.tv_usec * 1000;
-
+#ifdef DEBUG
 	printf("%s: +\n", __func__);
-
+#endif
 	while (!resultReceived) {
 		ret = pthread_cond_timedwait(&info->cond, &info->lock, &outtime);
 		if (ret == ETIMEDOUT) {
@@ -150,9 +190,9 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
             }
         }
 	}
-
+#ifdef DEBUG
 	printf("%s: -\n", __func__);
-
+#endif
 	return ret;
 }
 
@@ -229,15 +269,16 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 
 	*buf = security_crc(&hdr, payload);
 
+#ifdef DEBUG
 	printf("before security_write:");
 	for (int i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
 		printf("%4x", *(info->wbuf + i));
 	printf("\n");
-
+#endif
 	nwt = write(info->fd, info->wbuf, SECURITY_PACK_HDR_SIZE + len);
-
+#ifdef DEBUG
 	printf("security write finish\n");
-
+#endif
 	if (nwt < 0) {
 		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
@@ -289,13 +330,13 @@ int security_set_rtc(security_info_t *info)
 		return ret;
 	}
 
-	ret = *result.payload;
-	if (ret == FAILED) {
-		printf("%s: setup rtc failed\n", __func__);
-		ret = -ret;
-	}
-
 	if (result.payload != NULL) {
+		ret = *result.payload;
+		if (ret != NO_ERROR) {
+			printf("%s: setup rtc failed\n", __func__);
+			ret = -ret;
+		}
+
 		free(result.payload);
 		result.payload = NULL;
 	}
@@ -386,7 +427,7 @@ int security_set_params(security_info_t *info, uint8_t *param)
 	if (result.payload != NULL) {
 		ret = *result.payload;
 		if (ret == FAILED) {
-			printf("%s: setup rtc failed\n", __func__);
+			printf("%s: setup param failed\n", __func__);
 			ret = -ret;
 		}
 
@@ -509,13 +550,13 @@ work_mode_param* security_get_work_mode(security_info_t *info)
 	uint8_t *payload = NULL;
 	work_mode_param *param;
 
-	payload = security_get_params(info, REPEAT_READ);
+	payload = security_get_params(info, WORK_MODE);
 	if (payload == NULL) {
 		printf("%s: get work mode information failed.\n", __func__);
 		return NULL;
 	}
 
-	num = *payload;
+	num = *(payload + 1);
 	/* Need free in main thread */
 	param = (work_mode_param *)malloc(WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
 	if (param == NULL) {
@@ -525,7 +566,7 @@ work_mode_param* security_get_work_mode(security_info_t *info)
 	}
 
 	/* FIXME: maybe also can resurn payload derectly */
-	memcpy(param, payload, WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
+	memcpy(param, payload + 1, WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
 	free(payload);
 
 	return param;
@@ -559,7 +600,7 @@ int security_get_key_version(security_info_t *info, security_package_t *result)
 	return ret;
 }
 
-int security_get_filtr_interv(security_info_t *info, repeat_read_param *param)
+int security_get_filtr_interv(security_info_t *info, filtr_interv_param *param)
 {
 	int ret = NO_ERROR;
 	uint8_t *payload = NULL;
@@ -643,22 +684,24 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 		return ret;
 	}
 
-	if (*result.payload)
-		ret = -FAILED;
+	if (result.payload != NULL) {
+		if (*result.payload)
+			ret = -FAILED;
 
-	free(result.payload);
-	result.payload = NULL;
-
+		free(result.payload);
+		result.payload = NULL;
+	}
 	return ret;
 }
 
-int security_request_rand_num(security_info_t *info, rand_num_param *param)
+uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
+	uint64_t sec_rand;
 
 	if (param == NULL) {
-		printf("%s: param is null.\n", __func__);
+		printf("%s: sec_rand is null.\n", __func__);
 		return -FAILED;
 	}
 
@@ -681,13 +724,20 @@ int security_request_rand_num(security_info_t *info, rand_num_param *param)
 	}
 
 	if (result.payload != NULL) {
+		printf("result.hdr.len=%x\n", result.hdr.len);
+		printf("zxxxx\n");
+		sec_rand = *(uint64_t *)result.payload;
 		memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
+		printf("%s: sec_rand=%x, ", __func__, sec_rand);
+		for (int i = 0; i < 8; i++)
+			printf("%4x", *(result.payload + i));
+		printf("\n");
 		free(result.payload);
 		result.payload = NULL;
 	} else
 		ret = -FAILED;
 
-	return ret;
+	return sec_rand;
 }
 
 unsigned long security_get_file_size(const char *path)
@@ -770,10 +820,10 @@ int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 
 	/* 1. generate random number */
 	srand((unsigned)time(NULL));
-	param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
+	*(uint64_t *)param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
 
 	/* 2. fill data */
-	param->sec_rand = rand_param->sec_rand;
+	memcpy(param->sec_rand, rand_param->sec_rand, RAND_NUM_PARAM_SIZE);
 	param->serial = info->serial;
 	param->reserve = 0;
 	ret = security_read_file(param->x509, info->x509_path, size);
@@ -1054,7 +1104,6 @@ void *security_read_loop(void *data)
 	uint8_t *buf = NULL;
 
 	while(true) {
-		printf("read loop begin +++++++\n");
 		buf = info->rbuf;
 		memset(&result, 0, sizeof(security_package_t));
 		memset(buf, 0, SECURITY_MTU);
@@ -1093,7 +1142,8 @@ void *security_read_loop(void *data)
 		}
 
 		if (result.hdr.type == ERROR_TYPE) {
-			printf("%s: Occur a error, errno = %d\n", __func__, result.hdr.cmd);
+			printf("%s: Occur a error, errno = %x\n",
+				__func__, result.hdr.cmd);
 		}
 
 		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list */
@@ -1214,6 +1264,15 @@ void test_security()
 {
 	int ret = NO_ERROR;
 	security_info_t *pr = NULL;
+	firmware_version_param param;
+	serial_num_param ser_num;
+	repeat_read_param re_re;
+	filtr_interv_param fi_in;
+	part_info_param part_ino;
+	work_mode_param *work_mode = NULL;
+	work_mode_param *setup_work_mode = NULL;
+	perm_table_param perm_table;
+	rand_num_param rand_num;
 
 	ret = alloc_security(&pr);
 	if (ret != NO_ERROR)
@@ -1221,9 +1280,93 @@ void test_security()
 
 	ret = start_security(pr);
 
+	printf("****************set_rtc*********************************\n");
 	security_set_rtc(pr);
-
+	printf("*****************get_rtc********************************\n");
 	security_get_rtc(pr);
+	printf("************************get_firmware_version*************************\n");
+
+	ret = security_get_firmware_version(pr, &param);
+	if (ret == NO_ERROR)
+		printf("get_firmware_version: type=%x, hw_ver=%x, ctrl_boot_ver=%x, encry_boot_ver=%x, ctrl_ver=%x, encry1_ver=%x, encry2_ver=%x.\n", param.type, param.hw_ver, param.ctrl_boot_ver, param.encry_boot_ver, param.ctrl_ver, param.encry1_ver, param.encry2_ver);
+
+	printf("*********************get_serial_number****************************\n");
+	ret = security_get_serial_number(pr, &ser_num);
+	if (ret == NO_ERROR)
+		printf("get_serial_number: type=%x, ser_num=%x.\n", ser_num.type, ser_num.serial_num);
+	printf("********************get_repeat_read_flag*****************************\n");
+
+	ret = security_get_repeat_read_flag(pr, &re_re);
+	if (ret == NO_ERROR)
+		printf("get_repeat_read_flag: type=%x, flag=%x.\n", re_re.type, re_re.flag);
+
+	printf("***********************set_work_mode**************************\n");
+	part_info_param part1;
+	part_info_param part2;
+	memset(&part1, 0, PART_INFO_PARAM_SIZE);
+	memset(&part2, 0, PART_INFO_PARAM_SIZE);
+	part1.part_no = 0;
+	part1.part_indi = 1;
+	part1.ciphertext = 1;
+	part1.high_speed = 0;
+	part1.read_index = 0;
+	part1.read_len = 122;
+	part2.part_no = 2;
+	part2.part_indi = 2;
+	part2.ciphertext = 0;
+	part2.high_speed = 1;
+	part2.read_index = 0;
+	part2.read_len = 234;
+	setup_work_mode = (work_mode_param *)malloc(2 + 2*7);
+	setup_work_mode->num = 2;
+	memcpy(setup_work_mode->data, (void *)&part1, 7);
+	memcpy(setup_work_mode->data + 7, (void *)&part2, 7);
+	ret = security_set_work_mode(pr, setup_work_mode);
+	free(setup_work_mode);
+
+	printf("*********************get_work_mode****************************\n");
+	work_mode = security_get_work_mode(pr);
+	if (work_mode != NULL) {
+		printf("get_work_mode: num=%x\n", work_mode->num);
+		free(work_mode);
+	}
+	printf("*********************get_filtr_interv****************************\n");
+
+	ret = security_get_filtr_interv(pr, &fi_in);
+	if (ret == NO_ERROR) {
+		printf("get_filtr_interv: type=%x, interval=%d.\n", fi_in.type, fi_in.interval);
+	}
+
+	printf("*********************set_repeat_read****************************\n");
+	ret = security_set_repeat_read(pr, 0);
+	if (ret == NO_ERROR)
+		printf("set_repeat_read success\n");
+	else
+		printf("set_repeat_read failed\n");
+
+	printf("*********************set_filtr_interv****************************\n");
+
+	ret = security_set_filtr_interv(pr, 2000);
+
+	printf("*********************get_filtr_interv again****************************\n");
+
+	ret = security_get_filtr_interv(pr, &fi_in);
+	if (ret == NO_ERROR) {
+		printf("get_filtr_interv again: type=%x, interval=%d.\n", fi_in.type, fi_in.interval);
+	}
+
+	printf("********************get rand num*****************************\n");
+	security_request_rand_num(pr, &rand_num);
+	if (ret == NO_ERROR) {
+		printf("get_rand_num: %x\n", rand_num.sec_rand);
+
+		for (int i = 0; i < 8; i ++)
+			printf("%4x", *(rand_num.sec_rand + i));
+
+		printf("\n");
+	}
+
+	printf("********************END*****************************\n");
 
 test_fail:
 	stop_security(pr);
