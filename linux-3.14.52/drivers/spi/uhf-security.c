@@ -229,7 +229,7 @@ static inline ssize_t us_sync_read(struct uhf_security *uhf)
 
 	us_data.len = m.actual_length;
 
-	printk(KERN_ALERT "%s: len:%d, actual_length=%d\n", __func__, us_data.len, m.actual_length);
+	//printk(KERN_ALERT "%s: len:%d, actual_length=%d\n", __func__, us_data.len, m.actual_length);
 
 	us_copy_to_cache(uhf, us_data);
 
@@ -306,7 +306,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
     uhf = filp->private_data;
 
-	printk(KERN_ALERT "%s: +\n", __func__);
+//	printk(KERN_ALERT "%s: +\n", __func__);
 
     if (down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
@@ -337,7 +337,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
 	temp = (struct uhf_security_data *)uhf->cache->recv_tail;
 	temp->len = *(uint16_t *)(temp->data + 2) + 5;
-	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
+//	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
 
 	if (copy_to_user((uint8_t __user *)buf, (char *)temp->data, temp->len)) {
 		up(&uhf->sem);
@@ -347,7 +347,7 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	us_incr_cache_tail(uhf, count);
 	up(&uhf->sem);
 
-	printk(KERN_ALERT "%s: -\n", __func__);
+//	printk(KERN_ALERT "%s: -\n", __func__);
 	return temp->len;
 }
 
@@ -429,7 +429,7 @@ static void us_recv_func(struct work_struct *work)
 {
 	struct uhf_security *uhf = container_of(work, struct uhf_security, recv_work);
 
-	printk(KERN_ALERT "%s: irq no:%d\n", __func__, uhf->spi->irq);
+//	printk(KERN_ALERT "%s: irq no:%d\n", __func__, uhf->spi->irq);
 
 	us_sync_read(uhf);
 	us_enable_irq(uhf);
@@ -441,7 +441,7 @@ static irqreturn_t us_intr_handler(int irq, void *handle)
 
 	us_disable_irq(uhf);
 
-	printk(KERN_ALERT "%s Enter\n", __func__);
+//	printk(KERN_ALERT "%s Enter\n", __func__);
 
 	queue_work(uhf->recv_queue, &uhf->recv_work);
 
