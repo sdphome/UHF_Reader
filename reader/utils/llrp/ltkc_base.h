@@ -442,6 +442,8 @@ struct LLRP_SFieldDescriptor
 };
 
 
+extern LLRP_tSFieldDescriptor   LLRP_g_fdMessageHeader_DeviceSN;
+extern LLRP_tSFieldDescriptor   LLRP_g_fdMessageHeader_Version;
 extern LLRP_tSFieldDescriptor   LLRP_g_fdMessageHeader_Type;
 extern LLRP_tSFieldDescriptor   LLRP_g_fdMessageHeader_Length;
 extern LLRP_tSFieldDescriptor   LLRP_g_fdMessageHeader_MessageID;
@@ -582,6 +584,10 @@ struct LLRP_SElement
 struct LLRP_SMessage
 {
     LLRP_tSElement              elementHdr;
+
+    llrp_u64_t                  DeviceSN;
+
+    llrp_u8_t                   Version;
 
     llrp_u32_t                  MessageID;
 

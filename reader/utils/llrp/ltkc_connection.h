@@ -134,6 +134,10 @@ LLRP_Conn_openConnectionToReader (
   LLRP_tSConnection *           pConn,
   const char *                  pReaderHostName);
 
+int
+LLRP_Conn_startServerForUpper (
+  LLRP_tSConnection *           pConn);
+
 extern int
 LLRP_Conn_closeConnectionToReader (
   LLRP_tSConnection *           pConn);
