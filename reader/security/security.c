@@ -14,9 +14,9 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sm2.h>
 
 #include "security.h"
-#include <sm2.hpp>
 
 /* FIXME: undef it */
 //#define TEST
@@ -251,6 +251,7 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 {
 	int nwt;
 	int ret = NO_ERROR;
+	int i = 0;
 	uint8_t *buf = info->wbuf;
 	security_pack_hdr hdr;
 
@@ -271,7 +272,7 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 
 #ifdef DEBUG
 	printf("before security_write:");
-	for (int i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
+	for (i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
 		printf("%4x", *(info->wbuf + i));
 	printf("\n");
 #endif
@@ -697,6 +698,7 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 {
 	int ret = NO_ERROR;
+	int i = 0;
 	security_package_t result;
 	uint64_t sec_rand;
 
@@ -729,7 +731,7 @@ uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 		sec_rand = *(uint64_t *)result.payload;
 		memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
 		printf("%s: sec_rand=%x, ", __func__, sec_rand);
-		for (int i = 0; i < 8; i++)
+		for (i = 0; i < 8; i++)
 			printf("%4x", *(result.payload + i));
 		printf("\n");
 		free(result.payload);
@@ -1263,6 +1265,7 @@ void release_security(security_info_t *security_info)
 void test_security()
 {
 	int ret = NO_ERROR;
+	int i = 0;
 	security_info_t *pr = NULL;
 	firmware_version_param param;
 	serial_num_param ser_num;
@@ -1360,7 +1363,7 @@ void test_security()
 	if (ret == NO_ERROR) {
 		printf("get_rand_num: %x\n", rand_num.sec_rand);
 
-		for (int i = 0; i < 8; i ++)
+		for (i = 0; i < 8; i ++)
 			printf("%4x", *(rand_num.sec_rand + i));
 
 		printf("\n");

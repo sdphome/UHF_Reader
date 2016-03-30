@@ -251,7 +251,7 @@ typedef struct {
 #define CERT_CHAIN_PARAM_SIZE			2
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint64_t tid;
 	uint8_t ante_no;
 	uint64_t time;  /* FIXME: make sure which version */
@@ -259,7 +259,7 @@ typedef struct {
 #define TID_UPLOAD_PARAM_SIZE			17
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint8_t part_no:4;
 	uint8_t flag:2;
 	uint8_t ante_no:2;
@@ -269,14 +269,14 @@ typedef struct {
 #define TID_UPLOAD_ERR1_PARAM_SIZE		25
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint8_t ante_no;
 	uint64_t time;
 } __attribute__ ((packed)) tid_upload_err3_param;
 #define TID_UPLOAD_ERR3_PARAM_SIZE		8
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint64_t tid;
 	uint8_t part_no:4;
 	uint8_t flag:2;
@@ -287,7 +287,7 @@ typedef struct {
 #define PART_DATA_UPLOAD_PARAM_SIZE		18
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint8_t part_no:4;
 	uint8_t flag:2;
 	uint8_t ante_no:2;
@@ -297,7 +297,7 @@ typedef struct {
 #define PART_DATA_UPLOAD_ERR1_PARAM_SIZE     26
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint64_t tid;
 	uint8_t part_no:4;
 	uint8_t flag:2;
@@ -307,14 +307,14 @@ typedef struct {
 #define PART_DATA_UPLOAD_ERR2_PARAM_SIZE     18
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint8_t ante_no;
 	uint64_t time;
 } __attribute__ ((packed)) part_data_upload_err3_param;
 #define PART_DATA_UPLOAD_ERR3_PARAM_SIZE     10
 
 typedef struct {
-	uint8_t errno;
+	uint8_t err;
 	uint64_t tid;
 	uint8_t part_no:4;
 	uint8_t flag:2;

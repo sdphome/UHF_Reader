@@ -1,3 +1,14 @@
+/**************************************************************************
+Filename	: types.hpp
+Language	: C header file
+Description	: Define variable types
+Author(s)	:   
+Company		: ANCH Ltd.
+version 	: 1.0
+Change Log	: 2007-3-1 11:04, first edition
+******************************************************************************/
+
+
 #ifndef TYPES_H
 #define TYPES_H
 /**************************************************************************/

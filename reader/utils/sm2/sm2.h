@@ -1,12 +1,20 @@
-#ifndef ALGSM2_HPP
-#define ALGSM2_HPP
+/* 
+ *  Copyright (c) 2011,  广州江南科友union
+ *  All rights reserved. 
+ *  文件名称： AlgSm2.hpp
+ *  摘    要： SM2算法类头文件
+ *  当前版本： 1.0,  编写者: yanghb，   修改时间: 2011-12-13 修改内容: 创建
+ *  
+ */
 
-#include "types.hpp"
-#include "miracl.hpp"
-#include "sm3.hpp"
 
-extern "C"
-{
+#ifndef __ALGSM2_H
+#define __ALGSM2_H
+
+#include "types.h"
+#include "miracl.h"
+#include "sm3.h"
+
 int sm3_e(u_char *userid, int userid_len, u_char *xa, int xa_len, u_char *ya, int ya_len, u_char *msg, int msg_len, u_char *e);
 /*
 功能：根据用户ID及公钥，求用于签名或验签的消息HASH值
@@ -232,7 +240,5 @@ void sm2_keyagreement_b10(
 
 
 返回值：无
-	
 */
-}
 #endif

@@ -1,5 +1,11 @@
-#ifndef SM3_HPP
-#define SM3_HPP
+/* ============================================================================
+ * Copyright (c) 2010-2015.  All rights reserved.
+ * SM3 Hash Cipher Algorithm: Digest length is 256-bit
+ * ============================================================================
+ */
+
+#ifndef __SM3_H
+#define __SM3_H
 
 #define  SM3_LBLOCK         16
 #define  SM3_CBLOCK         64

@@ -3,8 +3,8 @@
   *	  See www.shamus.ie
   */
 
-#ifndef MIRACL_HPP
-#define MIRACL_HPP
+#ifndef __MIRACL_HPP
+#define __MIRACL_HPP
 
 /*
  *   main MIRACL header - miracl.h.
@@ -12,7 +12,7 @@
  *   Copyright (c) 1988-2007 Shamus Software Ltd.
  */
 
-#include "mirdef.hpp"
+#include "mirdef.h"
 
 /* Some modifiable defaults... */
 
