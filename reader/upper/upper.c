@@ -12,7 +12,7 @@
 
 #include "upper.h"
 
-void upper_print_XML_message(LLRP_tSMessage *pMessage)   
+void upper_print_XML_message(LLRP_tSMessage *pMessage)
 {
     char aBuf[100*1024];
 
@@ -44,10 +44,10 @@ int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 		upper_print_XML_message(pSendMsg);
 	}
 
-    /* 
+    /*
      * If LLRP_Conn_sendMessage() returns other than LLRP_RC_OK
      * then there was an error. In that case we try to print
-     * the error details.                         
+     * the error details.
      */
     if(LLRP_RC_OK != LLRP_Conn_sendMessage(pConn, pSendMsg)) {
         const LLRP_tSErrorDetails *pError = LLRP_Conn_getSendError(pConn);
@@ -120,10 +120,10 @@ int alloc_upper(upper_info_t **info)
 
 	(*info)->sock = -1;
 
-    pthread_mutex_init(&(*info)->lock, NULL); 
+    pthread_mutex_init(&(*info)->lock, NULL);
     pthread_cond_init(&(*info)->cond, NULL);
 
-    (*info)->pTypeRegistry = LLRP_getTheTypeRegistry();    
+    (*info)->pTypeRegistry = LLRP_getTheTypeRegistry();
     if((*info)->pTypeRegistry == NULL) {
         printf("%s: ERROR: getTheTypeRegistry failed\n", __func__);
 		free(*info);
