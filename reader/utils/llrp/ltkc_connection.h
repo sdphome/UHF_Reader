@@ -139,6 +139,10 @@ LLRP_Conn_startServerForUpper (
   LLRP_tSConnection *           pConn);
 
 extern int
+LLRP_Conn_closeConnectionToUpper (
+  LLRP_tSConnection *           pConn);
+
+extern int
 LLRP_Conn_closeConnectionToReader (
   LLRP_tSConnection *           pConn);
 
