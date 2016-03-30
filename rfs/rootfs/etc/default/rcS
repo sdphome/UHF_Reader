@@ -5,7 +5,7 @@
 # Time files in /tmp are kept in days.
 TMPTIME=0
 # Set to yes if you want sulogin to be spawned on bootup
-SULOGIN=no
+SULOGIN=yes
 # Set to no if you want to be able to login over telnet/rlogin
 # before system startup is complete (as soon as inetd is started)
 DELAYLOGIN=no
