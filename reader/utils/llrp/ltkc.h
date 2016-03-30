@@ -35,9 +35,6 @@
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
 
-#include "version.inc"
-
-
 extern LLRP_tSTypeRegistry *
 LLRP_getTheTypeRegistry (void);
 
