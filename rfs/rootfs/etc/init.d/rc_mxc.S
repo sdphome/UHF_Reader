@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 if grep -sq ttymxc0 /proc/cmdline; then
-	/sbin/getty -L ttymxc0 115200 vt100
+	/bin/login -f root ttymxc0 115200 vt100
 elif grep -sq ttymxc1 /proc/cmdline; then
 	/sbin/getty -L ttymxc1 115200 vt100
 elif grep -sq ttymxc2 /proc/cmdline; then
