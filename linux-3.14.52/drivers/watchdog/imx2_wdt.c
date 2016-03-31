@@ -92,6 +92,7 @@ module_param(nowayout, bool, 0);
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
 				__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 
+void mxc_arch_reset_init(void __iomem *);
 
 static unsigned timeout = IMX2_WDT_DEFAULT_TIME;
 module_param(timeout, uint, 0);
@@ -351,6 +352,8 @@ static int __init imx2_wdt_probe(struct platform_device *pdev)
 	imx2_wdt.base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(imx2_wdt.base))
 		return PTR_ERR(imx2_wdt.base);
+
+	mxc_arch_reset_init(imx2_wdt.base);
 
 	imx2_wdt.clk = devm_clk_get(&pdev->dev, NULL);
 	if (IS_ERR(imx2_wdt.clk)) {
