@@ -244,9 +244,11 @@ dtb-$(CONFIG_ARCH_MXC) += \
 	imx6sx-sdb-m4.dtb \
 	myimx6ek200-6q-2g.dtb \
 	myimx6ek200-6q.dtb \
+	jzt-uhf-6q.dtb	\
 	myimx6ek200-6qp.dtb \
 	myimx6ek200-6s-1g.dtb \
 	myimx6ek200-6s.dtb \
+	jzt-uhf-6s.dtb \
 	myimx6ek200-6u.dtb \
 	myimx6ek314-6q-2g.dtb \
 	myimx6ek314-6q.dtb \

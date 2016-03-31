@@ -1,6 +1,7 @@
 #!/bin/bash
 
 IMAGE=image-linux-31452
+PLATFORM=$1
 
 echo
 echo "Make zImage"
@@ -12,10 +13,13 @@ cp arch/arm/boot/zImage ../$IMAGE/zImage-jzt-uhf
 echo
 echo "Make dtb"
 echo
-make jzt-uhf-6q.dtb
-#make myimx6ek200-6s.dtb
-
-cp arch/arm/boot/dts/jzt-uhf-6q.dtb ../$IMAGE/
+if [ "$PLATFORM" = "s" ]; then
+	make jzt-uhf-6s.dtb
+	cp arch/arm/boot/dts/jzt-uhf-6s.dtb ../$IMAGE/
+elif [ "$PLATFORM" = "q" ]; then
+	make jzt-uhf-6q.dtb
+	cp arch/arm/boot/dts/jzt-uhf-6q.dtb ../$IMAGE/
+fi
 
 echo
 echo "Make modules"

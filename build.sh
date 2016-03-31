@@ -1,5 +1,21 @@
 #!/bin/bash
 
+usage()
+{
+	echo "usage:"
+	echo "$0" " q  Or"
+	echo "$0" " s"
+}
+
+if [ "$1" = "q" ]; then
+	echo "q"
+elif [ "$1" = "s" ]; then
+	echo "s"
+else
+	usage
+	exit 1
+fi
+
 source arm-linux-gnueabihf-492-env
 export IMAGE=image-linux-31452
 UBOOT=u-boot-2015.04
@@ -8,13 +24,15 @@ ROOTFS=rootfs
 ROOTFS_2=rtfs_file
 ROOT_DIR=$PWD
 
+PLATFORM=$1
+
 mkdir -p $IMAGE
 
 cd $ROOT_DIR/$UBOOT
-. build_uboot.sh
+. build_uboot.sh $PLATFORM
 
 cd $ROOT_DIR/$KERNEL
-. build_kernel.sh
+. build_kernel.sh $PLATFORM
 
 echo
 echo "====== Creating i.MX6 fs ======"
