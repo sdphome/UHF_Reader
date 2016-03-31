@@ -17,35 +17,43 @@
 
 CC				= ${CROSS_COMPILE}gcc
 CFLAGS			= -Wall
-
+RM				= rm
+MKDIR			= mkdir
+OUT				= out
 EXE				= uhf
+OBJS			= obj
 
 SM2_INCLU		= utils/sm2
 LTK_INCLU		= utils/llrp
 UHF_HDRS		= include
 
 UHF_OBJS = \
-	uhf.o	\
-	upper.o	\
-	radio.o	\
-	security.o
+	$(OBJS)/uhf.o	\
+	$(OBJS)/upper.o	\
+	$(OBJS)/radio.o	\
+	$(OBJS)/security.o
+
+all: $(OUT) $(EXE)
+
+$(OUT):
+	$(MKDIR) -p $(OBJS)
 
 $(EXE): $(UHF_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ -L $(LTK_INCLU) -L $(SM2_INCLU) -lpthread -lsm2 -lltkc
 
-uhf.o: uhf.c
+$(OBJS)/uhf.o: uhf.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU)
 
-upper.o: upper.c
+$(OBJS)/upper.o: upper.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(LTK_INCLU) -I $(UHF_HDRS)
 
-radio.o: radio.c
+$(OBJS)/radio.o: radio.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)
 
-security.o: security.c
+$(OBJS)/security.o: security.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(SM2_INCLU) -I $(UHF_HDRS)
-
 
 clean:
 	find -name '*.o' -exec rm -rf {} \;
-	rm $(EXE) -rf
+	$(RM) $(EXE) -rf
+	$(RM) $(OBJS) -rf
