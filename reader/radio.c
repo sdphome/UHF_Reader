@@ -16,6 +16,62 @@
 
 /* ---------- ---------- */
 
+/* ---------- helper function ---------- */
+/* TODO: fill the string */
+const char *radio_cmd_to_string(uint16_t command)
+{
+    switch (command) {
+		case SET_VERSION: return "";
+		case GET_VERSION: return "";
+		case SET_TRANS_POWER: return "";
+		case GET_TRANS_POWER: return "";
+		case SET_FHSS_ENABLE: return "";
+		case GET_FHSS_ENABLE: return "";
+		case SET_TRANS_FREQ_RANGE: return "";
+		case GET_TRANS_FREQ_RANGE: return "";
+		case SET_REVER_CHAN_RATE: return "";
+		case GET_REVER_CHAN_RATE: return "";
+		case SET_REVER_CODE_MODE: return "";
+		case GET_REVER_CODE_MODE: return "";
+		case SET_ANTENNA_ATTR: return "";
+		case GET_ANTENNA_ATTR: return "";
+		case SET_ANTENNA_GAIN: return "";
+		case GET_ANTENNA_GAIN: return "";
+		case SET_CARR_ENABLE: return "";
+		case GET_CARR_ENABLE: return "";
+		case SET_FPGA_THRESH: return "";
+		case GET_FPGA_THRESH: return "";
+		case SET_ANTI_COLL_PROTO: return "";
+		case GET_ANTI_COLL_PROTO: return "";
+		case SET_Q_VALUE: return "";
+		case GET_Q_VALUE: return "";
+		case SET_MODUL_MODE: return "";
+		case GET_MODUL_MODE: return "";
+		case SET_TC_VALUE: return "";
+		case GET_TC_VALUE: return "";
+		case SET_SJC_VALUE: return "";
+		case GET_SJC_VALUE: return "";
+		case SIGNAL_CHECK: return "";
+		case START_CONTI_CHECK: return "";
+		case STOP_CONTI_CHECK: return "";
+		case SET_WRITE_TAG: return "";
+		case GET_RADIO_PARAM: return "";
+		case SET_DIG_ATTEN: return "";
+		case GET_DIG_ATTEN: return "";
+		case SET_PA_ENABLE: return "";
+		case GET_PA_ENABLE: return "";
+		case START_RADIO_WORK: return "";
+		case STOP_RADIO_WORK: return "";
+		case REBOOT_RADIO_MODULE: return "";
+		case REQ_RADIO_UPGRADE: return "";
+		case MID_UPGRADE_PACK: return "";
+		case LAST_UPGRADE_PACK: return "";
+		default: return "";
+	}
+
+	return "";
+}
+
 /* Initialize UART driver */
 int init_uart(char *dev)
 {
@@ -364,7 +420,6 @@ void *radio_reader_loop(void *data)
 int radio_set_version(radio_info_t *radio_info)
 {
     int ret = NO_ERROR;
-    int fd = radio_info->fd;
     version_param version;
     radio_result_t result;
 
@@ -379,7 +434,7 @@ int radio_set_version(radio_info_t *radio_info)
 
     lock_radio(&radio_info->c_lock);
 
-    ret = radio_write(radio_info, SET_VERSION, VERSION_PARAM_SIZE, (char *)&version);
+    ret = radio_write(radio_info, SET_VERSION, VERSION_PARAM_SIZE, (uint8_t *)&version);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("Set version failed!\n");
@@ -442,7 +497,7 @@ int radio_set_fhss(radio_info_t *radio_info, uint8_t enable)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (char *)&fhss);
+	ret = radio_write(radio_info, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (uint8_t *)&fhss);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("set fhss failed!\n");
@@ -473,7 +528,7 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, SET_ANTENNA_ATTR, ANTENNA_ATTR_PARAM_SIZE, (char *)&antenna_attr);
+	ret = radio_write(radio_info, SET_ANTENNA_ATTR, ANTENNA_ATTR_PARAM_SIZE, (uint8_t *)&antenna_attr);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
@@ -504,7 +559,7 @@ int radio_set_dig_atten(radio_info_t *radio_info, uint8_t attenuation)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (char *)&dig_atten);
+	ret = radio_write(radio_info, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (uint8_t *)&dig_atten);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
@@ -534,7 +589,7 @@ int radio_set_carr(radio_info_t *radio_info, uint8_t enable)
 	carr_enable.enable = enable;
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (char *)&carr_enable);
+	ret = radio_write(radio_info, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (uint8_t *)&carr_enable);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
@@ -564,7 +619,7 @@ int radio_get_status(radio_info_t *radio_info)
 
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, GET_RADIO_STATUS, 1, (char *)&dummy);
+	ret = radio_write(radio_info, GET_RADIO_STATUS, 1, (uint8_t *)&dummy);
     if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
         printf("%s write failed!\n", __func__);
@@ -623,8 +678,6 @@ void stop_radio(radio_info_t *radio_info)
 
 int alloc_radio(radio_info_t **radio_info)
 {
-    int ret;
-
     *radio_info = (radio_info_t *)malloc(sizeof(radio_info_t));
     if (radio_info == NULL) {
         printf("Alloc memory for radio info failed., errno=%d\n", errno);
@@ -676,7 +729,6 @@ void radio_print_result(radio_result_t result)
 int radio_write_test(radio_info_t *radio_info)
 {
     int ret = NO_ERROR;
-    int fd = radio_info->fd;
 	uint8_t buf[4];
     radio_result_t result;
 
@@ -743,9 +795,10 @@ int test_radio()
 test_fail:
     stop_radio(pr);
     release_radio(pr);
+	return ret;
 }
 
-int main(int argc, char** argv)
+int radio_main(int argc, char** argv)
 {
     test_radio();
 	return 0;

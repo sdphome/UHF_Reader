@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 #include <sm2.h>
 
-#include "security.h"
+#include <security.h>
 
 /* FIXME: undef it */
 //#define TEST
@@ -305,12 +305,12 @@ int security_set_rtc(security_info_t *info)
 	struct tm *timeinfo;
 
 	time(&rawtime);
-	printf("%s: %x\n", __func__, rawtime);
+	printf("%s: %x\n", __func__, (unsigned int)rawtime);
 	timeinfo = localtime (&rawtime);
 	printf("The current date/time is: %s\n", asctime(timeinfo));
 
 	gettimeofday(&now, NULL);
-	printf("%s: now.tv_sec=%x\n", __func__, now.tv_sec);
+	printf("%s: now.tv_sec=%x\n", __func__, (uint32_t)now.tv_sec);
 	time_ms.time = ((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000;
 
 	lock_security(&info->lock);
@@ -730,7 +730,7 @@ uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 		printf("zxxxx\n");
 		sec_rand = *(uint64_t *)result.payload;
 		memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
-		printf("%s: sec_rand=%x, ", __func__, sec_rand);
+		printf("%s: sec_rand=%lx, ", __func__, (unsigned long)sec_rand);
 		for (i = 0; i < 8; i++)
 			printf("%4x", *(result.payload + i));
 		printf("\n");
@@ -793,6 +793,8 @@ int security_digi_sign(security_info_t *info, auth_data_param *param)
 		return ret;
 
 	sm2_sign(hash, 32, info->priv_key, 32, param->sign, &rlen, param->sign + 32, &slen);
+
+	return ret;
 }
 
 /**
@@ -807,14 +809,14 @@ int security_digi_sign(security_info_t *info, auth_data_param *param)
 int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 {
 	int ret = NO_ERROR;
-	uint64_t rand_num = 0;
+	//uint64_t rand_num = 0;
 	unsigned long size = -1;
 	auth_data_param *param = NULL;
 	security_package_t result;
 
 	size = security_get_file_size(info->x509_path);
 	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
-		printf("%s: x509 size error, size = %ld.\n", size);
+		printf("%s: x509 size error, size = %ld.\n", __func__, size);
 		return -FAILED;
 	}
 
@@ -1014,7 +1016,7 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	data = (firmware_data *)buf;
 
 	if (data->file_size != data->firmware_size + FIRMWARE_DATA_HDR_SIZE ) {
-		printf("%s: firmware size verify failed.\n");
+		printf("%s: firmware size verify failed.\n", __func__);
 		free(buf);
 		buf = NULL;
 		return -FAILED;
@@ -1060,7 +1062,6 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 
 void *security_upload_loop(void *data)
 {
-	int ret;
 	int upload_received = false;
 	security_info_t *info = (security_info_t *)data;
 	security_package_t upload;
@@ -1098,7 +1099,6 @@ void *security_upload_loop(void *data)
 
 void *security_read_loop(void *data)
 {
-	int ret;
 	int nrd;
 	security_info_t *info = (security_info_t *)data;
 	int fd = info->fd;
@@ -1216,8 +1216,6 @@ void stop_security(security_info_t *info)
 
 int alloc_security(security_info_t **security_info)
 {
-	int ret;
-
 	*security_info = (security_info_t *)malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
@@ -1296,7 +1294,7 @@ void test_security()
 	printf("*********************get_serial_number****************************\n");
 	ret = security_get_serial_number(pr, &ser_num);
 	if (ret == NO_ERROR)
-		printf("get_serial_number: type=%x, ser_num=%x.\n", ser_num.type, ser_num.serial_num);
+		printf("get_serial_number: type=%x, ser_num=%lx.\n", ser_num.type, (unsigned long)ser_num.serial_num);
 	printf("********************get_repeat_read_flag*****************************\n");
 
 	ret = security_get_repeat_read_flag(pr, &re_re);
@@ -1361,7 +1359,7 @@ void test_security()
 	printf("********************get rand num*****************************\n");
 	security_request_rand_num(pr, &rand_num);
 	if (ret == NO_ERROR) {
-		printf("get_rand_num: %x\n", rand_num.sec_rand);
+		printf("get_rand_num: %lx\n", *(unsigned long *)rand_num.sec_rand);
 
 		for (i = 0; i < 8; i ++)
 			printf("%4x", *(rand_num.sec_rand + i));
@@ -1371,12 +1369,12 @@ void test_security()
 
 	printf("********************END*****************************\n");
 
-test_fail:
+//test_fail:
 	stop_security(pr);
 	release_security(pr);
 }
 
-int main(int argc, char** argv)
+int security_main(int argc, char** argv)
 {
 	test_security();
 	return 0;

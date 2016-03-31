@@ -217,64 +217,6 @@ typedef struct {
     uint8_t data[RADIO_MTU];
 } radio_info_t;
 
-
 void radio_print_result(radio_result_t result);
-
-/* ---------- helper function ---------- */
-/* TODO: fill the string */
-const char *radio_cmd_to_string(uint16_t command)
-{
-    switch (command) {
-	case SET_VERSION: return "";
-	case GET_VERSION: return "";
-	case SET_TRANS_POWER: return "";
-	case GET_TRANS_POWER: return "";
-	case SET_FHSS_ENABLE: return "";
-	case GET_FHSS_ENABLE: return "";
-	case SET_TRANS_FREQ_RANGE: return "";
-	case GET_TRANS_FREQ_RANGE: return "";
-	case SET_REVER_CHAN_RATE: return "";
-	case GET_REVER_CHAN_RATE: return "";
-	case SET_REVER_CODE_MODE: return "";
-	case GET_REVER_CODE_MODE: return "";
-	case SET_ANTENNA_ATTR: return "";
-	case GET_ANTENNA_ATTR: return "";
-	case SET_ANTENNA_GAIN: return "";
-	case GET_ANTENNA_GAIN: return "";
-	case SET_CARR_ENABLE: return "";
-	case GET_CARR_ENABLE: return "";
-	case SET_FPGA_THRESH: return "";
-	case GET_FPGA_THRESH: return "";
-	case SET_ANTI_COLL_PROTO: return "";
-	case GET_ANTI_COLL_PROTO: return "";
-	case SET_Q_VALUE: return "";
-	case GET_Q_VALUE: return "";
-	case SET_MODUL_MODE: return "";
-	case GET_MODUL_MODE: return "";
-	case SET_TC_VALUE: return "";
-	case GET_TC_VALUE: return "";
-	case SET_SJC_VALUE: return "";
-	case GET_SJC_VALUE: return "";
-	case SIGNAL_CHECK: return "";
-	case START_CONTI_CHECK: return "";
-	case STOP_CONTI_CHECK: return "";
-	case SET_WRITE_TAG: return "";
-	case GET_RADIO_PARAM: return "";
-	case SET_DIG_ATTEN: return "";
-	case GET_DIG_ATTEN: return "";
-	case SET_PA_ENABLE: return "";
-	case GET_PA_ENABLE: return "";
-	case START_RADIO_WORK: return "";
-	case STOP_RADIO_WORK: return "";
-	case REBOOT_RADIO_MODULE: return "";
-	case REQ_RADIO_UPGRADE: return "";
-	case MID_UPGRADE_PACK: return "";
-	case LAST_UPGRADE_PACK: return "";
-	case EVT_UPGRADE_SUCC: return "";
-	case EVT_UPGRADE_FAIL: return "";
-	case GET_RADIO_STATUS: return "";
-	default: return "<unknown request>";
-    }
-}
 
 #endif /* __RADIO_H */

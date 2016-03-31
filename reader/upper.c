@@ -10,7 +10,7 @@
 #include <sys/socket.h>
 #include <ltkc.h>
 
-#include "upper.h"
+#include <upper.h>
 
 void upper_print_XML_message(LLRP_tSMessage *pMessage)
 {
@@ -184,7 +184,7 @@ failed:
 	release_upper(info);
 }
 
-int main(int argc, char** argv)
+int upper_main(int argc, char** argv)
 {
 	test_upper();
 	return 0;
