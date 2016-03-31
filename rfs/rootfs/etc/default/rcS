@@ -12,7 +12,7 @@ DELAYLOGIN=no
 # Assume that the BIOS clock is set to UTC time (recommended)
 UTC=yes
 # Set VERBOSE to "no" if you would like a more quiet bootup.
-VERBOSE=no
+VERBOSE=yes
 # Set EDITMOTD to "no" if you don't want /etc/motd to be edited automatically
 EDITMOTD=no
 # Whether to fsck root on boot
