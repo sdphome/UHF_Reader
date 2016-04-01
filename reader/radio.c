@@ -377,7 +377,7 @@ int radio_write(radio_info_t *radio_info, uint8_t cmd, uint16_t len, uint8_t *pa
     return ret;
 }
 
-void *radio_reader_loop(void *data)
+void *radio_read_loop(void *data)
 {
     radio_info_t *radio_info = (radio_info_t *)data;
     fd_set fds;
@@ -385,7 +385,7 @@ void *radio_reader_loop(void *data)
     int maxfdp;
     int ret;
 
-    printf("Enter radio_reader_loop...\n");
+    printf("Enter radio_read_loop...\n");
 
     while(true) {
         FD_ZERO(&fds);
@@ -398,6 +398,7 @@ void *radio_reader_loop(void *data)
         ret = select(maxfdp, &fds, NULL, NULL, NULL);
         if (ret <= 0) {
             printf("radio_reader_loop: select error, ret = %d\n", ret);
+			return NULL;
         } else if (FD_ISSET(radio_info->fd, &fds)) {
             ret = radio_read(radio_info, &rsp);
             if (ret != NO_ERROR) {
@@ -656,7 +657,7 @@ int start_radio(radio_info_t *radio_info)
     pthread_attr_init (&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-    ret = pthread_create(&radio_info->read_thread, &attr, radio_reader_loop, (void *)radio_info);
+    ret = pthread_create(&radio_info->read_thread, &attr, radio_read_loop, (void *)radio_info);
     if (ret < 0) {
         printf("create reader thread failed.\n");
         goto create_thread_failed;

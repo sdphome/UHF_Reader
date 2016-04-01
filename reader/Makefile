@@ -17,11 +17,11 @@
 
 CC				= ${CROSS_COMPILE}gcc
 CFLAGS			= -Wall
-RM				= rm
 MKDIR			= mkdir
+RM				= rm
 OUT				= out
 EXE				= uhf
-OBJS			= obj
+OBJS			= objs
 
 SM2_INCLU		= utils/sm2
 LTK_INCLU		= utils/llrp

@@ -9,10 +9,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <ltkc.h>
-
 #include <upper.h>
 
-void upper_print_XML_message(LLRP_tSMessage *pMessage)
+static void upper_print_XML_message(LLRP_tSMessage *pMessage)
 {
     char aBuf[100*1024];
 
@@ -30,9 +29,85 @@ void upper_print_XML_message(LLRP_tSMessage *pMessage)
     printf("%s", aBuf);
 }
 
-int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
+static void inline lock_upper(pthread_mutex_t *lock)
 {
+	pthread_mutex_lock(lock);
+}
+
+static void inline unlock_upper(pthread_mutex_t *lock)
+{
+	pthread_mutex_unlock(lock);
+}
+
+static LLRP_tSMessage *upper_wait_response(upper_info_t *info, LLRP_tSMessage *pSendMessage)
+{
+	int responseReceived = 0;
+	struct timeval now;
+	struct timespec outtime;
+	LLRP_tResultCode lrc;
+	LLRP_tSMessage *pMessage;
+	LLRP_tSMessage **ppMessage;
+	const LLRP_tSTypeDescriptor *pResponseType;
 	LLRP_tSConnection *pConn = info->pConn;
+	const LLRP_tSTypeDescriptor *pErrorMsgType;
+	LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
+	llrp_u32_t ResponseMessageID = pSendMessage->MessageID + 1;
+
+	if(0 > pConn->fd) {
+		LLRP_Error_resultCodeAndWhatStr(pError,
+				LLRP_RC_MiscError, "not connected");
+		return NULL;
+	}
+
+	pResponseType = pSendMessage->elementHdr.pType->pResponseType;
+	pErrorMsgType = LLRP_TypeRegistry_lookupMessage(pConn->pTypeRegistry, 303u);
+
+	gettimeofday(&now, NULL);
+	outtime.tv_sec = now.tv_sec + UPPER_TIMEOUT;
+	outtime.tv_nsec = now.tv_usec * 1000;
+
+	while (!responseReceived) {
+		lrc = pthread_cond_timedwait(&info->cond, &info->lock, &outtime);
+		if (lrc == ETIMEDOUT) {
+			LLRP_Error_resultCodeAndWhatStr(pError,
+					LLRP_RC_RecvTimeout, "wait ack timeout");
+			return NULL;
+		}
+
+		for (ppMessage = &pConn->pInputQueue; NULL != (pMessage = *ppMessage);
+			ppMessage = &pMessage->pQueueNext) {
+			if(NULL != pResponseType) {
+				if(pMessage->elementHdr.pType != pResponseType &&
+					pMessage->elementHdr.pType != pErrorMsgType) {
+					continue;
+				}
+			}
+
+			if(0 != ResponseMessageID) {
+				if(pMessage->MessageID != ResponseMessageID)
+					continue;
+			}
+
+			responseReceived = 1;
+			break;
+		}
+
+		if(NULL != pMessage && responseReceived) {
+			*ppMessage = pMessage->pQueueNext;
+			pMessage->pQueueNext = NULL;
+			return pMessage;
+		}
+	}
+
+	return NULL;
+}
+
+static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
+{
+	int ret = NO_ERROR;
+	LLRP_tSConnection *pConn = info->pConn;
+
+	lock_upper(&info->wlock);
 
     /*
      * Print the XML text for the outbound message if
@@ -66,13 +141,15 @@ int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
                 pError->pRefField->pName);
         }
 
-        return -FAILED;
+        ret = -FAILED;
     }
 
-	return NO_ERROR;
+	unlock_upper(&info->wlock);
+
+	return ret;
 }
 
-int upper_send_connected_notification(upper_info_t *info)
+int upper_notify_connected_event(upper_info_t *info)
 {
 	int ret = NO_ERROR;
 	LLRP_tSDeviceEventNotification *pThis;
@@ -86,6 +163,47 @@ int upper_send_connected_notification(upper_info_t *info)
 	LLRP_DeviceEventNotification_destruct(pThis);
 
 	return ret;
+}
+
+void *upper_process_loop(void *data)
+{
+
+}
+
+void *upper_read_loop(void *data)
+{
+	fd_set fds;
+	int maxfdp;
+	int ret = NO_ERROR;
+	upper_info_t *info = (upper_info_t *)data;
+	LLRP_tSConnection *pConn = info->pConn;
+	LLRP_tSMessage *pMessage = NULL;
+
+	while (true) {
+		FD_ZERO(&fds);
+		FD_SET(pConn->fd, &fds);
+
+		maxfdp = pConn->fd + 1;
+
+		ret = select(maxfdp, &fds, NULL, NULL, NULL);
+		if (ret <= 0) {
+			printf("%s: select failed, ret=%d.\n", __func__, ret);
+			return NULL;
+		} else if (FD_ISSET(pConn->fd, &fds)) {
+			pMessage = LLRP_Conn_recvMessage(pConn, -1);
+			if (pMessage == NULL) {
+				LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
+				printf("%s: error code:%d, error message:%s.\n",
+						__func__, pError->eResultCode, pError->pWhatStr);
+				continue;
+			}
+
+
+		}
+
+	}
+
+	return NULL;
 }
 
 void stop_upper(upper_info_t *info)
@@ -105,6 +223,18 @@ int start_upper(upper_info_t *info)
 		return info->sock;
 	}
 
+	pthread_attr_init (&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	ret = pthread_create(&info->read_thread, &attr, upper_read_loop, (void *)info);
+	if (ret < 0) {
+		printf("%s: create read thread failed.\n", __func__);
+		stop_upper(info);
+		ret = -FAILED;
+	}
+
+	printf("Start upper module, ret=%d\n", ret);
+
 	return ret;
 }
 
@@ -121,6 +251,7 @@ int alloc_upper(upper_info_t **info)
 	(*info)->sock = -1;
 
     pthread_mutex_init(&(*info)->lock, NULL);
+    pthread_mutex_init(&(*info)->wlock, NULL);
     pthread_cond_init(&(*info)->cond, NULL);
 
     (*info)->pTypeRegistry = LLRP_getTheTypeRegistry();
@@ -149,6 +280,7 @@ void release_upper(upper_info_t *info)
 	}
 
     pthread_mutex_destroy(&info->lock);
+    pthread_mutex_destroy(&info->wlock);
     pthread_cond_destroy(&info->cond);
 
 	LLRP_TypeRegistry_destruct(info->pTypeRegistry);

@@ -23,10 +23,15 @@ KERNEL=linux-3.14.52
 ROOTFS=rootfs
 ROOTFS_2=rtfs_file
 ROOT_DIR=$PWD
+READER=reader
 
 PLATFORM=$1
 
 mkdir -p $IMAGE
+
+cd $ROOT_DIR/$READER
+make
+cp uhf $ROOT_DIR/rfs/$ROOTFS/home/root/
 
 cd $ROOT_DIR/$UBOOT
 . build_uboot.sh $PLATFORM
