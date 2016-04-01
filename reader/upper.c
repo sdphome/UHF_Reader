@@ -172,36 +172,29 @@ void *upper_process_loop(void *data)
 
 void *upper_read_loop(void *data)
 {
-	fd_set fds;
-	int maxfdp;
 	int ret = NO_ERROR;
 	upper_info_t *info = (upper_info_t *)data;
 	LLRP_tSConnection *pConn = info->pConn;
 	LLRP_tSMessage *pMessage = NULL;
 
 	while (true) {
-		FD_ZERO(&fds);
-		FD_SET(pConn->fd, &fds);
-
-		maxfdp = pConn->fd + 1;
-
-		ret = select(maxfdp, &fds, NULL, NULL, NULL);
-		if (ret <= 0) {
-			printf("%s: select failed, ret=%d.\n", __func__, ret);
-			return NULL;
-		} else if (FD_ISSET(pConn->fd, &fds)) {
-			pMessage = LLRP_Conn_recvMessage(pConn, -1);
-			if (pMessage == NULL) {
-				LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
+		pMessage = LLRP_Conn_recvMessage(pConn, 1000);
+		if (pMessage == NULL) {
+			LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
+			if (pError->eResultCode == LLRP_RC_RecvIOError) {
 				printf("%s: error code:%d, error message:%s.\n",
-						__func__, pError->eResultCode, pError->pWhatStr);
+					__func__, pError->eResultCode, pError->pWhatStr);
+				break;
+			} else if (pError->eResultCode == LLRP_RC_RecvFramingError)
+
+			} else
 				continue;
-			}
-
-
 		}
 
+
 	}
+
+	/* TODO: signal or release resource? */
 
 	return NULL;
 }
