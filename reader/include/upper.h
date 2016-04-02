@@ -38,7 +38,12 @@ typedef struct upper_info {
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
 
-	pthread_mutex_t wlock;
+	pthread_t request_thread;
+	pthread_mutex_t req_lock;
+	pthread_cond_t req_cond;
+
+    LLRP_tSMessage *request_list;
+    LLRP_tSMessage *response_list;
 
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;

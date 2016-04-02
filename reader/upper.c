@@ -57,14 +57,50 @@ static void inline unlock_upper(pthread_mutex_t *lock)
 	pthread_mutex_unlock(lock);
 }
 
+static void upper_signal_response(upper_info_t *info, LLRP_tSMessage *pResponse)
+{
+    LLRP_tSMessage **ppResponseTail;
+
+    lock_upper(&info->lock);
+
+    ppResponseTail = &info->response_list;
+    while (*ppResponseTail != NULL) {
+        ppResponseTail = &(*ppResponseTail)->pQueueNext;
+    }
+
+    pResponse->pQueueNext = NULL;
+    *ppResponseTail = pResponse;
+
+    pthread_cond_broadcast(&info->cond);
+    unlock_upper(&info->lock);
+}
+
+static void upper_signal_request(upper_info_t *info, LLRP_tSMessage *pRequest)
+{
+    LLRP_tSMessage **ppRequestTail;
+
+    lock_upper(&info->req_lock);
+
+    ppRequestTail = &info->request_list;
+    while (*ppRequestTail != NULL) {
+        ppRequestTail = &(*ppRequestTail)->pQueueNext;
+    }
+
+    pRequest->pQueueNext = NULL;
+    *ppRequestTail = pRequest;
+
+    pthread_cond_broadcast(&info->req_cond);
+    unlock_upper(&info->req_lock);
+}
+
 static LLRP_tSMessage *upper_wait_response(upper_info_t *info, LLRP_tSMessage *pSendMessage)
 {
 	int responseReceived = 0;
 	struct timeval now;
 	struct timespec outtime;
 	LLRP_tResultCode lrc;
-	LLRP_tSMessage *pMessage;
-	LLRP_tSMessage **ppMessage;
+	LLRP_tSMessage *pResponse;
+	LLRP_tSMessage *pPrev;
 	const LLRP_tSTypeDescriptor *pResponseType;
 	LLRP_tSConnection *pConn = info->pConn;
 	const LLRP_tSTypeDescriptor *pErrorMsgType;
@@ -92,29 +128,34 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t *info, LLRP_tSMessage *p
 			return NULL;
 		}
 
-		for (ppMessage = &pConn->pInputQueue; NULL != (pMessage = *ppMessage);
-			ppMessage = &pMessage->pQueueNext) {
-			if(NULL != pResponseType) {
-				if(pMessage->elementHdr.pType != pResponseType &&
-					pMessage->elementHdr.pType != pErrorMsgType) {
+        pPrev = info->response_list;
+        pResponse = info->response_list;
+        for (; pResponse != NULL; pResponse = pResponse->pQueueNext) {
+			if (NULL != pResponseType) {
+				if (pResponse->elementHdr.pType != pResponseType &&
+					pResponse->elementHdr.pType != pErrorMsgType) {
+                    pPrev = pResponse;
 					continue;
 				}
 			}
 
-			if(0 != ResponseMessageID) {
-				if(pMessage->MessageID != ResponseMessageID)
-					continue;
-			}
+			if(pResponse->MessageID != ResponseMessageID) {
+                pPrev = pResponse;
+				continue;
+            }
 
 			responseReceived = 1;
 			break;
 		}
+	}
 
-		if(NULL != pMessage && responseReceived) {
-			*ppMessage = pMessage->pQueueNext;
-			pMessage->pQueueNext = NULL;
-			return pMessage;
-		}
+	if (NULL != pResponse && responseReceived) {
+        if (pPrev == pResponse)
+            info->response_list = info->response_list->pQueueNext;
+		else
+            pPrev->pQueueNext = pResponse->pQueueNext;
+		pResponse->pQueueNext = NULL;
+		return pResponse;
 	}
 
 	return NULL;
@@ -124,8 +165,6 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 {
 	int ret = NO_ERROR;
 	LLRP_tSConnection *pConn = info->pConn;
-
-	lock_upper(&info->wlock);
 
     /*
      * Print the XML text for the outbound message if
@@ -162,8 +201,6 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
         ret = -FAILED;
     }
 
-	unlock_upper(&info->wlock);
-
 	return ret;
 }
 
@@ -183,31 +220,33 @@ int upper_notify_connected_event(upper_info_t *info)
 	return ret;
 }
 
-void *upper_process_loop(void *data)
+void *upper_request_loop(void *data)
 {
-
+    return NULL;
 }
 
 void *upper_read_loop(void *data)
 {
-	int ret = NO_ERROR;
 	upper_info_t *info = (upper_info_t *)data;
 	LLRP_tSConnection *pConn = info->pConn;
 	LLRP_tSMessage *pMessage = NULL;
+	LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
 
 	while (true) {
+        /* Need enqueue pMessage into queue */
 		pMessage = LLRP_Conn_recvMessage(pConn, 1000);
 		if (pMessage == NULL) {
-			LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
 			if (pError->eResultCode == LLRP_RC_RecvIOError) {
 				printf("%s: error code:%d, error message:%s.\n",
 					__func__, pError->eResultCode, pError->pWhatStr);
 				break;
-			} else if (pError->eResultCode == LLRP_RC_RecvFramingError) {
-                printf("aa");
 			} else
 				continue;
 		}
+
+        if (strstr(pMessage->elementHdr.pType->pName, "Ack") != NULL) {
+            upper_signal_response(info, pMessage);
+        }
     }
 
 	/* TODO: signal or release resource? */
@@ -242,7 +281,17 @@ int start_upper(upper_info_t *info)
 		ret = -FAILED;
 	}
 
+	ret = pthread_create(&info->request_thread, &attr, upper_request_loop, (void *)info);
+	if (ret < 0) {
+		printf("%s: create request thread failed.\n", __func__);
+		stop_upper(info);
+		ret = -FAILED;
+	}
+
 	printf("Start upper module, ret=%d\n", ret);
+
+    if (ret < 0)
+        stop_upper(info);
 
 	return ret;
 }
@@ -257,11 +306,13 @@ int alloc_upper(upper_info_t **info)
 		return -ENOMEM;
 	}
 
+    memset(*info, 0, sizeof(upper_info_t));
 	(*info)->sock = -1;
 
     pthread_mutex_init(&(*info)->lock, NULL);
-    pthread_mutex_init(&(*info)->wlock, NULL);
     pthread_cond_init(&(*info)->cond, NULL);
+    pthread_mutex_init(&(*info)->req_lock, NULL);
+    pthread_cond_init(&(*info)->req_cond, NULL);
 
     (*info)->pTypeRegistry = LLRP_getTheTypeRegistry();
     if((*info)->pTypeRegistry == NULL) {
@@ -289,8 +340,9 @@ void release_upper(upper_info_t *info)
 	}
 
     pthread_mutex_destroy(&info->lock);
-    pthread_mutex_destroy(&info->wlock);
     pthread_cond_destroy(&info->cond);
+    pthread_mutex_destroy(&info->req_lock);
+    pthread_cond_destroy(&info->req_cond);
 
 	LLRP_TypeRegistry_destruct(info->pTypeRegistry);
 	LLRP_Conn_destruct(info->pConn);
