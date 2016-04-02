@@ -1,13 +1,3 @@
-/* 
- *  Copyright (c) 2011,  广州江南科友union
- *  All rights reserved. 
- *  文件名称： AlgSm2.hpp
- *  摘    要： SM2算法类头文件
- *  当前版本： 1.0,  编写者: yanghb，   修改时间: 2011-12-13 修改内容: 创建
- *  
- */
-
-
 #ifndef __ALGSM2_H
 #define __ALGSM2_H
 

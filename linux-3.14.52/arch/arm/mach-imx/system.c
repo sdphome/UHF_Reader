@@ -42,7 +42,6 @@ static u32 wdog_source = 1; /* use WDOG1 default */
 void mxc_restart(enum reboot_mode mode, const char *cmd)
 {
 	unsigned int wcr_enable;
-	unsigned int val;
 
 	if (wdog_clk)
 		clk_enable(wdog_clk);

@@ -1,3 +1,21 @@
+/***************************************************************************
+*
+*   Author: Shao Depeng <dp.shao@gmail.com>
+*   Copyright 2016 Golden Sky Technology CO.,LTD
+*
+*   Licensed under the Apache License, Version 2.0 (the "License");
+*   you may not use this file except in compliance with the License.
+*   You may obtain a copy of the License at
+*
+*       http://www.apache.org/licenses/LICENSE-2.0
+*
+*   Unless required by applicable law or agreed to in writing, software
+*   distributed under the License is distributed on an "AS IS" BASIS,
+*   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+*   See the License for the specific language governing permissions and
+*   limitations under the License.
+*
+****************************************************************************/
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -185,14 +203,12 @@ void *upper_read_loop(void *data)
 				printf("%s: error code:%d, error message:%s.\n",
 					__func__, pError->eResultCode, pError->pWhatStr);
 				break;
-			} else if (pError->eResultCode == LLRP_RC_RecvFramingError)
-
+			} else if (pError->eResultCode == LLRP_RC_RecvFramingError) {
+                printf("aa");
 			} else
 				continue;
 		}
-
-
-	}
+    }
 
 	/* TODO: signal or release resource? */
 
@@ -298,7 +314,7 @@ void test_upper()
 		return;
 	}
 
-    ret = upper_send_connected_notification(info);
+    ret = upper_notify_connected_event(info);
     if (ret != NO_ERROR) {
         printf("%s: send device event notification failed.\n", __func__);
 		goto failed;

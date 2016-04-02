@@ -2,6 +2,7 @@
  * UHF security module driver
  *
  * Author: Shao Depeng <dp.shao@gmail.com>
+ * Copyright 2016 Golden Sky Technology CO.,LTD
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
