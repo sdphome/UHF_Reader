@@ -220,8 +220,36 @@ int upper_notify_connected_event(upper_info_t *info)
 	return ret;
 }
 
-void *upper_request_loop(void *data)
+static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 {
+    printf("%s: id[%d] %s +\n", __func__, pRequest->MessageID, pRequest->elementHdr.pType->pName);
+    printf("%s: id[%d] %s -\n", __func__, pRequest->MessageID, pRequest->elementHdr.pType->pName);
+}
+
+static void *upper_request_loop(void *data)
+{
+    int request_received = false;
+    upper_info_t *info = (upper_info_t *)data;
+	LLRP_tSMessage *pRequest;
+
+    while (true) {
+        lock_upper(&info->req_lock);
+        pthread_cond_wait(&info->req_cond, &info->req_lock);
+
+        if (info->request_list == NULL) {
+            unlock_upper(&info->req_lock);
+            continue;
+        }
+
+        pRequest = &info->request_list;
+        while (pRequest != NULL) {
+            info->request_list = info->request_list->pQueueNext;
+            pRequest->pQueueNext = NULL;
+            upper_process_request(info, pRequest);
+            pRequest = info->request_list;
+        }
+        unlock_upper(&info->req_lock);
+    }
     return NULL;
 }
 
