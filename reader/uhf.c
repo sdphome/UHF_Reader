@@ -25,9 +25,6 @@
 #include <errno.h>
 #include <pthread.h>
 #include <ltkc.h>
-#include <upper.h>
-#include <radio.h>
-#include <security.h>
 #include <uhf.h>
 
 int main(int argc, char** argv)

@@ -30,7 +30,7 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "radio.h"
+#include <uhf.h>
 
 /* ---------- ---------- */
 

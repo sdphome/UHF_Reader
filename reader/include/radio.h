@@ -21,6 +21,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <uhf.h>
 
 #define RADIO_PORT      "/dev/ttymxc1"
 
@@ -234,7 +235,7 @@ typedef struct {
     radio_result_list_t *result_list;
     uint8_t data[RADIO_MTU];
 
-	uhf_info_t *uhf;
+	void *uhf;
 } radio_info_t;
 
 void radio_print_result(radio_result_t result);

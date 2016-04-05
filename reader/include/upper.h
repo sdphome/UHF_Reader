@@ -18,6 +18,8 @@
 ****************************************************************************/
 #ifndef __UPPER_H
 #define __UPPER_H
+#include <stdint.h>
+#include "../utils/llrp/ltkc.h"
 
 #define NO_ERROR			0
 #define FAILED				1
@@ -48,7 +50,7 @@ typedef struct upper_info {
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;
 
-	uhf_info_t *uhf;
+	void *uhf;
 } upper_info_t;
 
 

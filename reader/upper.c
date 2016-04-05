@@ -204,17 +204,51 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 	return ret;
 }
 
+static int upper_check_llrp_status(LLRP_tSStatus *pLLRPStatus, char *pWhatStr)
+{
+	if(NULL == pLLRPStatus) {
+		printf("ERROR: %s missing LLRP status\n", pWhatStr);
+		return -FAILED;
+	}
+
+	if (pLLRPStatus->eStatusCode != LLRP_StatusCode_M_Success) {
+		if (pLLRPStatus->ErrorDescription.nValue == 0) {
+			printf("ERROR: %s failed, no error description given\n", pWhatStr);
+		} else {
+			printf("ERROR: %s failed, %.*s\n",
+					pWhatStr,
+					pLLRPStatus->ErrorDescription.nValue,
+					pLLRPStatus->ErrorDescription.pValue);
+		}
+	}
+
+	return -pLLRPStatus->eStatusCode;
+}
+
 int upper_notify_connected_event(upper_info_t *info)
 {
 	int ret = NO_ERROR;
+	struct timeval now;
 	LLRP_tSDeviceEventNotification *pThis;
+	LLRP_tSUTCTimestamp *pTimestamp;
 
 	pThis = LLRP_DeviceEventNotification_construct();
+	pTimestamp = LLRP_UTCTimestamp_construct();
+
+	gettimeofday(&now, NULL);
+	LLRP_UTCTimestamp_setMicroseconds(pTimestamp,
+		(((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000));
+	LLRP_DeviceEventNotification_setUTCTimestamp(pThis, pTimestamp);
+
+	lock_upper(&info->lock);
 
 	if(LLRP_RC_OK != upper_send_message(info, &pThis->hdr)) {
 		ret = -FAILED;
 	}
 
+	unlock_upper(&info->lock);
+
+	LLRP_UTCTimestamp_destruct(pTimestamp);
 	LLRP_DeviceEventNotification_destruct(pThis);
 
 	return ret;
@@ -228,7 +262,6 @@ static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 
 static void *upper_request_loop(void *data)
 {
-    int request_received = false;
     upper_info_t *info = (upper_info_t *)data;
 	LLRP_tSMessage *pRequest;
 

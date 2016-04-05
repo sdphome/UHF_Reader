@@ -33,7 +33,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sm2.h>
-
 #include <security.h>
 
 /* FIXME: undef it */

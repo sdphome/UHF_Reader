@@ -19,6 +19,9 @@
 #ifndef __UHF_H
 #define __UHF_H
 
+#include <upper.h>
+#include <radio.h>
+#include <security.h>
 
 typedef struct uhf_info {
 	int status;

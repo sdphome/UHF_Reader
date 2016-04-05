@@ -389,7 +389,7 @@ typedef struct security_info {
 	uint8_t pub_key[64];
 	uint8_t priv_key[32];
 
-	uhf_info_t *uhf;
+	void *uhf;
 } security_info_t;
 
 #endif
