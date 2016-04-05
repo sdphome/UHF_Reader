@@ -20,5 +20,11 @@
 #define __UHF_H
 
 
+typedef struct uhf_info {
+	int status;
+	upper_info_t *upper;
+	security_info_t *security;
+	radio_info_t *radio;
+} uhf_info_t;
 
 #endif

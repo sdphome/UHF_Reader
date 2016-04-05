@@ -233,6 +233,8 @@ typedef struct {
     pthread_t read_thread;
     radio_result_list_t *result_list;
     uint8_t data[RADIO_MTU];
+
+	uhf_info_t *uhf;
 } radio_info_t;
 
 void radio_print_result(radio_result_t result);

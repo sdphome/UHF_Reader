@@ -48,6 +48,7 @@ typedef struct upper_info {
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;
 
+	uhf_info_t *uhf;
 } upper_info_t;
 
 
