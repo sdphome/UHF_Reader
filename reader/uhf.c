@@ -27,8 +27,77 @@
 #include <ltkc.h>
 #include <uhf.h>
 
+#define TEST
+
+static int uhf_init_security(uhf_info_t *p_uhf)
+{
+	int ret = NO_ERROR;
+	security_info_t *security = p_uhf->security;
+	uint64_t sec_rand;
+
+	ret = security_set_rtc(security);
+
+	sec_rand = security_request_rand_num(security);
+
+	ret = security_send_auth_data(security, sec_rand);
+
+	return ret;
+}
+
+static int uhf_init_radio(uhf_info_t *p_uhf)
+{
+	int ret = NO_ERROR;
+
+	return 0;
+}
+
 int main(int argc, char** argv)
 {
+#ifndef TEST
+	int ret = NO_ERROR;
+	uhf_info_t *p_uhf;
+
+	/* TODO: setup rtc */
+
+	p_uhf = (uhf_info_t *)malloc(sizeof(uhf_info_t));
+	if (p_uhf == NULL)
+		return -ENOMEM;
+
+	ret = alloc_radio(&p_uhf->radio);
+	ret += alloc_security(&p_uhf->security);
+	ret += alloc_upper(&p_uhf->upper);
+	if (ret != NO_ERROR)
+		goto alloc_failed;
+
+	ret = start_radio(p_uhf->radio);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	uhf_init_radio(p_uhf);
+
+	ret = start_security(p_uhf->security);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	uhf_init_security(p_uhf);
+
+	ret = start_upper(p_uhf->upper);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+start_failed:
+	stop_radio(p_uhf->radio);
+	stop_security(p_uhf->security);
+	stop_upper(p_uhf->upper);
+alloc_failed:
+	release_upper(p_uhf->upper);
+	release_security(p_uhf->security);
+	release_radio(p_uhf->radio);
+
+	/* TODO: reboot */
+	return ret;
+#else
 	upper_main(0, NULL);
 	return 0;
+#endif
 }

@@ -385,11 +385,35 @@ typedef struct security_info {
 	/* security module info */
 	uint8_t version;
 	uint64_t serial;
-	char x509_path[20];
+	char auth_x509_path[50];
+	char active_x509_path[50];
 	uint8_t pub_key[64];
 	uint8_t priv_key[32];
 
 	void *uhf;
 } security_info_t;
+
+
+
+int security_set_rtc(security_info_t *info);
+int security_set_repeat_read(security_info_t *info, uint8_t repeat);
+int security_set_repeat_read(security_info_t *info, uint8_t repeat);
+int security_set_filtr_interv(security_info_t *info, uint32_t interval);
+int security_get_firmware_version(security_info_t *info, firmware_version_param *param);
+int security_get_serial_number(security_info_t *info, serial_num_param *param);
+int security_get_repeat_read_flag(security_info_t *info, repeat_read_param *param);
+int security_get_repeat_read_flag(security_info_t *info, repeat_read_param *param);
+work_mode_param* security_get_work_mode(security_info_t *info);
+int security_get_key_version(security_info_t *info, security_package_t *result);
+int security_get_filtr_interv(security_info_t *info, filtr_interv_param *param);
+int security_get_perm(security_info_t *info, perm_table_param *param);
+int security_set_work_mode(security_info_t *info, work_mode_param *param);
+uint64_t security_request_rand_num(security_info_t *info);
+int security_send_auth_data(security_info_t *info, uint64_t sec_rand);
+int security_send_user_info(security_info_t *info, security_package_t *result);
+int security_send_active_auth(security_info_t *info, active_auth_param *param);
+int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t len);
+int security_upgrade_firmware(security_info_t *info, char *file);
+
 
 #endif

@@ -35,6 +35,8 @@ typedef struct upper_info {
 	int sock;
 	int status;
 	int verbose;
+	char active_cer_path[48];
+	char user_info_path[48];
 
 	uint64_t next_msg_id;
 	uint64_t serial;
@@ -46,6 +48,9 @@ typedef struct upper_info {
 	pthread_t request_thread;
 	pthread_mutex_t req_lock;
 	pthread_cond_t req_cond;
+
+	pthread_mutex_t disconnect_lock;
+	pthread_cond_t disconnect_cond;
 
     LLRP_tSMessage *request_list;
     LLRP_tSMessage *response_list;

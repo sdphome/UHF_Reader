@@ -33,7 +33,8 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sm2.h>
-#include <security.h>
+//#include <security.h>
+#include <uhf.h>
 
 /* FIXME: undef it */
 //#define TEST
@@ -409,7 +410,7 @@ uint64_t security_get_rtc(security_info_t *info)
 	return time.time;
 }
 
-int security_set_params(security_info_t *info, uint8_t *param)
+static int security_set_params(security_info_t *info, uint8_t *param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -479,7 +480,7 @@ int security_set_filtr_interv(security_info_t *info, uint32_t interval)
 	return security_set_params(info, (uint8_t *)&param);
 }
 
-uint8_t* security_get_params(security_info_t *info, uint16_t type)
+static uint8_t* security_get_params(security_info_t *info, uint16_t type)
 {
 	int ret = NO_ERROR;
 	get_params_param param;
@@ -712,17 +713,12 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 	return ret;
 }
 
-uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
+uint64_t security_request_rand_num(security_info_t *info)
 {
 	int ret = NO_ERROR;
 	int i = 0;
 	security_package_t result;
 	uint64_t sec_rand;
-
-	if (param == NULL) {
-		printf("%s: sec_rand is null.\n", __func__);
-		return -FAILED;
-	}
 
 	lock_security(&info->lock);
 
@@ -730,7 +726,7 @@ uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d.\n", __func__, ret);
-		return ret;
+		return NO_ERROR;
 	}
 
 	ret = security_wait_result(info, AUTH_TYPE, REQ_RAND_NUM, &result);
@@ -746,20 +742,19 @@ uint64_t security_request_rand_num(security_info_t *info, rand_num_param *param)
 		printf("result.hdr.len=%x\n", result.hdr.len);
 		printf("zxxxx\n");
 		sec_rand = *(uint64_t *)result.payload;
-		memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
+		//memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
 		printf("%s: sec_rand=%lx, ", __func__, (unsigned long)sec_rand);
 		for (i = 0; i < 8; i++)
 			printf("%4x", *(result.payload + i));
 		printf("\n");
 		free(result.payload);
 		result.payload = NULL;
+		return sec_rand;
 	} else
-		ret = -FAILED;
-
-	return sec_rand;
+		return NO_ERROR;
 }
 
-unsigned long security_get_file_size(const char *path)
+static unsigned long security_get_file_size(const char *path)
 {
 	unsigned long size = -1;
 	FILE *fp;
@@ -775,7 +770,7 @@ unsigned long security_get_file_size(const char *path)
 	return size;
 }
 
-int security_read_file(uint8_t *x509, char *path, unsigned long size)
+static int security_read_file(uint8_t *x509, char *path, unsigned long size)
 {
 	unsigned long nrd;
 	FILE *fp = fopen(path, "r");
@@ -792,7 +787,7 @@ int security_read_file(uint8_t *x509, char *path, unsigned long size)
 	fclose(fp);
 }
 
-int security_digi_sign(security_info_t *info, auth_data_param *param)
+static int security_digi_sign(security_info_t *info, auth_data_param *param)
 {
 	int ret = NO_ERROR;
 	uint8_t hash[32] = {0};
@@ -823,7 +818,7 @@ int security_digi_sign(security_info_t *info, auth_data_param *param)
  * 4 : security module has actived by other reader
  * A : reader serial number failed
 */
-int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
+int security_send_auth_data(security_info_t *info, uint64_t sec_rand)
 {
 	int ret = NO_ERROR;
 	//uint64_t rand_num = 0;
@@ -831,7 +826,7 @@ int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 	auth_data_param *param = NULL;
 	security_package_t result;
 
-	size = security_get_file_size(info->x509_path);
+	size = security_get_file_size(info->auth_x509_path);
 	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
 		printf("%s: x509 size error, size = %ld.\n", __func__, size);
 		return -FAILED;
@@ -844,10 +839,10 @@ int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 	*(uint64_t *)param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
 
 	/* 2. fill data */
-	memcpy(param->sec_rand, rand_param->sec_rand, RAND_NUM_PARAM_SIZE);
+	memcpy(param->sec_rand, &sec_rand, RAND_NUM_PARAM_SIZE);
 	param->serial = info->serial;
 	param->reserve = 0;
-	ret = security_read_file(param->x509, info->x509_path, size);
+	ret = security_read_file(param->x509, info->auth_x509_path, size);
 	if (ret != NO_ERROR) {
 		printf("%s: read x509 failed.\n", __func__);
 		free(param);
@@ -873,7 +868,7 @@ int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 		return ret;
 	}
 
-	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+	ret = security_wait_result(info, AUTH_TYPE, IDEN_AUTH, &result);
 
 	unlock_security(&info->lock);
 
@@ -894,11 +889,10 @@ int security_send_auth_data(security_info_t *info, rand_num_param *rand_param)
 	return ret;
 }
 
-uint8_t *security_send_user_info(security_info_t *info)
+int security_send_user_info(security_info_t *info, security_package_t *result)
 {
 	int ret = NO_ERROR;
 	user_info_param user_info;
-	security_package_t result;
 
 	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
 	/* TODO: fill user_info */
@@ -912,7 +906,7 @@ uint8_t *security_send_user_info(security_info_t *info)
 		return NULL;
 	}
 
-	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+	ret = security_wait_result(info, AUTH_TYPE, USER_INFO, result);
 
 	unlock_security(&info->lock);
 
@@ -922,7 +916,7 @@ uint8_t *security_send_user_info(security_info_t *info)
 	}
 
 	/* Need send the data to upper computer */
-	return result.payload;
+	return ret;
 }
 
 /**
@@ -951,7 +945,7 @@ int security_send_active_auth(security_info_t *info, active_auth_param *param)
 		return -FAILED;
 	}
 
-	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+	ret = security_wait_result(info, AUTH_TYPE, SEND_AUTH, &result);
 
 	unlock_security(&info->lock);
 
@@ -985,7 +979,7 @@ int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t 
 		return -FAILED;
 	}
 
-	ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+	ret = security_wait_result(info, AUTH_TYPE, SEND_CERT, &result);
 
 	unlock_security(&info->lock);
 
@@ -1056,7 +1050,7 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 		}
 
 		memset(&result, 0, sizeof(security_package_t));
-		ret = security_wait_result(info, SETUP_TYPE, SETUP_RTC, &result);
+		ret = security_wait_result(info, DATA_FORWA_TYPE, data->cmd, &result);
 
 		unlock_security(&info->lock);
 
@@ -1228,6 +1222,9 @@ create_thread_failed:
 
 void stop_security(security_info_t *info)
 {
+	if (info == NULL)
+		return;
+
 	close(info->fd);
 }
 
@@ -1255,6 +1252,9 @@ void release_security(security_info_t *security_info)
 {
 	//pthread_join(upload_thread, NULL);
 	//pthread_join(read_thread, NULL);
+
+	if (security_info == NULL)
+		return;
 
 	pthread_mutex_destroy(&security_info->lock);
 	pthread_cond_destroy(&security_info->cond);
@@ -1290,7 +1290,7 @@ void test_security()
 	work_mode_param *work_mode = NULL;
 	work_mode_param *setup_work_mode = NULL;
 	perm_table_param perm_table;
-	rand_num_param rand_num;
+	uint64_t sec_rand;
 
 	ret = alloc_security(&pr);
 	if (ret != NO_ERROR)
@@ -1374,12 +1374,12 @@ void test_security()
 	}
 
 	printf("********************get rand num*****************************\n");
-	security_request_rand_num(pr, &rand_num);
+	sec_rand = security_request_rand_num(pr);
 	if (ret == NO_ERROR) {
-		printf("get_rand_num: %lx\n", *(unsigned long *)rand_num.sec_rand);
+		printf("get_rand_num: %llx\n", sec_rand);
 
 		for (i = 0; i < 8; i ++)
-			printf("%4x", *(rand_num.sec_rand + i));
+			printf("%4x", *((uint8_t *)&sec_rand + i));
 
 		printf("\n");
 	}

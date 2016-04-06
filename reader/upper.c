@@ -26,8 +26,12 @@
 #include <pthread.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <fcntl.h>
 #include <ltkc.h>
-#include <upper.h>
+//#include <upper.h>
+//#include <security.h>
+//#include <radio.h>
+#include <uhf.h>
 
 static void upper_print_XML_message(LLRP_tSMessage *pMessage)
 {
@@ -262,40 +266,91 @@ int upper_notify_connected_event(upper_info_t *info)
 	return ret;
 }
 
+static int upper_write_to_file(char *path, llrp_u8v_t *data)
+{
+	int fd;
+	int ret;
+
+	if (path == NULL) {
+		printf("path is null.\n");
+		return -FAILED;
+	}
+
+	remove(path);
+	fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+	if (fd < 0) {
+		printf("%s: create file error.\n", __func__);
+		return fd;
+	}
+
+	ret = write(fd, data->pValue, data->nValue);
+	if (ret != data->nValue) {
+		printf("%s: write failed, nValue=%d, ret=%d.\n", __func__, data->nValue, ret);
+		ret = -FAILED;
+	} else
+		ret = NO_ERROR;
+
+	close(fd);
+	return ret;
+}
+
+static int upper_request_DeviceBinding(upper_info_t *info)
+{
+	return 0;
+}
+
+static int upper_process_DeviceBinding(upper_info_t *info, LLRP_tSDeviceBinding *pDB)
+{
+	return 0;
+}
+
+static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDeviceCertificateConfig *pDCC)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDeviceCertificateConfigAck *pDCC_Ack;
+	LLRP_tSStatus *pStatus;
+	llrp_utf8v_t Error;
+	llrp_u8v_t pCer;
+	llrp_u8v_t pUser;
+
+	pDCC_Ack = LLRP_DeviceCertificateConfigAck_construct();
+	pStatus = LLRP_Status_construct();
+	Error.nValue = 0;
+	LLRP_Status_setStatusCode(pStatus, LLRP_StatusCode_M_Success);
+	LLRP_Status_setErrorDescription(pStatus, Error);
+	LLRP_DeviceCertificateConfigAck_setStatus(pDCC_Ack, pStatus);
+	pDCC_Ack->hdr.MessageID = pDCC->hdr.MessageID;
+	pDCC_Ack->hdr.Version = pDCC->hdr.Version;
+
+	ret = upper_send_message(info, &pDCC_Ack->hdr);
+
+	pCer = LLRP_DeviceCertificateConfig_getCertificateData(pDCC);
+	pUser = LLRP_DeviceCertificateConfig_getUserData(pDCC);
+
+	ret += upper_write_to_file(info->active_cer_path, &pCer);
+	ret += upper_write_to_file(info->user_info_path, &pUser);
+
+	LLRP_DeviceCertificateConfigAck_destruct(pDCC_Ack);
+	LLRP_DeviceCertificateConfig_destruct(pDCC);
+
+	return ret;
+}
+
 static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 {
 	uint16_t type;
 
 	type = pRequest->elementHdr.pType->TypeNum;
 
-    printf("%s: id[%d] type[%d] %s +\n", __func__, pRequest->MessageID, type, pRequest->elementHdr.pType->pName);
+	printf("%s: id[%d] type[%d] %s +\n", __func__, pRequest->MessageID, type, pRequest->elementHdr.pType->pName);
 
 	switch (type) {
-		case 602: {
-			LLRP_tSDeviceCertificateConfig *pDCC;
-			LLRP_tSDeviceCertificateConfigAck *pDCC_Ack;
-			LLRP_tSStatus *pStatus;
-			llrp_utf8v_t Error;
-
-			pDCC = (LLRP_tSDeviceCertificateConfig *)pRequest;
-
-			pDCC_Ack = LLRP_DeviceCertificateConfigAck_construct();
-			pStatus = LLRP_Status_construct();
-
-			Error.nValue = 0;
-			LLRP_Status_setStatusCode(pStatus, LLRP_StatusCode_M_Success);
-			LLRP_Status_setErrorDescription(pStatus, Error);
-			LLRP_DeviceCertificateConfigAck_setStatus(pDCC_Ack, pStatus);
-
-			pDCC_Ack->hdr.MessageID = pDCC->hdr.MessageID;
-			pDCC_Ack->hdr.Version = pDCC->hdr.Version;
-
-			upper_send_message(info, &pDCC_Ack->hdr);
-
-			LLRP_DeviceCertificateConfigAck_destruct(pDCC_Ack);
-			LLRP_DeviceCertificateConfig_destruct(pDCC);
+		case 600: //DeviceBinding
+			upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *)pRequest);
 			break;
-		}
+		case 602: //DeviceCertificateConfig
+			upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *)pRequest);
+			break;
 		default:
 			printf("hasn't support this type.\n");
 			break;
@@ -312,6 +367,9 @@ static void *upper_request_loop(void *data)
     while (true) {
         lock_upper(&info->req_lock);
         pthread_cond_wait(&info->req_cond, &info->req_lock);
+
+		if (info->status == 0)
+			return NULL;
 
         if (info->request_list == NULL) {
             unlock_upper(&info->req_lock);
@@ -361,7 +419,10 @@ void *upper_read_loop(void *data)
 		}
     }
 
-	/* TODO: signal or release resource? */
+	info->status = 0;
+	lock_upper(&info->disconnect_lock);
+	pthread_cond_broadcast(&info->disconnect_cond);
+	unlock_upper(&info->disconnect_lock);
 
 	printf("%s: exit\n", __func__);
 
@@ -370,6 +431,9 @@ void *upper_read_loop(void *data)
 
 void stop_upper(upper_info_t *info)
 {
+	if (info == NULL)
+		return;
+
 	LLRP_Conn_closeConnectionToUpper(info->pConn);
 	close(info->sock);
 }
@@ -378,31 +442,48 @@ int start_upper(upper_info_t *info)
 {
 	int ret = NO_ERROR;
 	pthread_attr_t attr;
+	void *status;
 
-	info->sock = LLRP_Conn_startServerForUpper(info->pConn);
-	if (info->sock < 0) {
-		printf("%s: start server failed.\n", __func__);
-		return info->sock;
-	}
+	while (true) {
+		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
+		if (info->sock < 0) {
+			printf("%s: start server failed.\n", __func__);
+			return info->sock;
+		}
 
-	pthread_attr_init (&attr);
-	//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_attr_init (&attr);
+		//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-	ret = pthread_create(&info->read_thread, &attr, upper_read_loop, (void *)info);
-	if (ret < 0) {
-		printf("%s: create read thread failed.\n", __func__);
+		ret = pthread_create(&info->read_thread, &attr, upper_read_loop, (void *)info);
+		if (ret < 0) {
+			printf("%s: create read thread failed.\n", __func__);
+			stop_upper(info);
+			ret = -FAILED;
+		}
+
+		ret = pthread_create(&info->request_thread, &attr, upper_request_loop, (void *)info);
+		if (ret < 0) {
+			printf("%s: create request thread failed.\n", __func__);
+			stop_upper(info);
+			ret = -FAILED;
+		}
+
+		info->status = 1;
+		printf("Start upper module, ret=%d\n", ret);
+
+		lock_upper(&info->disconnect_lock);
+		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
+		unlock_upper(&info->disconnect_lock);
+		info->status = 0;
+
+		lock_upper(&info->req_lock);
+		pthread_cond_broadcast(&info->req_cond);
+		unlock_upper(&info->req_lock);
+
+		pthread_join(info->read_thread, &status);
+		pthread_join(info->request_thread, &status);
 		stop_upper(info);
-		ret = -FAILED;
 	}
-
-	ret = pthread_create(&info->request_thread, &attr, upper_request_loop, (void *)info);
-	if (ret < 0) {
-		printf("%s: create request thread failed.\n", __func__);
-		stop_upper(info);
-		ret = -FAILED;
-	}
-
-	printf("Start upper module, ret=%d\n", ret);
 
     if (ret < 0)
         stop_upper(info);
@@ -437,6 +518,9 @@ int alloc_upper(upper_info_t **info)
 
 	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
+
+	memcpy((*info)->active_cer_path, ACTIVE_CER_PATH, sizeof(ACTIVE_CER_PATH));
+	memcpy((*info)->user_info_path, USER_INFO_PATH, sizeof(USER_INFO_PATH));
 
 	(*info)->pConn = LLRP_Conn_construct((*info)->pTypeRegistry, 32u*1024u);
 	if ((*info)->pConn == NULL) {

@@ -19,9 +19,13 @@
 #ifndef __UHF_H
 #define __UHF_H
 
-#include <upper.h>
-#include <radio.h>
-#include <security.h>
+#include "upper.h"
+#include "radio.h"
+#include "security.h"
+
+
+#define ACTIVE_CER_PATH     "/home/root/active.cer"
+#define USER_INFO_PATH      "/home/root/user_info"
 
 typedef struct uhf_info {
 	int status;

@@ -692,6 +692,9 @@ create_thread_failed:
 
 void stop_radio(radio_info_t *radio_info)
 {
+	if (radio_info == NULL)
+		return;
+
     close_uart(radio_info->fd);
 }
 
@@ -714,6 +717,9 @@ int alloc_radio(radio_info_t **radio_info)
 
 void release_radio(radio_info_t *radio_info)
 {
+	if (radio_info == NULL)
+		return;
+
     pthread_mutex_destroy(&radio_info->c_lock);
     pthread_cond_destroy(&radio_info->c_cond);
 
