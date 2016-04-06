@@ -368,8 +368,10 @@ static void *upper_request_loop(void *data)
         lock_upper(&info->req_lock);
         pthread_cond_wait(&info->req_cond, &info->req_lock);
 
-		if (info->status == 0)
+		if (info->status == 0) {
+			unlock_upper(&info->req_lock);
 			return NULL;
+		}
 
         if (info->request_list == NULL) {
             unlock_upper(&info->req_lock);
