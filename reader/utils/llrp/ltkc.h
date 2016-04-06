@@ -35,6 +35,7 @@
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
 
+
 extern LLRP_tSTypeRegistry *
 LLRP_getTheTypeRegistry (void);
 

@@ -29,11 +29,14 @@
 
 #define UPPER_TIMEOUT		3
 
+int upper_main(int argc, char** argv);
+
 typedef struct upper_info {
 	int sock;
 	int status;
 	int verbose;
 
+	uint64_t next_msg_id;
 	uint64_t serial;
 
 	pthread_t read_thread;

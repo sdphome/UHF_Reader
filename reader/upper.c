@@ -176,6 +176,9 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 		upper_print_XML_message(pSendMsg);
 	}
 
+	pSendMsg->Version = 1;
+	//pSendMsg->MessageID = info->next_msg_id ++;
+
     /*
      * If LLRP_Conn_sendMessage() returns other than LLRP_RC_OK
      * then there was an error. In that case we try to print
@@ -206,7 +209,7 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 
 static int upper_check_llrp_status(LLRP_tSStatus *pLLRPStatus, char *pWhatStr)
 {
-	if(NULL == pLLRPStatus) {
+	if (NULL == pLLRPStatus) {
 		printf("ERROR: %s missing LLRP status\n", pWhatStr);
 		return -FAILED;
 	}
@@ -231,14 +234,20 @@ int upper_notify_connected_event(upper_info_t *info)
 	struct timeval now;
 	LLRP_tSDeviceEventNotification *pThis;
 	LLRP_tSUTCTimestamp *pTimestamp;
+	LLRP_tSConnectionAttemptEvent *pCAE;
 
 	pThis = LLRP_DeviceEventNotification_construct();
 	pTimestamp = LLRP_UTCTimestamp_construct();
+	pCAE = LLRP_ConnectionAttemptEvent_construct();
+
 
 	gettimeofday(&now, NULL);
 	LLRP_UTCTimestamp_setMicroseconds(pTimestamp,
 		(((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000));
 	LLRP_DeviceEventNotification_setUTCTimestamp(pThis, pTimestamp);
+
+	LLRP_ConnectionAttemptEvent_setConnectionStatus(pCAE, LLRP_ConnectionStatus_Success);
+	LLRP_DeviceEventNotification_setConnectionAttemptEvent(pThis, pCAE);
 
 	lock_upper(&info->lock);
 
@@ -248,7 +257,6 @@ int upper_notify_connected_event(upper_info_t *info)
 
 	unlock_upper(&info->lock);
 
-	LLRP_UTCTimestamp_destruct(pTimestamp);
 	LLRP_DeviceEventNotification_destruct(pThis);
 
 	return ret;
@@ -256,8 +264,44 @@ int upper_notify_connected_event(upper_info_t *info)
 
 static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 {
-    printf("%s: id[%d] %s +\n", __func__, pRequest->MessageID, pRequest->elementHdr.pType->pName);
-    printf("%s: id[%d] %s -\n", __func__, pRequest->MessageID, pRequest->elementHdr.pType->pName);
+	uint16_t type;
+
+	type = pRequest->elementHdr.pType->TypeNum;
+
+    printf("%s: id[%d] type[%d] %s +\n", __func__, pRequest->MessageID, type, pRequest->elementHdr.pType->pName);
+
+	switch (type) {
+		case 602: {
+			LLRP_tSDeviceCertificateConfig *pDCC;
+			LLRP_tSDeviceCertificateConfigAck *pDCC_Ack;
+			LLRP_tSStatus *pStatus;
+			llrp_utf8v_t Error;
+
+			pDCC = (LLRP_tSDeviceCertificateConfig *)pRequest;
+
+			pDCC_Ack = LLRP_DeviceCertificateConfigAck_construct();
+			pStatus = LLRP_Status_construct();
+
+			Error.nValue = 0;
+			LLRP_Status_setStatusCode(pStatus, LLRP_StatusCode_M_Success);
+			LLRP_Status_setErrorDescription(pStatus, Error);
+			LLRP_DeviceCertificateConfigAck_setStatus(pDCC_Ack, pStatus);
+
+			pDCC_Ack->hdr.MessageID = pDCC->hdr.MessageID;
+			pDCC_Ack->hdr.Version = pDCC->hdr.Version;
+
+			upper_send_message(info, &pDCC_Ack->hdr);
+
+			LLRP_DeviceCertificateConfigAck_destruct(pDCC_Ack);
+			LLRP_DeviceCertificateConfig_destruct(pDCC);
+			break;
+		}
+		default:
+			printf("hasn't support this type.\n");
+			break;
+	}
+
+	printf("%s: type = %d -\n", __func__, type);
 }
 
 static void *upper_request_loop(void *data)
@@ -274,7 +318,7 @@ static void *upper_request_loop(void *data)
             continue;
         }
 
-        pRequest = &info->request_list;
+        pRequest = info->request_list;
         while (pRequest != NULL) {
             info->request_list = info->request_list->pQueueNext;
             pRequest->pQueueNext = NULL;
@@ -295,22 +339,31 @@ void *upper_read_loop(void *data)
 
 	while (true) {
         /* Need enqueue pMessage into queue */
-		pMessage = LLRP_Conn_recvMessage(pConn, 1000);
+		pMessage = LLRP_Conn_recvMessage(pConn, 2000);
 		if (pMessage == NULL) {
-			if (pError->eResultCode == LLRP_RC_RecvIOError) {
+			if (pError->eResultCode == LLRP_RC_RecvIOError ||
+				pError->eResultCode == LLRP_RC_RecvEOF) {
 				printf("%s: error code:%d, error message:%s.\n",
 					__func__, pError->eResultCode, pError->pWhatStr);
 				break;
-			} else
+			} else {
 				continue;
+			}
 		}
+
+		printf("%s: pType->pName=%s\n", __func__, pMessage->elementHdr.pType->pName);
+		upper_print_XML_message(pMessage);
 
         if (strstr(pMessage->elementHdr.pType->pName, "Ack") != NULL) {
             upper_signal_response(info, pMessage);
-        }
+        } else {
+			upper_signal_request(info, pMessage);
+		}
     }
 
 	/* TODO: signal or release resource? */
+
+	printf("%s: exit\n", __func__);
 
 	return NULL;
 }
@@ -333,7 +386,7 @@ int start_upper(upper_info_t *info)
 	}
 
 	pthread_attr_init (&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+	//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	ret = pthread_create(&info->read_thread, &attr, upper_read_loop, (void *)info);
 	if (ret < 0) {
@@ -382,6 +435,9 @@ int alloc_upper(upper_info_t **info)
         return -FAILED;
     }
 
+	(*info)->verbose = 1;
+	(*info)->next_msg_id = 1;
+
 	(*info)->pConn = LLRP_Conn_construct((*info)->pTypeRegistry, 32u*1024u);
 	if ((*info)->pConn == NULL) {
 		printf("%s: ERROR: LLRP_Conn_construct failed.\n", __func__);
@@ -416,6 +472,7 @@ void test_upper()
 {
 	int ret = NO_ERROR;
 	upper_info_t *info;
+	void *status;
 
 	ret = alloc_upper(&info);
 	if (ret != NO_ERROR)
@@ -433,7 +490,15 @@ void test_upper()
 		goto failed;
     }
 
+	printf("%s: wait ###################\n", __func__);
+
+	pthread_join(info->read_thread, &status);
+	printf("%s: wait 1 ####################\n", __func__);
+	pthread_join(info->request_thread, &status);
+	printf("%s: wait 2\n", __func__);
+
 failed:
+	printf("%s: end\n", __func__);
 	stop_upper(info);
 	release_upper(info);
 }

@@ -59,3 +59,5 @@ clean:
 	find -name '*.o' -exec rm -rf {} \;
 	$(RM) $(EXE) -rf
 	$(RM) $(OBJS) -rf
+
+.PHONY: clean

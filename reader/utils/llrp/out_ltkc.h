@@ -167,6 +167,14 @@ struct LLRP_SDeviceBindingAck;
 typedef struct LLRP_SDeviceBindingAck
     LLRP_tSDeviceBindingAck;
 
+struct LLRP_SDeviceCertificateConfig;
+typedef struct LLRP_SDeviceCertificateConfig
+    LLRP_tSDeviceCertificateConfig;
+
+struct LLRP_SDeviceCertificateConfigAck;
+typedef struct LLRP_SDeviceCertificateConfigAck
+    LLRP_tSDeviceCertificateConfigAck;
+
 struct LLRP_SUploadTagLog;
 typedef struct LLRP_SUploadTagLog
     LLRP_tSUploadTagLog;
@@ -3397,6 +3405,129 @@ LLRP_DeviceBindingAck_getStatus (
 extern LLRP_tResultCode
 LLRP_DeviceBindingAck_setStatus (
   LLRP_tSDeviceBindingAck *pThis,
+  LLRP_tSStatus *pValue);
+
+
+
+  
+struct LLRP_SDeviceCertificateConfig
+{
+    LLRP_tSMessage hdr;
+  
+    llrp_u8v_t CertificateData;
+
+    llrp_u8v_t UserData;
+
+  
+};
+
+extern const LLRP_tSTypeDescriptor
+LLRP_tdDeviceCertificateConfig;
+
+extern const LLRP_tSFieldDescriptor *
+LLRP_apfdDeviceCertificateConfig[];
+
+extern LLRP_tSDeviceCertificateConfig *
+LLRP_DeviceCertificateConfig_construct (void);
+
+extern void
+LLRP_DeviceCertificateConfig_destruct (
+ LLRP_tSDeviceCertificateConfig * pThis);
+
+extern void
+LLRP_DeviceCertificateConfig_decodeFields (
+ LLRP_tSDeviceCertificateConfig * pThis,
+ LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_DeviceCertificateConfig_assimilateSubParameters (
+ LLRP_tSDeviceCertificateConfig * pThis,
+ LLRP_tSErrorDetails *          pError);
+
+extern void
+LLRP_DeviceCertificateConfig_encode (
+  const LLRP_tSDeviceCertificateConfig *pThis,
+  LLRP_tSEncoderStream *        pEncoderStream);
+
+  
+
+  
+extern const LLRP_tSFieldDescriptor
+LLRP_fdDeviceCertificateConfig_CertificateData;
+
+extern llrp_u8v_t
+LLRP_DeviceCertificateConfig_getCertificateData (
+  LLRP_tSDeviceCertificateConfig *pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceCertificateConfig_setCertificateData (
+  LLRP_tSDeviceCertificateConfig *pThis,
+  llrp_u8v_t Value);
+
+extern const LLRP_tSFieldDescriptor
+LLRP_fdDeviceCertificateConfig_UserData;
+
+extern llrp_u8v_t
+LLRP_DeviceCertificateConfig_getUserData (
+  LLRP_tSDeviceCertificateConfig *pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceCertificateConfig_setUserData (
+  LLRP_tSDeviceCertificateConfig *pThis,
+  llrp_u8v_t Value);
+
+  
+
+
+  
+struct LLRP_SDeviceCertificateConfigAck
+{
+    LLRP_tSMessage hdr;
+  
+  
+    LLRP_tSStatus * pStatus;
+
+};
+
+extern const LLRP_tSTypeDescriptor
+LLRP_tdDeviceCertificateConfigAck;
+
+extern const LLRP_tSFieldDescriptor *
+LLRP_apfdDeviceCertificateConfigAck[];
+
+extern LLRP_tSDeviceCertificateConfigAck *
+LLRP_DeviceCertificateConfigAck_construct (void);
+
+extern void
+LLRP_DeviceCertificateConfigAck_destruct (
+ LLRP_tSDeviceCertificateConfigAck * pThis);
+
+extern void
+LLRP_DeviceCertificateConfigAck_decodeFields (
+ LLRP_tSDeviceCertificateConfigAck * pThis,
+ LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_DeviceCertificateConfigAck_assimilateSubParameters (
+ LLRP_tSDeviceCertificateConfigAck * pThis,
+ LLRP_tSErrorDetails *          pError);
+
+extern void
+LLRP_DeviceCertificateConfigAck_encode (
+  const LLRP_tSDeviceCertificateConfigAck *pThis,
+  LLRP_tSEncoderStream *        pEncoderStream);
+
+  
+
+  
+  
+extern LLRP_tSStatus *
+LLRP_DeviceCertificateConfigAck_getStatus (
+  LLRP_tSDeviceCertificateConfigAck *pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceCertificateConfigAck_setStatus (
+  LLRP_tSDeviceCertificateConfigAck *pThis,
   LLRP_tSStatus *pValue);
 
 

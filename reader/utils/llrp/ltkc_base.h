@@ -344,7 +344,7 @@ struct LLRP_STypeDescriptor
     const LLRP_tSNamespaceDescriptor *pNamespaceDescriptor;
 
     /* Type number or, for custom, subtype number */
-    llrp_u32_t                  TypeNum;
+    llrp_u16_t                  TypeNum;
 
     /* For messages (bIsMessage==TRUE), this is the type descriptor for
      * the corresponding response. NULL for a request or notification. */
