@@ -449,7 +449,7 @@ int start_upper(upper_info_t *info)
 	while (true) {
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
-			printf("%s: start server failed.\n", __func__);
+			printf("%s: start server failed, error:%s.\n", __func__, info->pConn->pConnectErrorStr);
 			return info->sock;
 		}
 
@@ -470,12 +470,17 @@ int start_upper(upper_info_t *info)
 			ret = -FAILED;
 		}
 
+		ret = upper_notify_connected_event(info);
+		if (ret < 0)
+			goto retry;
+
 		info->status = 1;
 		printf("Start upper module, ret=%d\n", ret);
 
 		lock_upper(&info->disconnect_lock);
 		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
 		unlock_upper(&info->disconnect_lock);
+retry:
 		info->status = 0;
 
 		lock_upper(&info->req_lock);
@@ -485,6 +490,7 @@ int start_upper(upper_info_t *info)
 		pthread_join(info->read_thread, &status);
 		pthread_join(info->request_thread, &status);
 		stop_upper(info);
+		sleep(2); /* workaround to release the link */
 	}
 
     if (ret < 0)
