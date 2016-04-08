@@ -201,7 +201,7 @@ typedef struct {
 	uint8_t reserve[19];
 	uint8_t block[0];
 } __attribute__ ((packed)) firmware_data;
-#define FIRMWARE_DATA_HDR_SIZE			32
+#define FIRMWARE_DATA_HDR_SIZE				32
 
 
 //7.6.1

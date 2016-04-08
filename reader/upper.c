@@ -211,6 +211,23 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 	return ret;
 }
 
+static void upper_hton_64(uint8_t *buf, llrp_u64_t value)
+{
+	int i = 0;
+
+	if (buf == NULL)
+		return;
+
+	buf[i++] = value >> 56u;
+	buf[i++] = value >> 48u;
+	buf[i++] = value >> 40u;
+	buf[i++] = value >> 32u;
+	buf[i++] = value >> 24u;
+	buf[i++] = value >> 16u;
+	buf[i++] = value >> 8u;
+	buf[i++] = value >> 0u;
+}
+
 static int upper_check_llrp_status(LLRP_tSStatus *pLLRPStatus, char *pWhatStr)
 {
 	if (NULL == pLLRPStatus) {
@@ -304,6 +321,31 @@ static int upper_process_DeviceBinding(upper_info_t *info, LLRP_tSDeviceBinding 
 	return 0;
 }
 
+int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid)
+{
+	LLRP_tSTagSelectAccessReport *pTSAR;
+	LLRP_tSTagReportData *pTRD;
+	llrp_u8v_t Tid;
+
+	pTSAR = LLRP_TagSelectAccessReport_construct();
+	pTRD = LLRP_TagReportData_construct();
+
+	Tid.nValue = 8;
+	Tid.pValue = (llrp_u8_t *)malloc(Tid.nValue);
+	upper_hton_64(Tid.pValue, tid);
+
+	LLRP_TagReportData_setTID(pTRD, Tid);
+	LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
+
+	lock_upper(&info->lock);
+
+	upper_send_message(info, &pTSAR->hdr);
+
+	unlock_upper(&info->lock);
+	LLRP_TagSelectAccessReport_destruct(pTSAR);
+	return 0;
+}
+
 static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDeviceCertificateConfig *pDCC)
 {
 	int ret = NO_ERROR;
@@ -322,7 +364,11 @@ static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDevi
 	pDCC_Ack->hdr.MessageID = pDCC->hdr.MessageID;
 	pDCC_Ack->hdr.Version = pDCC->hdr.Version;
 
+	lock_upper(&info->lock);
+
 	ret = upper_send_message(info, &pDCC_Ack->hdr);
+
+	unlock_upper(&info->lock);
 
 	pCer = LLRP_DeviceCertificateConfig_getCertificateData(pDCC);
 	pUser = LLRP_DeviceCertificateConfig_getUserData(pDCC);

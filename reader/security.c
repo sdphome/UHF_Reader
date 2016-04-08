@@ -903,7 +903,7 @@ int security_send_user_info(security_info_t *info, security_package_t *result)
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
-		return NULL;
+		return ret;
 	}
 
 	ret = security_wait_result(info, AUTH_TYPE, USER_INFO, result);
@@ -912,7 +912,7 @@ int security_send_user_info(security_info_t *info, security_package_t *result)
 
 	if (ret != NO_ERROR) {
 		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
-		return NULL;
+		return ret;
 	}
 
 	/* Need send the data to upper computer */
@@ -1006,7 +1006,7 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	int i = 0;
 
 	if (file == NULL) {
-		printf("%s: file is null\n", __func__);
+		printf("%s: file is null.\n", __func__);
 		return -FAILED;
 	}
 
@@ -1071,6 +1071,28 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	return ret;
 }
 
+static void security_upload_tid(security_info_t *info, security_package_t *upload)
+{
+	uint8_t err_type;
+	uint64_t tid;
+
+	err_type = *upload->payload;
+
+	switch (err_type) {
+		case NO_ERROR:
+			tid = *(uint64_t *)(upload->payload + 1);
+			upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper, tid);
+			break;
+		case TID_DECIP_FAILED:
+			break;
+		case WRONG_CHECK:
+			break;
+		default:
+			printf("%s: unknown error type %d.\n", __func__, err_type);
+			break;
+	}
+}
+
 void *security_upload_loop(void *data)
 {
 	int upload_received = false;
@@ -1079,7 +1101,7 @@ void *security_upload_loop(void *data)
 
 	while(true) {
 		lock_security(&info->upload_lock);
-		pthread_cond_wait(&info->cond, &info->lock);
+		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
         if (info->upload_list != NULL) {
             security_result_list_t *upload_list = info->upload_list;
@@ -1097,11 +1119,21 @@ void *security_upload_loop(void *data)
                 }
 				if (upload_received == true) {
 					/* TODO: we can process the upload now, TBD */
+					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
+						if (upload.hdr.cmd == REPORT_TID) {
+							security_upload_tid(info, &upload);
+						} else if (upload.hdr.cmd == REPORT_PART) {
+							printf("%s: Got REPORT_PART cmd.\n", __func__);
+						}
+					} else if (upload.hdr.type == DATA_FORWA_TYPE) {
+						printf("%s: Got DATA_FORWA_TYPE.\n", __func__);
+					}
 				}
 
+				free(upload.payload);
+				upload.payload = NULL;
                 free(upload_list);
                 upload_list = NULL;
-				free(upload.payload);
             }
         }
 		unlock_security(&info->upload_lock);
@@ -1159,9 +1191,11 @@ void *security_read_loop(void *data)
 				__func__, result.hdr.cmd);
 		}
 
-		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list */
+		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list
+			DATA_FORWARD also need */
 
-		if (result.hdr.type == UPLOAD_INFO_TYPE)
+		if (result.hdr.type == UPLOAD_INFO_TYPE ||
+			result.hdr.type == DATA_FORWA_TYPE)
 			security_signal_upload(info, &result);
 		else
 			security_signal_result(info, &result);

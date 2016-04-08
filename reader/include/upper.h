@@ -62,4 +62,6 @@ typedef struct upper_info {
 } upper_info_t;
 
 
+int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid);
+
 #endif
