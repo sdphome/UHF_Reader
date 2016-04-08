@@ -660,7 +660,7 @@ int radio_get_status(radio_info_t *radio_info)
 
 int radio_send_heartbeat(radio_info_t *info)
 {
-	return 0;
+	return radio_get_status(info);
 }
 
 int start_radio(radio_info_t *radio_info)

@@ -261,7 +261,7 @@ int upper_notify_connected_event(upper_info_t *info)
 	pTimestamp = LLRP_UTCTimestamp_construct();
 	pCAE = LLRP_ConnectionAttemptEvent_construct();
 
-
+	pThis->hdr.MessageID = info->next_msg_id ++;
 	gettimeofday(&now, NULL);
 	LLRP_UTCTimestamp_setMicroseconds(pTimestamp,
 		(((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000));
@@ -321,6 +321,28 @@ static int upper_process_DeviceBinding(upper_info_t *info, LLRP_tSDeviceBinding 
 	return 0;
 }
 
+static int upper_request_Keepalive(upper_info_t *info)
+{
+	int ret = NO_ERROR;
+	LLRP_tSKeepalive *pKA;
+	LLRP_tSKeepaliveAck *pAck;
+
+	pKA = LLRP_Keepalive_construct();
+	pKA->hdr.MessageID = info->next_msg_id ++;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pKA->hdr);
+
+	if (ret == NO_ERROR)
+		pAck = upper_wait_response(info, &pKA->hdr);
+
+	/* TODO: check error message */
+	unlock_upper(&info->lock);
+
+	LLRP_Keepalive_destruct(pKA);
+	LLRP_Element_destruct(&pAck->hdr.elementHdr);
+}
+
 int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
                 llrp_u8_t anten_no, llrp_u64_t timestamp)
 {
@@ -330,6 +352,8 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 
 	pTSAR = LLRP_TagSelectAccessReport_construct();
 	pTRD = LLRP_TagReportData_construct();
+
+	pTSAR->hdr.MessageID = info->next_msg_id ++;
 
 	Tid.nValue = 8;
 	Tid.pValue = (llrp_u8_t *)malloc(Tid.nValue);
