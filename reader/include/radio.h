@@ -29,6 +29,8 @@
 #define true                            1
 
 #define RADIO_TIMEOUT					2
+#define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
+
 
 /* ---------- Response Result ---------- */
 #define NO_ERROR                        0
@@ -229,15 +231,24 @@ typedef struct radio_result_list {
 typedef struct {
     int fd;
     int status;
+
     pthread_mutex_t c_lock;
     pthread_cond_t c_cond;
     pthread_t read_thread;
     radio_result_list_t *result_list;
     uint8_t data[RADIO_MTU];
 
+	uint32_t heartbeats_periodic;
+
 	void *uhf;
 } radio_info_t;
 
+
+int start_radio(radio_info_t *radio_info);
+void stop_radio(radio_info_t *radio_info);
+int alloc_radio(radio_info_t **radio_info);
+void release_radio(radio_info_t **radio_info);
 void radio_print_result(radio_result_t result);
+int radio_send_heartbeat(radio_info_t *info);
 
 #endif /* __RADIO_H */

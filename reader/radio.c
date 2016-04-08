@@ -658,6 +658,11 @@ int radio_get_status(radio_info_t *radio_info)
 	return status;
 }
 
+int radio_send_heartbeat(radio_info_t *info)
+{
+	return 0;
+}
+
 int start_radio(radio_info_t *radio_info)
 {
     int ret;
@@ -700,32 +705,36 @@ void stop_radio(radio_info_t *radio_info)
 
 int alloc_radio(radio_info_t **radio_info)
 {
-    *radio_info = (radio_info_t *)malloc(sizeof(radio_info_t));
-    if (radio_info == NULL) {
-        printf("Alloc memory for radio info failed., errno=%d\n", errno);
-        return -FAILED;
-    }
+	*radio_info = (radio_info_t *)malloc(sizeof(radio_info_t));
+	if (radio_info == NULL) {
+		printf("Alloc memory for radio info failed., errno=%d\n", errno);
+		return -FAILED;
+	}
 
-    (*radio_info)->fd = -1;
-    (*radio_info)->result_list = NULL;
+	(*radio_info)->fd = -1;
+	(*radio_info)->result_list = NULL;
+	(*radio_info)->heartbeats_periodic = RADIO_DEFAULT_HEARTBEATS_PERIODIC;
 
-    pthread_mutex_init(&(*radio_info)->c_lock, NULL);
-    pthread_cond_init(&(*radio_info)->c_cond, NULL);
+	pthread_mutex_init(&(*radio_info)->c_lock, NULL);
+	pthread_cond_init(&(*radio_info)->c_cond, NULL);
 
-    return NO_ERROR;
+	return NO_ERROR;
 }
 
-void release_radio(radio_info_t *radio_info)
+void release_radio(radio_info_t **radio_info)
 {
-	if (radio_info == NULL)
+	radio_info_t *info;
+	if (radio_info == NULL || *radio_info == NULL)
 		return;
 
-    pthread_mutex_destroy(&radio_info->c_lock);
-    pthread_cond_destroy(&radio_info->c_cond);
+	info = *radio_info;
+
+    pthread_mutex_destroy(&info->c_lock);
+    pthread_cond_destroy(&info->c_cond);
 
 	/* free all pending api result here */
-	if (radio_info->result_list != NULL) {
-		radio_result_list_t *result_list = radio_info->result_list;
+	if (info->result_list != NULL) {
+		radio_result_list_t *result_list = info->result_list;
 		radio_result_list_t *result_list_next;
 		while (result_list != NULL) {
 			result_list_next = result_list->next;
@@ -734,8 +743,8 @@ void release_radio(radio_info_t *radio_info)
 		}
 	}
 
-    free(radio_info);
-    radio_info = NULL;
+    free(info);
+    info = NULL;
 }
 
 void radio_print_result(radio_result_t result)
@@ -819,7 +828,7 @@ int test_radio()
 
 test_fail:
     stop_radio(pr);
-    release_radio(pr);
+    release_radio(&pr);
 	return ret;
 }
 

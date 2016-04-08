@@ -29,6 +29,8 @@
 
 #define UPPER_TIMEOUT		3
 
+#define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
+
 int upper_main(int argc, char** argv);
 
 typedef struct upper_info {
@@ -40,6 +42,7 @@ typedef struct upper_info {
 
 	uint64_t next_msg_id;
 	uint64_t serial;
+	uint32_t heartbeats_periodic;;
 
 	pthread_t read_thread;
 	pthread_mutex_t lock;
@@ -61,7 +64,12 @@ typedef struct upper_info {
 	void *uhf;
 } upper_info_t;
 
+void stop_upper(upper_info_t *info);
+int start_upper(upper_info_t *info);
+int alloc_upper(upper_info_t **info);
+void release_upper(upper_info_t **info);
 
-int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid);
-
+int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
+				llrp_u8_t anten_no, llrp_u64_t timestamp);
+int upper_send_heartbeat(upper_info_t *info);
 #endif

@@ -29,6 +29,9 @@
 
 typedef struct uhf_info {
 	int status;
+
+	pthread_t heartbeat_thread;
+
 	upper_info_t *upper;
 	security_info_t *security;
 	radio_info_t *radio;

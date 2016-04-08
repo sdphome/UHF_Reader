@@ -321,7 +321,8 @@ static int upper_process_DeviceBinding(upper_info_t *info, LLRP_tSDeviceBinding 
 	return 0;
 }
 
-int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid)
+int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
+                llrp_u8_t anten_no, llrp_u64_t timestamp)
 {
 	LLRP_tSTagSelectAccessReport *pTSAR;
 	LLRP_tSTagReportData *pTRD;
@@ -403,6 +404,11 @@ static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 	}
 
 	printf("%s: type = %d -\n", __func__, type);
+}
+
+int upper_send_heartbeat(upper_info_t *info)
+{
+	return 0;
 }
 
 static void *upper_request_loop(void *data)
@@ -572,6 +578,7 @@ int alloc_upper(upper_info_t **info)
 
 	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
+	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
 
 	memcpy((*info)->active_cer_path, ACTIVE_CER_PATH, sizeof(ACTIVE_CER_PATH));
 	memcpy((*info)->user_info_path, USER_INFO_PATH, sizeof(USER_INFO_PATH));
@@ -587,23 +594,23 @@ int alloc_upper(upper_info_t **info)
 	return ret;
 }
 
-void release_upper(upper_info_t *info)
+void release_upper(upper_info_t **info)
 {
-	if (info == NULL) {
+	if (info == NULL || *info == NULL) {
 		printf("%s: failed, info ptr is null.\n", __func__);
 		return;
 	}
 
-    pthread_mutex_destroy(&info->lock);
-    pthread_cond_destroy(&info->cond);
-    pthread_mutex_destroy(&info->req_lock);
-    pthread_cond_destroy(&info->req_cond);
+    pthread_mutex_destroy(&(*info)->lock);
+    pthread_cond_destroy(&(*info)->cond);
+    pthread_mutex_destroy(&(*info)->req_lock);
+    pthread_cond_destroy(&(*info)->req_cond);
 
-	LLRP_TypeRegistry_destruct(info->pTypeRegistry);
-	LLRP_Conn_destruct(info->pConn);
+	LLRP_TypeRegistry_destruct((*info)->pTypeRegistry);
+	LLRP_Conn_destruct((*info)->pConn);
 
-	free(info);
-	info = NULL;
+	free(*info);
+	*info = NULL;
 }
 
 void test_upper()
@@ -618,7 +625,7 @@ void test_upper()
 
 	ret = start_upper(info);
 	if (ret != NO_ERROR) {
-		release_upper(info);
+		release_upper(&info);
 		return;
 	}
 
@@ -638,7 +645,7 @@ void test_upper()
 failed:
 	printf("%s: end\n", __func__);
 	stop_upper(info);
-	release_upper(info);
+	release_upper(&info);
 }
 
 int upper_main(int argc, char** argv)

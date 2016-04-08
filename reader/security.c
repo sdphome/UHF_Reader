@@ -1074,15 +1074,24 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 static void security_upload_tid(security_info_t *info, security_package_t *upload)
 {
 	uint8_t err_type;
-	uint64_t tid;
 
 	err_type = *upload->payload;
 
 	switch (err_type) {
-		case NO_ERROR:
-			tid = *(uint64_t *)(upload->payload + 1);
-			upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper, tid);
+		case NO_ERROR: {
+			if (upload->hdr.version == SECURITY_VERSION_1) {
+				tid_upload_v1_param *param;
+				param = (tid_upload_v1_param *)upload->payload;
+				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
+							param->tid, param->ante_no, param->time);
+			} else {
+				tid_upload_v2_param *param;
+				param = (tid_upload_v2_param *)upload->payload;
+				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
+							param->tid, param->ante_no, param->time);
+			}
 			break;
+		}
 		case TID_DECIP_FAILED:
 			break;
 		case WRONG_CHECK:
@@ -1282,22 +1291,25 @@ int alloc_security(security_info_t **security_info)
 	return NO_ERROR;
 }
 
-void release_security(security_info_t *security_info)
+void release_security(security_info_t **security_info)
 {
+	security_info_t *info;
 	//pthread_join(upload_thread, NULL);
 	//pthread_join(read_thread, NULL);
 
-	if (security_info == NULL)
+	if (security_info == NULL || *security_info == NULL)
 		return;
 
-	pthread_mutex_destroy(&security_info->lock);
-	pthread_cond_destroy(&security_info->cond);
-	pthread_mutex_destroy(&security_info->upload_lock);
-	pthread_cond_destroy(&security_info->upload_cond);
+	info = *security_info;
+
+	pthread_mutex_destroy(&info->lock);
+	pthread_cond_destroy(&info->cond);
+	pthread_mutex_destroy(&info->upload_lock);
+	pthread_cond_destroy(&info->upload_cond);
 
 	/* free all pending result here */
-	if (security_info->result_list != NULL) {
-		security_result_list_t *result_list = security_info->result_list;
+	if (info->result_list != NULL) {
+		security_result_list_t *result_list = info->result_list;
 		security_result_list_t *result_list_next;
 		while (result_list != NULL) {
 			result_list_next = result_list->next;
@@ -1307,8 +1319,8 @@ void release_security(security_info_t *security_info)
 		}
 	}
 
-	free(security_info);
-	security_info = NULL;
+	free(info);
+	info = NULL;
 }
 
 void test_security()
@@ -1320,10 +1332,10 @@ void test_security()
 	serial_num_param ser_num;
 	repeat_read_param re_re;
 	filtr_interv_param fi_in;
-	part_info_param part_ino;
+	//part_info_param part_ino;
 	work_mode_param *work_mode = NULL;
 	work_mode_param *setup_work_mode = NULL;
-	perm_table_param perm_table;
+	//perm_table_param perm_table;
 	uint64_t sec_rand;
 
 	ret = alloc_security(&pr);
@@ -1422,7 +1434,7 @@ void test_security()
 
 //test_fail:
 	stop_security(pr);
-	release_security(pr);
+	release_security(&pr);
 }
 
 int security_main(int argc, char** argv)

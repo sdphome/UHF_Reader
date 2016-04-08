@@ -203,7 +203,6 @@ typedef struct {
 } __attribute__ ((packed)) firmware_data;
 #define FIRMWARE_DATA_HDR_SIZE				32
 
-
 //7.6.1
 typedef struct {
 	uint8_t host_rand[8];
@@ -272,9 +271,27 @@ typedef struct {
 	uint8_t err;
 	uint64_t tid;
 	uint8_t ante_no;
-	uint64_t time;  /* FIXME: make sure which version */
-} __attribute__ ((packed)) tid_upload_param;
-#define TID_UPLOAD_PARAM_SIZE			17
+	uint32_t time;
+} __attribute__ ((packed)) tid_upload_v1_param;
+#define TID_UPLOAD_V1_PARAM_SIZE			14
+
+typedef struct {
+	uint8_t err;
+	uint64_t tid;
+	uint8_t ante_no;
+	uint64_t time;
+} __attribute__ ((packed)) tid_upload_v2_param;
+#define TID_UPLOAD_V2_PARAM_SIZE			18
+
+typedef struct {
+	uint8_t err;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint32_t time;
+	uint8_t tid_en[16];
+} __attribute__ ((packed)) tid_upload_v1_err1_param;
+#define TID_UPLOAD_V1_ERR1_PARAM_SIZE		22
 
 typedef struct {
 	uint8_t err;
@@ -283,15 +300,33 @@ typedef struct {
 	uint8_t ante_no:2;
 	uint64_t time;
 	uint8_t tid_en[16];
-} __attribute__ ((packed)) tid_upload_err1_param;
-#define TID_UPLOAD_ERR1_PARAM_SIZE		25
+} __attribute__ ((packed)) tid_upload_v2_err1_param;
+#define TID_UPLOAD_V2_ERR1_PARAM_SIZE		26
+
+typedef struct {
+	uint8_t err;
+	uint8_t ante_no;
+	uint32_t time;
+} __attribute__ ((packed)) tid_upload_v1_err3_param;
+#define TID_UPLOAD_V1_ERR3_PARAM_SIZE		6
 
 typedef struct {
 	uint8_t err;
 	uint8_t ante_no;
 	uint64_t time;
-} __attribute__ ((packed)) tid_upload_err3_param;
-#define TID_UPLOAD_ERR3_PARAM_SIZE		8
+} __attribute__ ((packed)) tid_upload_v2_err3_param;
+#define TID_UPLOAD_V2_ERR3_PARAM_SIZE		10
+
+typedef struct {
+	uint8_t err;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint32_t time;
+	uint8_t data[0];
+} __attribute__ ((packed)) part_data_upload_v1_param;
+#define PART_DATA_UPLOAD_V1_PARAM_SIZE		14
 
 typedef struct {
 	uint8_t err;
@@ -301,8 +336,18 @@ typedef struct {
 	uint8_t ante_no:2;
 	uint64_t time;
 	uint8_t data[0];
-} __attribute__ ((packed)) part_data_upload_param;
-#define PART_DATA_UPLOAD_PARAM_SIZE		18
+} __attribute__ ((packed)) part_data_upload_v2_param;
+#define PART_DATA_UPLOAD_V2_PARAM_SIZE		18
+
+typedef struct {
+	uint8_t err;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint32_t time;
+	uint8_t tid_en[16];
+} __attribute__ ((packed)) part_data_upload_v1_err1_param;
+#define PART_DATA_UPLOAD_V1_ERR1_PARAM_SIZE     22
 
 typedef struct {
 	uint8_t err;
@@ -311,8 +356,18 @@ typedef struct {
 	uint8_t ante_no:2;
 	uint64_t time;
 	uint8_t tid_en[16];
-} __attribute__ ((packed)) part_data_upload_err1_param;
-#define PART_DATA_UPLOAD_ERR1_PARAM_SIZE     26
+} __attribute__ ((packed)) part_data_upload_v2_err1_param;
+#define PART_DATA_UPLOAD_V2_ERR1_PARAM_SIZE     26
+
+typedef struct {
+	uint8_t err;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint32_t time;
+} __attribute__ ((packed)) part_data_upload_v1_err2_param;
+#define PART_DATA_UPLOAD_V1_ERR2_PARAM_SIZE     14
 
 typedef struct {
 	uint8_t err;
@@ -321,15 +376,33 @@ typedef struct {
 	uint8_t flag:2;
 	uint8_t ante_no:2;
 	uint64_t time;
-} __attribute__ ((packed)) part_data_upload_err2_param;
-#define PART_DATA_UPLOAD_ERR2_PARAM_SIZE     18
+} __attribute__ ((packed)) part_data_upload_v2_err2_param;
+#define PART_DATA_UPLOAD_V2_ERR2_PARAM_SIZE     18
+
+typedef struct {
+	uint8_t err;
+	uint8_t ante_no;
+	uint32_t time;
+} __attribute__ ((packed)) part_data_upload_v1_err3_param;
+#define PART_DATA_UPLOAD_V1_ERR3_PARAM_SIZE     6
 
 typedef struct {
 	uint8_t err;
 	uint8_t ante_no;
 	uint64_t time;
-} __attribute__ ((packed)) part_data_upload_err3_param;
-#define PART_DATA_UPLOAD_ERR3_PARAM_SIZE     10
+} __attribute__ ((packed)) part_data_upload_v2_err3_param;
+#define PART_DATA_UPLOAD_V2_ERR3_PARAM_SIZE     10
+
+typedef struct {
+	uint8_t err;
+	uint64_t tid;
+	uint8_t part_no:4;
+	uint8_t flag:2;
+	uint8_t ante_no:2;
+	uint32_t time;
+	uint8_t data[0];
+} __attribute__ ((packed)) part_data_upload_v1_err4_param;
+#define PART_DATA_UPLOAD_V1_ERR4_PARAM_SIZE     14
 
 typedef struct {
 	uint8_t err;
@@ -339,8 +412,8 @@ typedef struct {
 	uint8_t ante_no:2;
 	uint64_t time;
 	uint8_t data[0];
-} __attribute__ ((packed)) part_data_upload_err4_param;
-#define PART_DATA_UPLOAD_ERR4_PARAM_SIZE     18
+} __attribute__ ((packed)) part_data_upload_v2_err4_param;
+#define PART_DATA_UPLOAD_V2_ERR4_PARAM_SIZE     18
 
 /* ---------- message related ---------- */
 
@@ -394,7 +467,10 @@ typedef struct security_info {
 } security_info_t;
 
 
-
+int start_security(security_info_t *info);
+void stop_security(security_info_t *info);
+int alloc_security(security_info_t **security_info);
+void release_security(security_info_t **security_info);
 int security_set_rtc(security_info_t *info);
 int security_set_repeat_read(security_info_t *info, uint8_t repeat);
 int security_set_repeat_read(security_info_t *info, uint8_t repeat);

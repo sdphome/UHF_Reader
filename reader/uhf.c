@@ -27,7 +27,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-#define TEST
+//#define TEST
 
 static int uhf_init_security(uhf_info_t *p_uhf)
 {
@@ -53,6 +53,50 @@ static int uhf_init_radio(uhf_info_t *p_uhf)
 
 	radio->uhf = (void *)p_uhf;
 	return 0;
+}
+
+void *uhf_heartbeat_loop(void *data)
+{
+	uhf_info_t *p_uhf = (uhf_info_t *)data;
+	radio_info_t *radio = p_uhf->radio;
+	upper_info_t *upper = p_uhf->upper;
+	uint32_t count = 1;
+	uint32_t radio_per_seconds, upper_per_seconds, base;
+
+	while (true) {
+		radio_per_seconds = radio->heartbeats_periodic / 1000;
+		upper_per_seconds = upper->heartbeats_periodic / 1000;
+		base = radio_per_seconds * upper_per_seconds;
+
+		if (count % radio_per_seconds == 0)
+			radio_send_heartbeat(radio);
+
+		if (count % upper_per_seconds == 0)
+			upper_send_heartbeat(upper);
+
+		if (count++ == base)
+			count = 1;
+
+		sleep(1);
+	}
+
+	return NULL;
+}
+
+static int uhf_create_heartbeat_thread(uhf_info_t *p_uhf)
+{
+	int ret = NO_ERROR;
+	pthread_attr_t attr;
+
+	pthread_attr_init (&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+	ret = pthread_create(&p_uhf->heartbeat_thread, &attr, uhf_heartbeat_loop, (void *)p_uhf);
+	if (ret < 0) {
+		printf("%s: failed, ret = %d.\n", __func__, ret);
+	}
+
+	return ret;
 }
 
 int main(int argc, char** argv)
@@ -95,9 +139,9 @@ start_failed:
 	stop_security(p_uhf->security);
 	stop_upper(p_uhf->upper);
 alloc_failed:
-	release_upper(p_uhf->upper);
-	release_security(p_uhf->security);
-	release_radio(p_uhf->radio);
+	release_upper(&p_uhf->upper);
+	release_security(&p_uhf->security);
+	release_radio(&p_uhf->radio);
 
 	/* TODO: reboot */
 	return ret;
