@@ -62,7 +62,7 @@ struct uhf_security_data {
 	uint16_t len;
 	uint8_t data[UHF_SPI_MTU];
 } __packed;
-#define UHF_CACHE_NUM	50
+#define UHF_CACHE_NUM	1000
 #define UHF_CACHE_SIZE	(sizeof(struct uhf_security_data) * UHF_CACHE_NUM)
 
 struct uhf_security_cache {

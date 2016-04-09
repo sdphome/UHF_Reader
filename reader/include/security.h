@@ -179,7 +179,7 @@ typedef struct {
 	uint8_t num;
 	uint8_t data[0];
 } __attribute__ ((packed)) work_mode_param;
-#define WORK_MODE_PARAM_SIZE			2
+#define WORK_MODE_PARAM_SIZE			1
 
 typedef struct {
 	uint8_t part[12];
@@ -490,6 +490,6 @@ int security_send_user_info(security_info_t *info, security_package_t *result);
 int security_send_active_auth(security_info_t *info, active_auth_param *param);
 int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t len);
 int security_upgrade_firmware(security_info_t *info, char *file);
-
+int security_main(security_info_t *info);
 
 #endif

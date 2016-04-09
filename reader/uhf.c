@@ -27,7 +27,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-//#define TEST
+#define TEST
 
 static int uhf_init_security(uhf_info_t *p_uhf)
 {
@@ -37,11 +37,11 @@ static int uhf_init_security(uhf_info_t *p_uhf)
 
 	security->uhf = (void *)p_uhf;
 
-	ret = security_set_rtc(security);
+	//ret = security_set_rtc(security);
 
-	sec_rand = security_request_rand_num(security);
+	//sec_rand = security_request_rand_num(security);
 
-	ret = security_send_auth_data(security, sec_rand);
+	//ret = security_send_auth_data(security, sec_rand);
 
 	return ret;
 }
@@ -101,7 +101,6 @@ static int uhf_create_heartbeat_thread(uhf_info_t *p_uhf)
 
 int main(int argc, char** argv)
 {
-#ifndef TEST
 	int ret = NO_ERROR;
 	uhf_info_t *p_uhf;
 
@@ -117,22 +116,32 @@ int main(int argc, char** argv)
 	if (ret != NO_ERROR)
 		goto alloc_failed;
 
+	ret = start_security(p_uhf->security);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	uhf_init_security(p_uhf);
+	p_uhf->upper->uhf = (void *)p_uhf;
+
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
 
-	ret = start_security(p_uhf->security);
-	if (ret != NO_ERROR)
-		goto start_failed;
+	security_main(p_uhf->security);
+	radio_main(p_uhf->radio);
 
-	uhf_init_security(p_uhf);
+	printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 
-	p_uhf->upper->uhf = (void *)p_uhf;
 	ret = start_upper(p_uhf->upper);
 	if (ret != NO_ERROR)
 		goto start_failed;
+
+	while (1)
+		sleep(5);
+
+	return 0;
 
 start_failed:
 	stop_radio(p_uhf->radio);
@@ -145,8 +154,4 @@ alloc_failed:
 
 	/* TODO: reboot */
 	return ret;
-#else
-	upper_main(0, NULL);
-	return 0;
-#endif
 }

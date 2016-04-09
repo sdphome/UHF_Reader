@@ -243,7 +243,7 @@ typedef struct {
 	void *uhf;
 } radio_info_t;
 
-
+int radio_main(radio_info_t *info);
 int start_radio(radio_info_t *radio_info);
 void stop_radio(radio_info_t *radio_info);
 int alloc_radio(radio_info_t **radio_info);

@@ -129,8 +129,8 @@ static int us_init(struct uhf_security *uhf)
 static inline void us_enable_irq(struct uhf_security *uhf)
 {
     if (!uhf->irq_enabled) {
-        enable_irq(uhf->irq);
         uhf->irq_enabled = true;
+        enable_irq(uhf->irq);
     } else {
         printk(KERN_ALERT "%s: irq has been enabled\n", __func__);
     }
@@ -139,8 +139,8 @@ static inline void us_enable_irq(struct uhf_security *uhf)
 static inline void us_disable_irq(struct uhf_security *uhf)
 {
     if (uhf->irq_enabled) {
-        disable_irq_nosync(uhf->irq);
         uhf->irq_enabled = false;
+        disable_irq_nosync(uhf->irq);
     } else {
         printk(KERN_ALERT "%s: irq has been disabled\n", __func__);
     }
@@ -594,6 +594,8 @@ static int us_probe(struct spi_device *spi)
         goto sys_fail;
     }
 
+    uhf->irq_enabled = true;
+
     /* Initializes uhf security INT irq. */
     ret = request_irq(uhf->irq, us_intr_handler,
                       IRQF_TRIGGER_FALLING, "uhf_irq", uhf);
@@ -601,8 +603,6 @@ static int us_probe(struct spi_device *spi)
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
         goto irq_fail;
     }
-
-    uhf->irq_enabled = true;
 
     INIT_WORK(&uhf->recv_work, us_recv_func);
     uhf->recv_queue = create_singlethread_workqueue("us_wq");

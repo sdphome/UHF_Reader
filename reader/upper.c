@@ -170,6 +170,10 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 	int ret = NO_ERROR;
 	LLRP_tSConnection *pConn = info->pConn;
 
+	if (pConn == NULL) {
+		printf("%s: pConn is null.\n", __func__);
+		return -1;
+	}
     /*
      * Print the XML text for the outbound message if
      * verbosity is 1 or higher.
@@ -280,6 +284,7 @@ int upper_notify_connected_event(upper_info_t *info)
 
 	LLRP_DeviceEventNotification_destruct(pThis);
 
+	info->status = 1;
 	return ret;
 }
 
@@ -334,7 +339,7 @@ static int upper_request_Keepalive(upper_info_t *info)
 	ret = upper_send_message(info, &pKA->hdr);
 
 	if (ret == NO_ERROR)
-		pAck = upper_wait_response(info, &pKA->hdr);
+		pAck = (LLRP_tSKeepaliveAck *)upper_wait_response(info, &pKA->hdr);
 
 	/* TODO: check error message */
 	unlock_upper(&info->lock);
@@ -350,6 +355,12 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 	LLRP_tSTagReportData *pTRD;
 	llrp_u8v_t Tid;
 
+	printf("%s: ++++++++\n");
+
+	if (info->status != 1) {
+		printf("%s: upper hasn't ready.\n");
+		return 0;
+	}
 	pTSAR = LLRP_TagSelectAccessReport_construct();
 	pTRD = LLRP_TagReportData_construct();
 
@@ -368,6 +379,7 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 
 	unlock_upper(&info->lock);
 	LLRP_TagSelectAccessReport_destruct(pTSAR);
+	printf("%s: -----------\n");
 	return 0;
 }
 
@@ -587,6 +599,7 @@ int alloc_upper(upper_info_t **info)
 
     memset(*info, 0, sizeof(upper_info_t));
 	(*info)->sock = -1;
+	(*info)->status = 0;
 
     pthread_mutex_init(&(*info)->lock, NULL);
     pthread_cond_init(&(*info)->cond, NULL);

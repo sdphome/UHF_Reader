@@ -230,7 +230,7 @@ void security_signal_result(security_info_t *info, security_package_t *result)
 	if (info->result_list == NULL) info->result_list = curr_result;
 	else {
 		security_result_list_t *result_list = info->result_list;
-		while (result_list != NULL) result_list = result_list->next;
+		while (result_list->next != NULL) result_list = result_list->next;
 		result_list->next = curr_result;
 	}
 
@@ -255,7 +255,7 @@ void security_signal_upload(security_info_t *info, security_package_t *upload)
 	if (info->upload_list == NULL) info->upload_list = curr_upload;
 	else {
 		security_result_list_t *upload_list = info->upload_list;
-		while (upload_list != NULL) upload_list = upload_list->next;
+		while (upload_list->next != NULL) upload_list = upload_list->next;
 		upload_list->next = curr_upload;
 	}
 
@@ -1077,19 +1077,26 @@ static void security_upload_tid(security_info_t *info, security_package_t *uploa
 
 	err_type = *upload->payload;
 
+	printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 		case NO_ERROR: {
+/*
 			if (upload->hdr.version == SECURITY_VERSION_1) {
 				tid_upload_v1_param *param;
 				param = (tid_upload_v1_param *)upload->payload;
 				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
 							param->tid, param->ante_no, param->time);
 			} else {
+*/
 				tid_upload_v2_param *param;
 				param = (tid_upload_v2_param *)upload->payload;
-				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
-							param->tid, param->ante_no, param->time);
+				if (info->uhf != NULL && ((uhf_info_t *)(info->uhf))->upper != NULL)
+					upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
+								param->tid, param->ante_no, param->time);
+/*
 			}
+*/
+
 			break;
 		}
 		case TID_DECIP_FAILED:
@@ -1112,6 +1119,7 @@ void *security_upload_loop(void *data)
 		lock_security(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
+	printf("%s: +++++++\n", __func__);
         if (info->upload_list != NULL) {
             security_result_list_t *upload_list = info->upload_list;
             security_result_list_t *upload_list_prev = info->upload_list;
@@ -1126,7 +1134,9 @@ void *security_upload_loop(void *data)
                 if (upload_list == info->upload_list) {  /* list head, move list head to next */
 					info->upload_list = upload_list->next;
                 }
+	printf("%s: ----------------\n", __func__);
 				if (upload_received == true) {
+					printf("upload.hdr.type = %x.\n", upload.hdr.type);
 					/* TODO: we can process the upload now, TBD */
 					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
 						if (upload.hdr.cmd == REPORT_TID) {
@@ -1143,6 +1153,7 @@ void *security_upload_loop(void *data)
 				upload.payload = NULL;
                 free(upload_list);
                 upload_list = NULL;
+		printf("%s: #######################\n", __func__);
             }
         }
 		unlock_security(&info->upload_lock);
@@ -1226,6 +1237,12 @@ int start_security(security_info_t *info)
 
 	security_get_status(info->fd);
 
+	security_reset(info->fd);
+	security_get_status(info->fd);
+	security_reset_radio(info->fd);
+	security_get_status(info->fd);
+	sleep(6);
+
 	pthread_attr_init (&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
@@ -1240,12 +1257,13 @@ int start_security(security_info_t *info)
 		printf("create security thread failed.\n");
 		goto create_thread_failed;
 	}
-
+/*
 	security_reset(info->fd);
 	security_get_status(info->fd);
 	security_reset_radio(info->fd);
 	security_get_status(info->fd);
 	sleep(6);
+*/
 	/* FIXME : sequential */
 	/* wait for ready */
 #ifndef TEST
@@ -1323,11 +1341,11 @@ void release_security(security_info_t **security_info)
 	info = NULL;
 }
 
-void test_security()
+void test_security(security_info_t *pr)
 {
 	int ret = NO_ERROR;
 	int i = 0;
-	security_info_t *pr = NULL;
+	//security_info_t *pr = NULL;
 	firmware_version_param param;
 	serial_num_param ser_num;
 	repeat_read_param re_re;
@@ -1338,12 +1356,12 @@ void test_security()
 	//perm_table_param perm_table;
 	uint64_t sec_rand;
 
-	ret = alloc_security(&pr);
-	if (ret != NO_ERROR)
+	//ret = alloc_security(&pr);
+	//if (ret != NO_ERROR)
 		return;
 
-	ret = start_security(pr);
-
+	//ret = start_security(pr);
+#if 0
 	printf("****************set_rtc*********************************\n");
 	security_set_rtc(pr);
 	printf("*****************get_rtc********************************\n");
@@ -1363,7 +1381,7 @@ void test_security()
 	ret = security_get_repeat_read_flag(pr, &re_re);
 	if (ret == NO_ERROR)
 		printf("get_repeat_read_flag: type=%x, flag=%x.\n", re_re.type, re_re.flag);
-
+#endif
 	printf("***********************set_work_mode**************************\n");
 	part_info_param part1;
 	part_info_param part2;
@@ -1381,13 +1399,18 @@ void test_security()
 	part2.high_speed = 1;
 	part2.read_index = 0;
 	part2.read_len = 234;
+#if 0
 	setup_work_mode = (work_mode_param *)malloc(2 + 2*7);
 	setup_work_mode->num = 2;
 	memcpy(setup_work_mode->data, (void *)&part1, 7);
 	memcpy(setup_work_mode->data + 7, (void *)&part2, 7);
+#else
+	setup_work_mode = (work_mode_param *)malloc(1);
+	setup_work_mode->num = 0;
+#endif
 	ret = security_set_work_mode(pr, setup_work_mode);
 	free(setup_work_mode);
-
+#if 0
 	printf("*********************get_work_mode****************************\n");
 	work_mode = security_get_work_mode(pr);
 	if (work_mode != NULL) {
@@ -1431,14 +1454,14 @@ void test_security()
 	}
 
 	printf("********************END*****************************\n");
-
+#endif
 //test_fail:
-	stop_security(pr);
-	release_security(&pr);
+	//stop_security(pr);
+	//release_security(&pr);
 }
 
-int security_main(int argc, char** argv)
+int security_main(security_info_t *info)
 {
-	test_security();
+	test_security(info);
 	return 0;
 }

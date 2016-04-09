@@ -226,7 +226,7 @@ void radio_signal_result(radio_info_t *radio_info, radio_result_t *result)
     if (radio_info->result_list == NULL) radio_info->result_list = curr_result;
     else {
         radio_result_list_t *result_list = radio_info->result_list;
-        while (result_list != NULL) result_list = result_list->next;
+        while (result_list->next != NULL) result_list = result_list->next;
         result_list->next = curr_result;
     }
 
@@ -341,7 +341,7 @@ int radio_read(radio_info_t *radio_info, radio_result_t *rsp)
 			printf("%s: oops, nrd=%d, payload len=%d.\n", __func__, nrd, rsp->hdr.len);
 		}
 	} else {
-		printf("%s: read data is too few, nrd=%d\n", __func__, nrd);
+		printf("%s: read data is too few, nrd=%d, data[0]:%x.\n", __func__, nrd, *data);
 	}
 
 	printf("%s: -, nrd=%d\n", __func__, nrd);
@@ -421,8 +421,10 @@ void *radio_read_loop(void *data)
             ret = radio_read(radio_info, &rsp);
             if (ret != NO_ERROR) {
                 printf("read failed\n");
+		if (rsp.payload != NULL) {
                 free(rsp.payload);
                 rsp.payload = NULL;
+		}
             } else {
                 radio_signal_result(radio_info, &rsp);
             }
@@ -559,6 +561,37 @@ int radio_set_antenna_attr(radio_info_t *radio_info, uint8_t attr)
     //radio_print_result(result);
     free(result.payload);
     result.payload = NULL;
+
+    unlock_radio(&radio_info->c_lock);
+
+	printf("%s -\n", __func__);
+	return ret;
+}
+
+int radio_set_conti_check(radio_info_t *radio_info)
+{
+	int ret = NO_ERROR;
+    radio_result_t result;
+	uint8_t dummy = 0;
+
+	printf("%s +\n", __func__);
+
+	lock_radio(&radio_info->c_lock);
+
+	ret = radio_write(radio_info, START_CONTI_CHECK, 1, (uint8_t *)&dummy);
+    if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
+        printf("%s write failed!\n", __func__);
+        return -FAILED;
+    }
+
+    radio_wait_result(radio_info, START_CONTI_CHECK, &result);
+
+    //radio_print_result(result);
+	if (result.payload != NULL) {
+    	free(result.payload);
+    	result.payload = NULL;
+	}
 
     unlock_radio(&radio_info->c_lock);
 
@@ -795,29 +828,30 @@ int radio_write_test(radio_info_t *radio_info)
     return ret;
 }
 
-int test_radio()
+int test_radio(radio_info_t *pr)
 {
     int ret;
-    radio_info_t *pr = NULL;
+//    radio_info_t *pr = NULL;
 
-    ret = alloc_radio(&pr);
-    if (ret != NO_ERROR)
-        return -FAILED;
+  //  ret = alloc_radio(&pr);
+    //if (ret != NO_ERROR)
+    //    return -FAILED;
 
-    ret = start_radio(pr);
-	if (ret < 0) {
-		goto test_fail;
-	}
+    //ret = start_radio(pr);
+	//if (ret < 0) {
+	//	goto test_fail;
+	//}
 
-	radio_write_test(pr);
+	//radio_write_test(pr);
 
-	radio_get_status(pr);
+	//radio_get_status(pr);
 	/* set version */
     //radio_set_version(pr);
 
 	/* disable fhss */
-	radio_set_fhss(pr, false);
+	//radio_set_fhss(pr, false);
 
+	radio_set_conti_check(pr);
 	/* enable no.4 antenna */
 	//radio_set_antenna_attr(pr, NO_TO_ATTR(4));
 
@@ -825,15 +859,15 @@ int test_radio()
 
 	/* disable carrier wave */
 	//radio_set_carr(pr, false);
-
+	return ret;
 test_fail:
     stop_radio(pr);
     release_radio(&pr);
 	return ret;
 }
 
-int radio_main(int argc, char** argv)
+int radio_main(radio_info_t *info)
 {
-    test_radio();
+    test_radio(info);
 	return 0;
 }
