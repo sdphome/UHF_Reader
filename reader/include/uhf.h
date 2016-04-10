@@ -1,3 +1,4 @@
+
 /***************************************************************************
 *
 *   Author: Shao Depeng <dp.shao@gmail.com>
@@ -32,7 +33,6 @@
 
 #define NO_ERROR		0
 #define FAILED			1
-
 
 typedef struct uhf_info {
 	int status;

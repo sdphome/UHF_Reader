@@ -1,3 +1,4 @@
+
 /***************************************************************************
 *
 *   Author: Shao Depeng <dp.shao@gmail.com>
@@ -29,7 +30,7 @@
 
 #define TEST
 
-static int uhf_init_security(uhf_info_t *p_uhf)
+static int uhf_init_security(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	security_info_t *security = p_uhf->security;
@@ -46,7 +47,7 @@ static int uhf_init_security(uhf_info_t *p_uhf)
 	return ret;
 }
 
-static int uhf_init_radio(uhf_info_t *p_uhf)
+static int uhf_init_radio(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	radio_info_t *radio = p_uhf->radio;
@@ -61,7 +62,7 @@ static int uhf_init_radio(uhf_info_t *p_uhf)
 
 void *uhf_heartbeat_loop(void *data)
 {
-	uhf_info_t *p_uhf = (uhf_info_t *)data;
+	uhf_info_t *p_uhf = (uhf_info_t *) data;
 	radio_info_t *radio = p_uhf->radio;
 	upper_info_t *upper = p_uhf->upper;
 	uint32_t count = 1;
@@ -91,12 +92,12 @@ void *uhf_heartbeat_loop(void *data)
 	return NULL;
 }
 
-static int uhf_create_heartbeat_thread(uhf_info_t *p_uhf)
+static int uhf_create_heartbeat_thread(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	pthread_attr_t attr;
 
-	pthread_attr_init (&attr);
+	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	ret = pthread_create(&p_uhf->heartbeat_thread, &attr, uhf_heartbeat_loop, (void *)p_uhf);
@@ -107,14 +108,14 @@ static int uhf_create_heartbeat_thread(uhf_info_t *p_uhf)
 	return ret;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
 	uhf_info_t *p_uhf;
 
 	/* TODO: setup rtc */
 
-	p_uhf = (uhf_info_t *)malloc(sizeof(uhf_info_t));
+	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)
 		return -ENOMEM;
 
@@ -151,11 +152,11 @@ int main(int argc, char** argv)
 
 	return 0;
 
-start_failed:
+  start_failed:
 	stop_radio(p_uhf->radio);
 	stop_security(p_uhf->security);
 	stop_upper(p_uhf->upper);
-alloc_failed:
+  alloc_failed:
 	release_upper(&p_uhf->upper);
 	release_security(&p_uhf->security);
 	release_radio(&p_uhf->radio);

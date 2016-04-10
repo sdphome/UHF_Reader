@@ -28,11 +28,9 @@
  **
  *****************************************************************************/
 
-
 /* Forward type declarations */
 struct LLRP_SConnection;
-typedef struct LLRP_SConnection     LLRP_tSConnection;
-
+typedef struct LLRP_SConnection LLRP_tSConnection;
 
 /**
  *****************************************************************************
@@ -61,127 +59,91 @@ typedef struct LLRP_SConnection     LLRP_tSConnection;
  **
  *****************************************************************************/
 
-struct LLRP_SConnection
-{
-    /** The file descriptor, probably a socket */
-    int                         fd;
+struct LLRP_SConnection {
 
-    /** Error message if openConnectionToReader() or close...() fail */
-    const char *                pConnectErrorStr;
+	/** The file descriptor, probably a socket */
+	int fd;
 
-    /** The registry to consult for message/parameter types during decode. */
-    const LLRP_tSTypeRegistry * pTypeRegistry;
+	/** Error message if openConnectionToReader() or close...() fail */
+	const char *pConnectErrorStr;
 
-    /** Head of queue of messages already received. Probably events.
+	/** The registry to consult for message/parameter types during decode. */
+	const LLRP_tSTypeRegistry *pTypeRegistry;
+
+	/** Head of queue of messages already received. Probably events.
      ** the queue is a one-way, NULL terminated linked list. */
-    LLRP_tSMessage *            pInputQueue;
+	LLRP_tSMessage *pInputQueue;
 
-    /** Size of the send/recv buffers, below, specified at construct() time */
-    unsigned int                nBufferSize;
+	/** Size of the send/recv buffers, below, specified at construct() time */
+	unsigned int nBufferSize;
 
-    /** Receive state */
-    struct
-    {
-        /** The buffer. Contains incomming frame. */
-        unsigned char *     pBuffer;
+	/** Receive state */
+	struct {
 
-        /** Count of bytes currently in buffer */
-        unsigned int        nBuffer;
+		/** The buffer. Contains incomming frame. */
+		unsigned char *pBuffer;
 
-        /** Valid boolean. TRUE means the buffer and frame summary
+		/** Count of bytes currently in buffer */
+		unsigned int nBuffer;
+
+		/** Valid boolean. TRUE means the buffer and frame summary
          ** variables are valid (usable). This is always
          ** FALSE mid receive */
-        int                 bFrameValid;
+		int bFrameValid;
 
-        /** Frame summary variables. Derived by LLRP_FrameExtract() */
-        LLRP_tSFrameExtract FrameExtract;
+		/** Frame summary variables. Derived by LLRP_FrameExtract() */
+		LLRP_tSFrameExtract FrameExtract;
 
-        /** Details of last I/O or decoder error. */
-        LLRP_tSErrorDetails ErrorDetails;
-    }                           Recv;
+		/** Details of last I/O or decoder error. */
+		LLRP_tSErrorDetails ErrorDetails;
+	} Recv;
 
-    /** Send state */
-    struct
-    {
-        /** The buffer. Contains outgoing frame. */
-        unsigned char *     pBuffer;
+	/** Send state */
+	struct {
 
-        /** Count of bytes currently in buffer (from last send) */
-        unsigned int        nBuffer;
+		/** The buffer. Contains outgoing frame. */
+		unsigned char *pBuffer;
 
-        /** Details of last I/O or encoder error. */
-        LLRP_tSErrorDetails ErrorDetails;
-    }                           Send;
+		/** Count of bytes currently in buffer (from last send) */
+		unsigned int nBuffer;
+
+		/** Details of last I/O or encoder error. */
+		LLRP_tSErrorDetails ErrorDetails;
+	} Send;
 };
-
-
-
 
 /*
  * ltkc_connection.c
  */
-extern LLRP_tSConnection *
-LLRP_Conn_construct (
-  const LLRP_tSTypeRegistry *   pTypeRegistry,
-  unsigned int                  nBufferSize);
+extern LLRP_tSConnection *LLRP_Conn_construct(const LLRP_tSTypeRegistry * pTypeRegistry,
+											  unsigned int nBufferSize);
 
-extern void
-LLRP_Conn_destruct (
-  LLRP_tSConnection *           pConn);
+extern void LLRP_Conn_destruct(LLRP_tSConnection * pConn);
 
-extern int
-LLRP_Conn_openConnectionToReader (
-  LLRP_tSConnection *           pConn,
-  const char *                  pReaderHostName);
+extern int LLRP_Conn_openConnectionToReader(LLRP_tSConnection * pConn, const char *pReaderHostName);
 
-int
-LLRP_Conn_startServerForUpper (
-  LLRP_tSConnection *           pConn);
+int LLRP_Conn_startServerForUpper(LLRP_tSConnection * pConn);
 
-extern int
-LLRP_Conn_closeConnectionToUpper (
-  LLRP_tSConnection *           pConn);
+extern int LLRP_Conn_closeConnectionToUpper(LLRP_tSConnection * pConn);
 
-extern int
-LLRP_Conn_closeConnectionToReader (
-  LLRP_tSConnection *           pConn);
+extern int LLRP_Conn_closeConnectionToReader(LLRP_tSConnection * pConn);
 
-extern const char *
-LLRP_Conn_getConnectError (
-  LLRP_tSConnection *           pConn);
+extern const char *LLRP_Conn_getConnectError(LLRP_tSConnection * pConn);
 
-extern LLRP_tSMessage *
-LLRP_Conn_transact (
-  LLRP_tSConnection *           pConn,
-  LLRP_tSMessage *              pSendMessage,
-  int                           nMaxMS);
+extern LLRP_tSMessage *LLRP_Conn_transact(LLRP_tSConnection * pConn,
+										  LLRP_tSMessage * pSendMessage, int nMaxMS);
 
-extern const LLRP_tSErrorDetails *
-LLRP_Conn_getTransactError (
-  LLRP_tSConnection *           pConn);
+extern const LLRP_tSErrorDetails *LLRP_Conn_getTransactError(LLRP_tSConnection * pConn);
 
-extern LLRP_tResultCode
-LLRP_Conn_sendMessage (
-  LLRP_tSConnection *           pConn,
-  LLRP_tSMessage *              pMessage);
+extern LLRP_tResultCode LLRP_Conn_sendMessage(LLRP_tSConnection * pConn, LLRP_tSMessage * pMessage);
 
-extern const LLRP_tSErrorDetails *
-LLRP_Conn_getSendError (
-  LLRP_tSConnection *           pConn);
+extern const LLRP_tSErrorDetails *LLRP_Conn_getSendError(LLRP_tSConnection * pConn);
 
-extern LLRP_tSMessage *
-LLRP_Conn_recvMessage (
-  LLRP_tSConnection *           pConn,
-  int                           nMaxMS);
+extern LLRP_tSMessage *LLRP_Conn_recvMessage(LLRP_tSConnection * pConn, int nMaxMS);
 
-extern LLRP_tSMessage *
-LLRP_Conn_recvResponse (
-  LLRP_tSConnection *           pConn,
-  int                           nMaxMS,
-  const LLRP_tSTypeDescriptor * pResponseType,
-  llrp_u32_t                    ResponseMessageID);
+extern LLRP_tSMessage *LLRP_Conn_recvResponse(LLRP_tSConnection * pConn,
+											  int nMaxMS,
+											  const LLRP_tSTypeDescriptor * pResponseType,
+											  llrp_u32_t ResponseMessageID);
 
-extern const LLRP_tSErrorDetails *
-LLRP_Conn_getRecvError (
-  LLRP_tSConnection *           pConn);
-
+extern const LLRP_tSErrorDetails *LLRP_Conn_getRecvError(LLRP_tSConnection * pConn);

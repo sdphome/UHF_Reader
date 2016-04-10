@@ -1,3 +1,4 @@
+
 /**************************************************************************
 Filename	: types.hpp
 Language	: C header file
@@ -8,15 +9,14 @@ version 	: 1.0
 Change Log	: 2007-3-1 11:04, first edition
 ******************************************************************************/
 
-
 #ifndef TYPES_H
 #define TYPES_H
+
 /**************************************************************************/
 //#ifndef WIN32
 
 /* other stuff... */
 #define	STRNCPY(a,b,c)		strncpy (a,b,c); (*((a)+(c)) = 0x00);
-
 
 /**************************************************************************
 STANDARD TYPEDEFS
@@ -30,92 +30,89 @@ The ANSI C std defines:
 
 	so all ANSI C compliant compilers will accept the following.
 **************************************************************************/
+
 /* define 8 bit types */
-typedef unsigned char		UINT8;
-typedef  unsigned char        u_char;
-typedef  unsigned char        uchar;
-typedef signed char			SINT8;
+typedef unsigned char UINT8;
+typedef unsigned char u_char;
+typedef unsigned char uchar;
+typedef signed char SINT8;
 
 /* define 16 bit types */
-typedef unsigned short		UINT16;
-typedef unsigned short		u_short;
-typedef signed short		SINT16;
+typedef unsigned short UINT16;
+typedef unsigned short u_short;
+typedef signed short SINT16;
 
 /* define 32 bit types */
-typedef unsigned long 		UINT_32;
-typedef unsigned long 		u_long;
-typedef signed long 		SINT32;
+typedef unsigned long UINT_32;
+typedef unsigned long u_long;
+typedef signed long SINT32;
 
+typedef char CHAR;				/* be careful of EOF!!! (EOF = -1) */
 
-typedef char			CHAR;	/* be careful of EOF!!! (EOF = -1) */
+typedef int BOOL;
 
-typedef int 		BOOL;
+typedef signed long TIME_T;
 
-typedef signed long 		TIME_T;
-
-typedef float				SINGLE;
+typedef float SINGLE;
 #ifdef	DOUBLE
 #undef	DOUBLE
 #endif
-typedef double				DOUBLE;
+typedef double DOUBLE;
 
-typedef struct
-{
-  unsigned bit0 : 1;
-  unsigned bit1 : 1;
-  unsigned bit2 : 1;
-  unsigned bit3 : 1;
-  unsigned bit4 : 1;
-  unsigned bit5 : 1;
-  unsigned bit6 : 1;
-  unsigned bit7 : 1;
+typedef struct {
+	unsigned bit0:1;
+	unsigned bit1:1;
+	unsigned bit2:1;
+	unsigned bit3:1;
+	unsigned bit4:1;
+	unsigned bit5:1;
+	unsigned bit6:1;
+	unsigned bit7:1;
 } REG8;
 
-typedef struct
-{
-  unsigned bit0 : 1;
-  unsigned bit1 : 1;
-  unsigned bit2 : 1;
-  unsigned bit3 : 1;
-  unsigned bit4 : 1;
-  unsigned bit5 : 1;
-  unsigned bit6 : 1;
-  unsigned bit7 : 1;
-  unsigned bit8 : 1;
-  unsigned bit9 : 1;
-  unsigned bit10: 1;
-  unsigned bit11: 1;
-  unsigned bit12: 1;
-  unsigned bit13: 1;
-  unsigned bit14: 1;
-  unsigned bit15: 1;
+typedef struct {
+	unsigned bit0:1;
+	unsigned bit1:1;
+	unsigned bit2:1;
+	unsigned bit3:1;
+	unsigned bit4:1;
+	unsigned bit5:1;
+	unsigned bit6:1;
+	unsigned bit7:1;
+	unsigned bit8:1;
+	unsigned bit9:1;
+	unsigned bit10:1;
+	unsigned bit11:1;
+	unsigned bit12:1;
+	unsigned bit13:1;
+	unsigned bit14:1;
+	unsigned bit15:1;
 } REG16;
-
-
 
 /**************************************************************************
 STANDARD STRING TYPEDEFS
 **************************************************************************/
-typedef char    STRING_3[4];
-typedef char    STRING_5[6];
-typedef char    STRING_8[9];
-typedef char    STRING_10[11];
-typedef char    STRING_12[13];
-typedef char    STRING_16[17];
-typedef char    STRING_24[25];
-typedef char    STRING_30[31];
-typedef char    STRING_32[33];
-typedef char    STRING_48[49];
-typedef char    STRING_50[51];
-typedef char    STRING_60[61];
-typedef char    STRING_80[81];
-typedef char    STRING_132[133];
-typedef char	STRING_256[257];
-typedef char	STRING_512[513];
-
+typedef char STRING_3[4];
+typedef char STRING_5[6];
+typedef char STRING_8[9];
+typedef char STRING_10[11];
+typedef char STRING_12[13];
+typedef char STRING_16[17];
+typedef char STRING_24[25];
+typedef char STRING_30[31];
+typedef char STRING_32[33];
+typedef char STRING_48[49];
+typedef char STRING_50[51];
+typedef char STRING_60[61];
+typedef char STRING_80[81];
+typedef char STRING_132[133];
+typedef char STRING_256[257];
+typedef char STRING_512[513];
 
 /********************************************/
+
 /* STANDARD SYSTEM SIZES					*/
+
 /********************************************/
 #define SIZE_UINT8  		(size_t)(sizeof (UINT8 ))
 #define SIZE_SINT8  		(size_t)(sizeof (SINT8 ))
@@ -151,7 +148,6 @@ typedef char	STRING_512[513];
 #define	SIZE_STRING_256 	(size_t)(sizeof (STRING_256))
 #define	SIZE_STRING_512 	(size_t)(sizeof (STRING_512))
 
-
 /**************************************************************************
 STANDARD BIT MANIPULATIONS
 **************************************************************************/
@@ -162,8 +158,5 @@ STANDARD BIT MANIPULATIONS
 #define	ISBITSET( target, bit )	(!!((target) & (1u << (bit))))
 #define	ISBITCLR( target, bit )	( !((target) & (1u << (bit))))
 
-
 /**************************************************************************/
-#endif 
-
-
+#endif

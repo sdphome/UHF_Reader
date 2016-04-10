@@ -1,3 +1,4 @@
+
 /***************************************************************************
 *
 *   Author: Shao Depeng <dp.shao@gmail.com>
@@ -50,44 +51,44 @@ static inline void security_close(int fd)
 	close(fd);
 }
 
-uint8_t security_crc(security_pack_hdr *hdr, uint8_t *buf)
+uint8_t security_crc(security_pack_hdr * hdr, uint8_t * buf)
 {
 	int i = 0;
 	uint8_t crc = 0;
-	uint8_t *tmp = (uint8_t *)hdr;
+	uint8_t *tmp = (uint8_t *) hdr;
 
 	for (i = 1; i < SECURITY_PACK_HDR_SIZE; i++) {
 		crc ^= *(tmp + i);
 	}
 
-	for (i = 0; i < hdr->len -1; i ++) {
+	for (i = 0; i < hdr->len - 1; i++) {
 		crc ^= *(buf + i);
 	}
 
 	return crc;
 }
 
-void security_print_result(security_package_t *result)
+void security_print_result(security_package_t * result)
 {
 #ifdef DEBUG
 	int i;
 	printf("===============SECURITY================\n");
 	printf("hdr:%x, type:%x, version:%x, cmd:%x, len:%x, crc:%x\n", result->hdr.hdr,
-			result->hdr.type, result->hdr.version, result->hdr.cmd, result->hdr.len, result->crc);
+		   result->hdr.type, result->hdr.version, result->hdr.cmd, result->hdr.len, result->crc);
 	printf("payload: ");
-	for (i = 0; i < result->hdr.len - 1; i ++) {
+	for (i = 0; i < result->hdr.len - 1; i++) {
 		printf("%3x", *(result->payload + i));
 	}
 	printf("\n===============SECURITY================\n");
 #endif
 }
 
-void inline lock_security(pthread_mutex_t *lock)
+void inline lock_security(pthread_mutex_t * lock)
 {
 	pthread_mutex_lock(lock);
 }
 
-void inline unlock_security(pthread_mutex_t *lock)
+void inline unlock_security(pthread_mutex_t * lock)
 {
 	pthread_mutex_unlock(lock);
 }
@@ -115,44 +116,45 @@ int inline security_reset_radio(int fd)
 const char *security_upload_err_to_str(uint8_t errno)
 {
 	switch (errno) {
-		case NO_ERROR:
-			return "success.\n";
-		case TID_DECIP_FAILED:
-			return "tid verify failed, got tid'\n";
-		case READ_PART_FAILED:
-			return "tid is right, but read user part data failed.\n";
-		case WRONG_CHECK:
-			return "security receive error check framw from radio module.\n";
-		case USER_PART_FAILED:
-			return "read user part verify failed, return data directly\n";
-		default:
-			return "unknow error.\n";
+	  case NO_ERROR:
+		  return "success.\n";
+	  case TID_DECIP_FAILED:
+		  return "tid verify failed, got tid'\n";
+	  case READ_PART_FAILED:
+		  return "tid is right, but read user part data failed.\n";
+	  case WRONG_CHECK:
+		  return "security receive error check framw from radio module.\n";
+	  case USER_PART_FAILED:
+		  return "read user part verify failed, return data directly\n";
+	  default:
+		  return "unknow error.\n";
 	}
 }
 
-const char* security_errno_to_str(uint8_t errno)
+const char *security_errno_to_str(uint8_t errno)
 {
 	switch (errno) {
-		case NO_ERROR:
-			return "success.\n";
-		case UNKNOWN_TYPE:
-			return "unknown frame type.\n";
-		case DATA_ERROR:
-			return "frame payload error.\n";
-		case PACK_ILLE:
-			return "illegal frame.\n";
-		case CRC_FAILED:
-			return "crc verify failed.\n";
-		case PROGRAM_MISSING:
-			return "security module user program failed.\n";
-		case VERIFY_ENCR_FAILED:
-			return "security module user program sign the check failed.\n";
-		default:
-			return "unknown error.\n";
+	  case NO_ERROR:
+		  return "success.\n";
+	  case UNKNOWN_TYPE:
+		  return "unknown frame type.\n";
+	  case DATA_ERROR:
+		  return "frame payload error.\n";
+	  case PACK_ILLE:
+		  return "illegal frame.\n";
+	  case CRC_FAILED:
+		  return "crc verify failed.\n";
+	  case PROGRAM_MISSING:
+		  return "security module user program failed.\n";
+	  case VERIFY_ENCR_FAILED:
+		  return "security module user program sign the check failed.\n";
+	  default:
+		  return "unknown error.\n";
 	}
 }
 
-int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, security_package_t *result)
+int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
+						 security_package_t * result)
 {
 	int ret = NO_ERROR;
 	int resultReceived = 0;
@@ -174,39 +176,38 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
 			return ret;
 		}
 
-        if (info->result_list != NULL) {
-            security_result_list_t *result_list = info->result_list;
-            security_result_list_t *result_list_prev = info->result_list;
-            while (result_list != NULL) {
+		if (info->result_list != NULL) {
+			security_result_list_t *result_list = info->result_list;
+			security_result_list_t *result_list_prev = info->result_list;
+			while (result_list != NULL) {
 #ifdef TEST
-                if (result_list->result.hdr.cmd == cmd &&
-						result_list->result.hdr.type == type) {
+				if (result_list->result.hdr.cmd == cmd && result_list->result.hdr.type == type) {
 #else
 				/* Check if got a error frame */
 				if (result_list->result.hdr.type == ERROR_TYPE) {
-					printf("%s: Got a error frame, errno=%d.\n", __func__, result_list->result.hdr.cmd);
+					printf("%s: Got a error frame, errno=%d.\n", __func__,
+						   result_list->result.hdr.cmd);
 					return result_list->result.hdr.cmd;
 				}
 
-				if (result_list->result.hdr.cmd == cmd &&
-						result_list->result.hdr.type == type + 1) {
+				if (result_list->result.hdr.cmd == cmd && result_list->result.hdr.type == type + 1) {
 #endif
-                    resultReceived = 1;
-                    *result = result_list->result;
-                    security_print_result(result);
-                    result_list_prev->next = result_list->next;
-                    if (result_list == info->result_list) {
+					resultReceived = 1;
+					*result = result_list->result;
+					security_print_result(result);
+					result_list_prev->next = result_list->next;
+					if (result_list == info->result_list) {
 						info->result_list = result_list->next;
-                    }
-                    free(result_list);
-                    result_list = NULL;
-                    break;
-                } else {
-                    result_list_prev = result_list;
-                    result_list = result_list->next;
-                }
-            }
-        }
+					}
+					free(result_list);
+					result_list = NULL;
+					break;
+				} else {
+					result_list_prev = result_list;
+					result_list = result_list->next;
+				}
+			}
+		}
 	}
 #ifdef DEBUG
 	printf("%s: -\n", __func__);
@@ -214,11 +215,12 @@ int security_wait_result(security_info_t *info, uint8_t type, uint8_t cmd, secur
 	return ret;
 }
 
-void security_signal_result(security_info_t *info, security_package_t *result)
+void security_signal_result(security_info_t * info, security_package_t * result)
 {
 	lock_security(&info->lock);
 
-	security_result_list_t *curr_result = (security_result_list_t *)malloc(sizeof(security_result_list_t));
+	security_result_list_t *curr_result =
+		(security_result_list_t *) malloc(sizeof(security_result_list_t));
 	if (curr_result == NULL) {
 		printf("ERROR: malloc for security result failed, Result will not be sent\n");
 		goto malloc_failed;
@@ -227,23 +229,26 @@ void security_signal_result(security_info_t *info, security_package_t *result)
 	curr_result->result = *result;
 	curr_result->next = NULL;
 
-	if (info->result_list == NULL) info->result_list = curr_result;
+	if (info->result_list == NULL)
+		info->result_list = curr_result;
 	else {
 		security_result_list_t *result_list = info->result_list;
-		while (result_list->next != NULL) result_list = result_list->next;
+		while (result_list->next != NULL)
+			result_list = result_list->next;
 		result_list->next = curr_result;
 	}
 
-malloc_failed:
+  malloc_failed:
 	pthread_cond_broadcast(&info->cond);
 	unlock_security(&info->lock);
 }
 
-void security_signal_upload(security_info_t *info, security_package_t *upload)
+void security_signal_upload(security_info_t * info, security_package_t * upload)
 {
 	lock_security(&info->upload_lock);
 
-	security_result_list_t *curr_upload = (security_result_list_t *)malloc(sizeof(security_result_list_t));
+	security_result_list_t *curr_upload =
+		(security_result_list_t *) malloc(sizeof(security_result_list_t));
 	if (curr_upload == NULL) {
 		printf("ERROR: malloc for security result failed, Result will not be sent\n");
 		goto malloc_failed;
@@ -252,20 +257,23 @@ void security_signal_upload(security_info_t *info, security_package_t *upload)
 	curr_upload->result = *upload;
 	curr_upload->next = NULL;
 
-	if (info->upload_list == NULL) info->upload_list = curr_upload;
+	if (info->upload_list == NULL)
+		info->upload_list = curr_upload;
 	else {
 		security_result_list_t *upload_list = info->upload_list;
-		while (upload_list->next != NULL) upload_list = upload_list->next;
+		while (upload_list->next != NULL)
+			upload_list = upload_list->next;
 		upload_list->next = curr_upload;
 	}
 
-malloc_failed:
+  malloc_failed:
 	pthread_cond_broadcast(&info->upload_cond);
 	unlock_security(&info->upload_lock);
 }
 
 /* len include cmd, so len = payload_size + 1 */
-int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t len, uint8_t *payload)
+int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t len,
+				   uint8_t * payload)
 {
 	int nwt;
 	int ret = NO_ERROR;
@@ -277,11 +285,11 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 
 	hdr.hdr = PACK_SEND_HDR;
 	hdr.type = type;
-	hdr.version = SECURITY_VERSION_1;   /* TODO: Attention the version */
+	hdr.version = SECURITY_VERSION_1;	/* TODO: Attention the version */
 	hdr.len = len;
 	hdr.cmd = cmd;
 
-	memcpy(buf, (uint8_t *)&hdr, SECURITY_PACK_HDR_SIZE);
+	memcpy(buf, (uint8_t *) & hdr, SECURITY_PACK_HDR_SIZE);
 	buf += SECURITY_PACK_HDR_SIZE;
 	if (payload != NULL && len > 1) {
 		memcpy(buf, payload, len - 1);
@@ -304,6 +312,7 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
 	}
+
 /*
 	else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
@@ -315,7 +324,7 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 	return ret;
 }
 
-int security_set_rtc(security_info_t *info)
+int security_set_rtc(security_info_t * info)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -326,16 +335,18 @@ int security_set_rtc(security_info_t *info)
 
 	time(&rawtime);
 	printf("%s: %x\n", __func__, (unsigned int)rawtime);
-	timeinfo = localtime (&rawtime);
+	timeinfo = localtime(&rawtime);
 	printf("The current date/time is: %s\n", asctime(timeinfo));
 
 	gettimeofday(&now, NULL);
-	printf("%s: now.tv_sec=%x\n", __func__, (uint32_t)now.tv_sec);
-	time_ms.time = ((uint64_t)now.tv_sec) * 1000 + ((uint64_t)now.tv_usec) / 1000;
+	printf("%s: now.tv_sec=%x\n", __func__, (uint32_t) now.tv_sec);
+	time_ms.time = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1, (uint8_t *)&time_ms.time);
+	ret =
+		security_write(info, SETUP_TYPE, SETUP_RTC, TIMESTAMP_V2_PARAM_SIZE + 1,
+					   (uint8_t *) & time_ms.time);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -367,7 +378,7 @@ int security_set_rtc(security_info_t *info)
 	return ret;
 }
 
-uint64_t security_get_rtc(security_info_t *info)
+uint64_t security_get_rtc(security_info_t * info)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -405,25 +416,25 @@ uint64_t security_get_rtc(security_info_t *info)
 		result.payload = NULL;
 	}
 
-	lt = (time_t)(time.time/1000);
+	lt = (time_t) (time.time / 1000);
 
 	printf("%s: time is %s\n", __func__, asctime(localtime(&lt)));
 
 	return time.time;
 }
 
-static int security_set_params(security_info_t *info, uint8_t *param)
+static int security_set_params(security_info_t * info, uint8_t * param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
 	uint16_t len;
 
-	if (*(uint16_t *)param == REPEAT_READ) {
+	if (*(uint16_t *) param == REPEAT_READ) {
 		len = REPEAT_READ_PARAM_SIZE + 1;
-	} else if (*(uint16_t *)param == FILTR_INTERV) {
+	} else if (*(uint16_t *) param == FILTR_INTERV) {
 		len = FILTR_INTERV_PARAM_SIZE + 1;
 	} else {
-		printf("%s: can't get this param, type=%d.\n", __func__, *(uint16_t *)param);
+		printf("%s: can't get this param, type=%d.\n", __func__, *(uint16_t *) param);
 		return -FAILED;
 	}
 
@@ -462,27 +473,27 @@ static int security_set_params(security_info_t *info, uint8_t *param)
 	return ret;
 }
 
-int security_set_repeat_read(security_info_t *info, uint8_t repeat)
+int security_set_repeat_read(security_info_t * info, uint8_t repeat)
 {
 	repeat_read_param param;
 
 	param.type = REPEAT_READ;
 	param.flag = repeat;
 
-	return security_set_params(info, (uint8_t *)&param);
+	return security_set_params(info, (uint8_t *) & param);
 }
 
-int security_set_filtr_interv(security_info_t *info, uint32_t interval)
+int security_set_filtr_interv(security_info_t * info, uint32_t interval)
 {
 	filtr_interv_param param;
 
 	param.type = FILTR_INTERV;
 	param.interval = interval;
 
-	return security_set_params(info, (uint8_t *)&param);
+	return security_set_params(info, (uint8_t *) & param);
 }
 
-static uint8_t* security_get_params(security_info_t *info, uint16_t type)
+static uint8_t *security_get_params(security_info_t * info, uint16_t type)
 {
 	int ret = NO_ERROR;
 	get_params_param param;
@@ -492,7 +503,8 @@ static uint8_t* security_get_params(security_info_t *info, uint16_t type)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *)&param);
+	ret =
+		security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *) & param);
 	if (ret != NO_ERROR) {
 		printf("%s: write failed, ret = %d\n", __func__, ret);
 		unlock_security(&info->lock);
@@ -508,10 +520,10 @@ static uint8_t* security_get_params(security_info_t *info, uint16_t type)
 		return NULL;
 	}
 
-	return (uint8_t *)result.payload;
+	return (uint8_t *) result.payload;
 }
 
-int security_get_firmware_version(security_info_t *info, firmware_version_param *param)
+int security_get_firmware_version(security_info_t * info, firmware_version_param * param)
 {
 	int ret = NO_ERROR;
 	uint8_t *payload = NULL;
@@ -529,7 +541,7 @@ int security_get_firmware_version(security_info_t *info, firmware_version_param 
 	return ret;
 }
 
-int security_get_serial_number(security_info_t *info, serial_num_param *param)
+int security_get_serial_number(security_info_t * info, serial_num_param * param)
 {
 	int ret = NO_ERROR;
 	uint8_t *payload = NULL;
@@ -547,7 +559,7 @@ int security_get_serial_number(security_info_t *info, serial_num_param *param)
 	return ret;
 }
 
-int security_get_repeat_read_flag(security_info_t *info, repeat_read_param *param)
+int security_get_repeat_read_flag(security_info_t * info, repeat_read_param * param)
 {
 	int ret = NO_ERROR;
 	uint8_t *payload = NULL;
@@ -565,7 +577,7 @@ int security_get_repeat_read_flag(security_info_t *info, repeat_read_param *para
 	return ret;
 }
 
-work_mode_param* security_get_work_mode(security_info_t *info)
+work_mode_param *security_get_work_mode(security_info_t * info)
 {
 	uint8_t num = 0;
 	uint8_t *payload = NULL;
@@ -579,7 +591,7 @@ work_mode_param* security_get_work_mode(security_info_t *info)
 
 	num = *(payload + 1);
 	/* Need free in main thread */
-	param = (work_mode_param *)malloc(WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
+	param = (work_mode_param *) malloc(WORK_MODE_PARAM_SIZE + PART_INFO_PARAM_SIZE * num);
 	if (param == NULL) {
 		printf("%s: malloc memory failed.\n", __func__);
 		free(payload);
@@ -593,7 +605,7 @@ work_mode_param* security_get_work_mode(security_info_t *info)
 	return param;
 }
 
-int security_get_key_version(security_info_t *info, security_package_t *result)
+int security_get_key_version(security_info_t * info, security_package_t * result)
 {
 	int ret = NO_ERROR;
 	get_params_param param;
@@ -602,7 +614,8 @@ int security_get_key_version(security_info_t *info, security_package_t *result)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *)&param);
+	ret =
+		security_write(info, SETUP_TYPE, GET_PARAM, GET_PARAMS_PARAM_SIZE + 1, (uint8_t *) & param);
 	if (ret != NO_ERROR) {
 		printf("%s: write failed, ret = %d\n", __func__, ret);
 		unlock_security(&info->lock);
@@ -621,7 +634,7 @@ int security_get_key_version(security_info_t *info, security_package_t *result)
 	return ret;
 }
 
-int security_get_filtr_interv(security_info_t *info, filtr_interv_param *param)
+int security_get_filtr_interv(security_info_t * info, filtr_interv_param * param)
 {
 	int ret = NO_ERROR;
 	uint8_t *payload = NULL;
@@ -639,7 +652,7 @@ int security_get_filtr_interv(security_info_t *info, filtr_interv_param *param)
 	return ret;
 }
 
-int security_get_perm(security_info_t *info, perm_table_param *param)
+int security_get_perm(security_info_t * info, perm_table_param * param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -676,7 +689,7 @@ int security_get_perm(security_info_t *info, perm_table_param *param)
 	return ret;
 }
 
-int security_set_work_mode(security_info_t *info, work_mode_param *param)
+int security_set_work_mode(security_info_t * info, work_mode_param * param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -690,7 +703,7 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, SETUP_MODE,
-					PART_INFO_PARAM_SIZE * param->num + 2, (uint8_t *)param);
+						 PART_INFO_PARAM_SIZE * param->num + 2, (uint8_t *) param);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d.\n", __func__, ret);
@@ -716,7 +729,7 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 	return ret;
 }
 
-uint64_t security_request_rand_num(security_info_t *info)
+uint64_t security_request_rand_num(security_info_t * info)
 {
 	int ret = NO_ERROR;
 	int i = 0;
@@ -744,7 +757,7 @@ uint64_t security_request_rand_num(security_info_t *info)
 	if (result.payload != NULL) {
 		printf("result.hdr.len=%x\n", result.hdr.len);
 		printf("zxxxx\n");
-		sec_rand = *(uint64_t *)result.payload;
+		sec_rand = *(uint64_t *) result.payload;
 		//memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
 		printf("%s: sec_rand=%lx, ", __func__, (unsigned long)sec_rand);
 		for (i = 0; i < 8; i++)
@@ -763,7 +776,7 @@ static unsigned long security_get_file_size(const char *path)
 	FILE *fp;
 
 	fp = fopen(path, "r");
-	if(fp == NULL)
+	if (fp == NULL)
 		return size;
 
 	fseek(fp, 0L, SEEK_END);
@@ -773,7 +786,7 @@ static unsigned long security_get_file_size(const char *path)
 	return size;
 }
 
-static int security_read_file(uint8_t *x509, char *path, unsigned long size)
+static int security_read_file(uint8_t * x509, char *path, unsigned long size)
 {
 	unsigned long nrd;
 	FILE *fp = fopen(path, "r");
@@ -790,20 +803,20 @@ static int security_read_file(uint8_t *x509, char *path, unsigned long size)
 	fclose(fp);
 }
 
-static int security_digi_sign(security_info_t *info, auth_data_param *param)
+static int security_digi_sign(security_info_t * info, auth_data_param * param)
 {
 	int ret = NO_ERROR;
-	uint8_t hash[32] = {0};
-	uint8_t message[32] = {0};
+	uint8_t hash[32] = { 0 };
+	uint8_t message[32] = { 0 };
 	int rlen, slen;
 
-	memcpy(message, (uint8_t *)&param->host_rand, 8);
-	memcpy(message + 8, (uint8_t *)&param->sec_rand, 8);
-	memcpy(message + 16, (uint8_t *)&param->serial, 8);
-	memcpy(message + 24, (uint8_t *)&param->reserve, 8);
+	memcpy(message, (uint8_t *) & param->host_rand, 8);
+	memcpy(message + 8, (uint8_t *) & param->sec_rand, 8);
+	memcpy(message + 16, (uint8_t *) & param->serial, 8);
+	memcpy(message + 24, (uint8_t *) & param->reserve, 8);
 
-	ret = sm3_e((uint8_t *)&info->serial, 8, info->pub_key, 32,
-		info->pub_key + 32, 32, message, 32, hash);
+	ret = sm3_e((uint8_t *) & info->serial, 8, info->pub_key, 32,
+				info->pub_key + 32, 32, message, 32, hash);
 	if (ret != NO_ERROR)
 		return ret;
 
@@ -821,7 +834,7 @@ static int security_digi_sign(security_info_t *info, auth_data_param *param)
  * 4 : security module has actived by other reader
  * A : reader serial number failed
 */
-int security_send_auth_data(security_info_t *info, uint64_t sec_rand)
+int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 {
 	int ret = NO_ERROR;
 	//uint64_t rand_num = 0;
@@ -835,11 +848,11 @@ int security_send_auth_data(security_info_t *info, uint64_t sec_rand)
 		return -FAILED;
 	}
 
-	param = (auth_data_param *)malloc(AUTH_DATA_PARAM_SIZE + size);
+	param = (auth_data_param *) malloc(AUTH_DATA_PARAM_SIZE + size);
 
 	/* 1. generate random number */
 	srand((unsigned)time(NULL));
-	*(uint64_t *)param->host_rand = (uint64_t)rand() << 32 | (uint64_t)rand();
+	*(uint64_t *) param->host_rand = (uint64_t) rand() << 32 | (uint64_t) rand();
 
 	/* 2. fill data */
 	memcpy(param->sec_rand, &sec_rand, RAND_NUM_PARAM_SIZE);
@@ -863,7 +876,9 @@ int security_send_auth_data(security_info_t *info, uint64_t sec_rand)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, IDEN_AUTH, AUTH_DATA_PARAM_SIZE + size + 1, (uint8_t *)param);
+	ret =
+		security_write(info, AUTH_TYPE, IDEN_AUTH, AUTH_DATA_PARAM_SIZE + size + 1,
+					   (uint8_t *) param);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		free(param);
@@ -892,7 +907,7 @@ int security_send_auth_data(security_info_t *info, uint64_t sec_rand)
 	return ret;
 }
 
-int security_send_user_info(security_info_t *info, security_package_t *result)
+int security_send_user_info(security_info_t * info, security_package_t * result)
 {
 	int ret = NO_ERROR;
 	user_info_param user_info;
@@ -902,7 +917,9 @@ int security_send_user_info(security_info_t *info, security_package_t *result)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, USER_INFO, USER_INFO_PARAM_SIZE + 1, (uint8_t *)&user_info);
+	ret =
+		security_write(info, AUTH_TYPE, USER_INFO, USER_INFO_PARAM_SIZE + 1,
+					   (uint8_t *) & user_info);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -929,7 +946,7 @@ int security_send_user_info(security_info_t *info, security_package_t *result)
  * 2 : verify failed
  * 3 : serial not unanimous
  */
-int security_send_active_auth(security_info_t *info, active_auth_param *param)
+int security_send_active_auth(security_info_t * info, active_auth_param * param)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -941,7 +958,7 @@ int security_send_active_auth(security_info_t *info, active_auth_param *param)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, SEND_AUTH, ACTIVE_AUTH_PARAM_SIZE + 1, (uint8_t *)param);
+	ret = security_write(info, AUTH_TYPE, SEND_AUTH, ACTIVE_AUTH_PARAM_SIZE + 1, (uint8_t *) param);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -963,7 +980,7 @@ int security_send_active_auth(security_info_t *info, active_auth_param *param)
 	return ret;
 }
 
-int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t len)
+int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_t len)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
@@ -975,7 +992,7 @@ int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t 
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, SEND_CERT, len + 1, (uint8_t *)param);
+	ret = security_write(info, AUTH_TYPE, SEND_CERT, len + 1, (uint8_t *) param);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -997,7 +1014,7 @@ int security_send_cert(security_info_t *info, cert_chain_param *param, uint16_t 
 	return ret;
 }
 
-int security_upgrade_firmware(security_info_t *info, char *file)
+int security_upgrade_firmware(security_info_t * info, char *file)
 {
 	int ret = NO_ERROR;
 	unsigned long file_size;
@@ -1015,7 +1032,7 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 
 	file_size = security_get_file_size(file);
 
-	buf = (uint8_t *)malloc(file_size);
+	buf = (uint8_t *) malloc(file_size);
 	if (buf == NULL)
 		return -ENOMEM;
 
@@ -1027,9 +1044,9 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 		return ret;
 	}
 
-	data = (firmware_data *)buf;
+	data = (firmware_data *) buf;
 
-	if (data->file_size != data->firmware_size + FIRMWARE_DATA_HDR_SIZE ) {
+	if (data->file_size != data->firmware_size + FIRMWARE_DATA_HDR_SIZE) {
 		printf("%s: firmware size verify failed.\n", __func__);
 		free(buf);
 		buf = NULL;
@@ -1040,7 +1057,7 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 
 	num_block = data->firmware_size / data->block_size;
 
-	for (i = 0; i < num_block; i ++) {
+	for (i = 0; i < num_block; i++) {
 		lock_security(&info->lock);
 
 		ret = security_write(info, DATA_FORWA_TYPE, data->cmd, data->block_size + 1, temp);
@@ -1074,14 +1091,15 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	return ret;
 }
 
-static void security_upload_part(security_info_t *info, security_package_t *upload)
+static void security_upload_part(security_info_t * info, security_package_t * upload)
 {
 	uint8_t err_type;
 
 	err_type = *upload->payload;
 
 	switch (err_type) {
-		case NO_ERROR: {
+	  case NO_ERROR:{
+
 /*
 			if (upload->hdr.version == SECURITY_VERSION_1) {
 				tid_upload_v1_param *param;
@@ -1090,29 +1108,30 @@ static void security_upload_part(security_info_t *info, security_package_t *uplo
 							param->tid, param->ante_no, param->time);
 			} else {
 */
-				part_data_upload_v2_param *param;
-				param = (part_data_upload_v2_param *)upload->payload;
-				if (info->uhf != NULL && ((uhf_info_t *)(info->uhf))->upper != NULL) {
-					upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
-								param->tid, param->ante_no, param->time);
-				}
+			  part_data_upload_v2_param *param;
+			  param = (part_data_upload_v2_param *) upload->payload;
+			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL) {
+				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
+													  param->tid, param->ante_no, param->time);
+			  }
+
 /*
 			}
 */
 
-			break;
-		}
-		case TID_DECIP_FAILED:
-			break;
-		case WRONG_CHECK:
-			break;
-		default:
-			printf("%s: unknown error type %d.\n", __func__, err_type);
-			break;
+			  break;
+		  }
+	  case TID_DECIP_FAILED:
+		  break;
+	  case WRONG_CHECK:
+		  break;
+	  default:
+		  printf("%s: unknown error type %d.\n", __func__, err_type);
+		  break;
 	}
 }
 
-static void security_upload_tid(security_info_t *info, security_package_t *upload)
+static void security_upload_tid(security_info_t * info, security_package_t * upload)
 {
 	uint8_t err_type;
 
@@ -1120,7 +1139,8 @@ static void security_upload_tid(security_info_t *info, security_package_t *uploa
 
 	printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
-		case NO_ERROR: {
+	  case NO_ERROR:{
+
 /*
 			if (upload->hdr.version == SECURITY_VERSION_1) {
 				tid_upload_v1_param *param;
@@ -1129,51 +1149,52 @@ static void security_upload_tid(security_info_t *info, security_package_t *uploa
 							param->tid, param->ante_no, param->time);
 			} else {
 */
-				tid_upload_v2_param *param;
-				param = (tid_upload_v2_param *)upload->payload;
-				if (info->uhf != NULL && ((uhf_info_t *)(info->uhf))->upper != NULL)
-					upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
-								param->tid, param->ante_no, param->time);
+			  tid_upload_v2_param *param;
+			  param = (tid_upload_v2_param *) upload->payload;
+			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
+				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
+													  param->tid, param->ante_no, param->time);
+
 /*
 			}
 */
 
-			break;
-		}
-		case TID_DECIP_FAILED:
-			break;
-		case WRONG_CHECK:
-			break;
-		default:
-			printf("%s: unknown error type %d.\n", __func__, err_type);
-			break;
+			  break;
+		  }
+	  case TID_DECIP_FAILED:
+		  break;
+	  case WRONG_CHECK:
+		  break;
+	  default:
+		  printf("%s: unknown error type %d.\n", __func__, err_type);
+		  break;
 	}
 }
 
 void *security_upload_loop(void *data)
 {
 	int upload_received = false;
-	security_info_t *info = (security_info_t *)data;
+	security_info_t *info = (security_info_t *) data;
 	security_package_t upload;
 
-	while(true) {
+	while (true) {
 		lock_security(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
-        if (info->upload_list != NULL) {
-            security_result_list_t *upload_list = info->upload_list;
-            security_result_list_t *upload_list_prev = info->upload_list;
-            while (upload_list != NULL) {
+		if (info->upload_list != NULL) {
+			security_result_list_t *upload_list = info->upload_list;
+			security_result_list_t *upload_list_prev = info->upload_list;
+			while (upload_list != NULL) {
 				upload_received = false;
 				if (upload_list->result.hdr.type == UPLOAD_INFO_TYPE) {
-                    upload = upload_list->result;	/* Got the upload info */
-                    security_print_result(&upload);
+					upload = upload_list->result;	/* Got the upload info */
+					security_print_result(&upload);
 					upload_received = true;
 				}
-                upload_list_prev->next = upload_list->next;  /* cross upload_list */
-                if (upload_list == info->upload_list) {  /* list head, move list head to next */
+				upload_list_prev->next = upload_list->next;	/* cross upload_list */
+				if (upload_list == info->upload_list) {	/* list head, move list head to next */
 					info->upload_list = upload_list->next;
-                }
+				}
 				if (upload_received == true) {
 					/* TODO: we can process the upload now, TBD */
 					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
@@ -1190,10 +1211,10 @@ void *security_upload_loop(void *data)
 
 				free(upload.payload);
 				upload.payload = NULL;
-                free(upload_list);
-                upload_list = NULL;
-            }
-        }
+				free(upload_list);
+				upload_list = NULL;
+			}
+		}
 		unlock_security(&info->upload_lock);
 	}
 }
@@ -1201,12 +1222,12 @@ void *security_upload_loop(void *data)
 void *security_read_loop(void *data)
 {
 	int nrd;
-	security_info_t *info = (security_info_t *)data;
+	security_info_t *info = (security_info_t *) data;
 	int fd = info->fd;
 	security_package_t result;
 	uint8_t *buf = NULL;
 
-	while(true) {
+	while (true) {
 		buf = info->rbuf;
 		memset(&result, 0, sizeof(security_package_t));
 		memset(buf, 0, SECURITY_MTU);
@@ -1220,14 +1241,16 @@ void *security_read_loop(void *data)
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
 		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {
-			printf("%s: oops, nrd=%d, hdr.hdr=%x, hdr.type=%x, hdr.version=%x, hdr.len=%x, hdr.cmd=%x.\n",
-					__func__, nrd, result.hdr.hdr, result.hdr.type, result.hdr.version, result.hdr.len, result.hdr.cmd);
+			printf
+				("%s: oops, nrd=%d, hdr.hdr=%x, hdr.type=%x, hdr.version=%x, hdr.len=%x, hdr.cmd=%x.\n",
+				 __func__, nrd, result.hdr.hdr, result.hdr.type, result.hdr.version, result.hdr.len,
+				 result.hdr.cmd);
 			continue;
 		}
 
 		buf += SECURITY_PACK_HDR_SIZE;
 		if (result.hdr.len > 1) {
-			result.payload = (uint8_t *)malloc(result.hdr.len - 1);
+			result.payload = (uint8_t *) malloc(result.hdr.len - 1);
 			if (result.payload == NULL) {
 				printf("%s: can't alloc memory for payload.\n", __func__);
 				continue;
@@ -1240,27 +1263,25 @@ void *security_read_loop(void *data)
 		/* check if crc match */
 		if (result.crc != security_crc(&result.hdr, result.payload)) {
 			printf("%s: crc isn't right, read crc=%d, calc crc=%d.\n", __func__,
-							result.crc, security_crc(&result.hdr, result.payload));
+				   result.crc, security_crc(&result.hdr, result.payload));
 			continue;
 		}
 
 		if (result.hdr.type == ERROR_TYPE) {
-			printf("%s: Occur a error, errno = %x\n",
-				__func__, result.hdr.cmd);
+			printf("%s: Occur a error, errno = %x\n", __func__, result.hdr.cmd);
 		}
 
 		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list
-			DATA_FORWARD also need */
+		   DATA_FORWARD also need */
 
-		if (result.hdr.type == UPLOAD_INFO_TYPE ||
-			result.hdr.type == DATA_FORWA_TYPE)
+		if (result.hdr.type == UPLOAD_INFO_TYPE || result.hdr.type == DATA_FORWA_TYPE)
 			security_signal_upload(info, &result);
 		else
 			security_signal_result(info, &result);
 	}
 }
 
-int start_security(security_info_t *info)
+int start_security(security_info_t * info)
 {
 	int ret;
 	pthread_attr_t attr;
@@ -1281,7 +1302,7 @@ int start_security(security_info_t *info)
 	security_get_status(info->fd);
 	sleep(6);
 
-	pthread_attr_init (&attr);
+	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 	ret = pthread_create(&info->read_thread, &attr, security_read_loop, (void *)info);
@@ -1295,6 +1316,7 @@ int start_security(security_info_t *info)
 		printf("create security thread failed.\n");
 		goto create_thread_failed;
 	}
+
 /*
 	security_reset(info->fd);
 	security_get_status(info->fd);
@@ -1305,7 +1327,7 @@ int start_security(security_info_t *info)
 	/* FIXME : sequential */
 	/* wait for ready */
 #ifndef TEST
-	while(security_get_status(info->fd) == BUSY) {
+	while (security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);
 	}
@@ -1314,12 +1336,12 @@ int start_security(security_info_t *info)
 
 	return NO_ERROR;
 
-create_thread_failed:
+  create_thread_failed:
 	security_close(info->fd);
 	return -FAILED;
 }
 
-void stop_security(security_info_t *info)
+void stop_security(security_info_t * info)
 {
 	if (info == NULL)
 		return;
@@ -1327,9 +1349,9 @@ void stop_security(security_info_t *info)
 	close(info->fd);
 }
 
-int alloc_security(security_info_t **security_info)
+int alloc_security(security_info_t ** security_info)
 {
-	*security_info = (security_info_t *)malloc(sizeof(security_info_t));
+	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
 		return -ENOMEM;
@@ -1347,7 +1369,7 @@ int alloc_security(security_info_t **security_info)
 	return NO_ERROR;
 }
 
-void release_security(security_info_t **security_info)
+void release_security(security_info_t ** security_info)
 {
 	security_info_t *info;
 	//pthread_join(upload_thread, NULL);
@@ -1379,7 +1401,7 @@ void release_security(security_info_t **security_info)
 	info = NULL;
 }
 
-void test_security(security_info_t *pr)
+void test_security(security_info_t * pr)
 {
 	int ret = NO_ERROR;
 	int i = 0;
@@ -1396,7 +1418,7 @@ void test_security(security_info_t *pr)
 
 	//ret = alloc_security(&pr);
 	//if (ret != NO_ERROR)
-	//	return;
+	//  return;
 
 	//ret = start_security(pr);
 #if 0
@@ -1408,12 +1430,16 @@ void test_security(security_info_t *pr)
 
 	ret = security_get_firmware_version(pr, &param);
 	if (ret == NO_ERROR)
-		printf("get_firmware_version: type=%x, hw_ver=%x, ctrl_boot_ver=%x, encry_boot_ver=%x, ctrl_ver=%x, encry1_ver=%x, encry2_ver=%x.\n", param.type, param.hw_ver, param.ctrl_boot_ver, param.encry_boot_ver, param.ctrl_ver, param.encry1_ver, param.encry2_ver);
+		printf
+			("get_firmware_version: type=%x, hw_ver=%x, ctrl_boot_ver=%x, encry_boot_ver=%x, ctrl_ver=%x, encry1_ver=%x, encry2_ver=%x.\n",
+			 param.type, param.hw_ver, param.ctrl_boot_ver, param.encry_boot_ver, param.ctrl_ver,
+			 param.encry1_ver, param.encry2_ver);
 
 	printf("*********************get_serial_number****************************\n");
 	ret = security_get_serial_number(pr, &ser_num);
 	if (ret == NO_ERROR)
-		printf("get_serial_number: type=%x, ser_num=%lx.\n", ser_num.type, (unsigned long)ser_num.serial_num);
+		printf("get_serial_number: type=%x, ser_num=%lx.\n", ser_num.type,
+			   (unsigned long)ser_num.serial_num);
 	printf("********************get_repeat_read_flag*****************************\n");
 
 	ret = security_get_repeat_read_flag(pr, &re_re);
@@ -1438,12 +1464,12 @@ void test_security(security_info_t *pr)
 	part2.read_index = 0;
 	part2.read_len = 234;
 #if 0
-	setup_work_mode = (work_mode_param *)malloc(2 + 2*7);
+	setup_work_mode = (work_mode_param *) malloc(2 + 2 * 7);
 	setup_work_mode->num = 2;
 	memcpy(setup_work_mode->data, (void *)&part1, 7);
 	memcpy(setup_work_mode->data + 7, (void *)&part2, 7);
 #else
-	setup_work_mode = (work_mode_param *)malloc(1);
+	setup_work_mode = (work_mode_param *) malloc(1);
 	setup_work_mode->num = 0;
 #endif
 	ret = security_set_work_mode(pr, setup_work_mode);
@@ -1485,12 +1511,11 @@ void test_security(security_info_t *pr)
 	if (ret == NO_ERROR) {
 		printf("get_rand_num: %llx\n", sec_rand);
 
-		for (i = 0; i < 8; i ++)
-			printf("%4x", *((uint8_t *)&sec_rand + i));
+		for (i = 0; i < 8; i++)
+			printf("%4x", *((uint8_t *) & sec_rand + i));
 
 		printf("\n");
 	}
-
 #endif
 	printf("********************END*****************************\n");
 //test_fail:
@@ -1498,7 +1523,7 @@ void test_security(security_info_t *pr)
 	//release_security(&pr);
 }
 
-int security_main(security_info_t *info)
+int security_main(security_info_t * info)
 {
 	printf("Enter security_main.\n");
 	test_security(info);

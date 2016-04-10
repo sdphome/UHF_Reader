@@ -18,7 +18,6 @@
  ***************************************************************************
  */
 
-
 #ifndef _LTKC_H
 #define _LTKC_H
 
@@ -35,10 +34,6 @@
 #define STRINGIFY(x) XSTRINGIFY(x)
 #define XSTRINGIFY(x) #x
 
+extern LLRP_tSTypeRegistry *LLRP_getTheTypeRegistry(void);
 
-extern LLRP_tSTypeRegistry *
-LLRP_getTheTypeRegistry (void);
-
-
-#endif /* !_LTKC_H */
-
+#endif							/* !_LTKC_H */

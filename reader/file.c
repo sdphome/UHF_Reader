@@ -16,7 +16,7 @@ unsigned long file_get_size(const char *path)
 	return filesize;
 }
 
-int file_read_data(uint8_t *buf, FILE *fp, unsigned long size)
+int file_read_data(uint8_t * buf, FILE * fp, unsigned long size)
 {
 	int ret = NO_ERROR;
 	unsigned long nrd = 0;
@@ -29,7 +29,7 @@ int file_read_data(uint8_t *buf, FILE *fp, unsigned long size)
 	return ret;
 }
 
-int file_write_data(uint8_t *buf, FILE *fp, unsigned long size)
+int file_write_data(uint8_t * buf, FILE * fp, unsigned long size)
 {
 	int ret = NO_ERROR;
 	unsigned long nwr = 0;
