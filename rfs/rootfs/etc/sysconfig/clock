@@ -1,0 +1,4 @@
+ZONE="Asia/Shanghai"
+UTC=true
+ARC=false
+SRM=false
