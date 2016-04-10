@@ -183,7 +183,7 @@ static int upper_send_message(upper_info_t *info, LLRP_tSMessage *pSendMsg)
 		printf("INFO: Sending:\n");
 		upper_print_XML_message(pSendMsg);
 	}
-
+	pSendMsg->DeviceSN = 0x1234;
 	pSendMsg->Version = 1;
 	//pSendMsg->MessageID = info->next_msg_id ++;
 
@@ -329,8 +329,8 @@ static int upper_process_DeviceBinding(upper_info_t *info, LLRP_tSDeviceBinding 
 static int upper_request_Keepalive(upper_info_t *info)
 {
 	int ret = NO_ERROR;
-	LLRP_tSKeepalive *pKA;
-	LLRP_tSKeepaliveAck *pAck;
+	LLRP_tSKeepalive *pKA = NULL;
+	LLRP_tSKeepaliveAck *pAck = NULL;
 
 	pKA = LLRP_Keepalive_construct();
 	pKA->hdr.MessageID = info->next_msg_id ++;
@@ -345,7 +345,10 @@ static int upper_request_Keepalive(upper_info_t *info)
 	unlock_upper(&info->lock);
 
 	LLRP_Keepalive_destruct(pKA);
-	LLRP_Element_destruct(&pAck->hdr.elementHdr);
+	if (pAck != NULL)
+		LLRP_Element_destruct(&pAck->hdr.elementHdr);
+
+	return ret;
 }
 
 int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
@@ -355,10 +358,14 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 	LLRP_tSTagReportData *pTRD;
 	llrp_u8v_t Tid;
 
-	printf("%s: ++++++++\n");
+	if (info == NULL) {
+		printf("info is null.\n");
+		return 0;
+	} else
+		printf("info ptr = %p.\n", info);
 
 	if (info->status != 1) {
-		printf("%s: upper hasn't ready.\n");
+		printf("%s: upper hasn't ready.\n", __func__);
 		return 0;
 	}
 	pTSAR = LLRP_TagSelectAccessReport_construct();
@@ -368,7 +375,8 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 
 	Tid.nValue = 8;
 	Tid.pValue = (llrp_u8_t *)malloc(Tid.nValue);
-	upper_hton_64(Tid.pValue, tid);
+	//upper_hton_64(Tid.pValue, tid);
+	memcpy(Tid.pValue, &tid, 8);
 
 	LLRP_TagReportData_setTID(pTRD, Tid);
 	LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
@@ -379,10 +387,9 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 
 	unlock_upper(&info->lock);
 	LLRP_TagSelectAccessReport_destruct(pTSAR);
-	printf("%s: -----------\n");
 	return 0;
 }
-
+#if 0
 static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDeviceCertificateConfig *pDCC)
 {
 	int ret = NO_ERROR;
@@ -418,7 +425,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDevi
 
 	return ret;
 }
-
+#endif
 static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 {
 	uint16_t type;
@@ -429,10 +436,10 @@ static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 
 	switch (type) {
 		case 600: //DeviceBinding
-			upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *)pRequest);
+			//upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *)pRequest);
 			break;
 		case 602: //DeviceCertificateConfig
-			upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *)pRequest);
+			//upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *)pRequest);
 			break;
 		default:
 			printf("hasn't support this type.\n");
@@ -444,7 +451,7 @@ static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 
 int upper_send_heartbeat(upper_info_t *info)
 {
-	return 0;
+	return upper_request_Keepalive(info);
 }
 
 static void *upper_request_loop(void *data)
@@ -509,7 +516,7 @@ void *upper_read_loop(void *data)
 		}
     }
 
-	info->status = 0;
+	//info->status = 0;
 	lock_upper(&info->disconnect_lock);
 	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
@@ -535,6 +542,8 @@ int start_upper(upper_info_t *info)
 	void *status;
 
 	while (true) {
+		//if (info->pConn == NULL)
+		//	printf("%s: pConn is null.\n", __func__);
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
 			printf("%s: start server failed, error:%s.\n", __func__, info->pConn->pConnectErrorStr);

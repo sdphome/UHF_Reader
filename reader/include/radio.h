@@ -31,6 +31,7 @@
 #define RADIO_TIMEOUT					2
 #define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
 
+#define RADIO_DEFAULT_PATH	"/home/root/radio_fw.bin"
 
 /* ---------- Response Result ---------- */
 #define NO_ERROR                        0
@@ -238,7 +239,10 @@ typedef struct {
     radio_result_list_t *result_list;
     uint8_t data[RADIO_MTU];
 
+	uint8_t fw_path[30];
 	uint32_t heartbeats_periodic;
+
+	uint8_t flashing;
 
 	void *uhf;
 } radio_info_t;

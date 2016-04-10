@@ -273,6 +273,8 @@ int security_write(security_info_t *info, uint8_t type, uint8_t cmd, uint16_t le
 	uint8_t *buf = info->wbuf;
 	security_pack_hdr hdr;
 
+	printf("%s: +++++++\n", __func__);
+
 	hdr.hdr = PACK_SEND_HDR;
 	hdr.type = type;
 	hdr.version = SECURITY_VERSION_1;   /* TODO: Attention the version */
@@ -684,6 +686,7 @@ int security_set_work_mode(security_info_t *info, work_mode_param *param)
 		return -FAILED;
 	}
 
+	memset(&result, 0, sizeof(security_package_t));
 	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, SETUP_MODE,
@@ -1071,6 +1074,44 @@ int security_upgrade_firmware(security_info_t *info, char *file)
 	return ret;
 }
 
+static void security_upload_part(security_info_t *info, security_package_t *upload)
+{
+	uint8_t err_type;
+
+	err_type = *upload->payload;
+
+	switch (err_type) {
+		case NO_ERROR: {
+/*
+			if (upload->hdr.version == SECURITY_VERSION_1) {
+				tid_upload_v1_param *param;
+				param = (tid_upload_v1_param *)upload->payload;
+				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
+							param->tid, param->ante_no, param->time);
+			} else {
+*/
+				part_data_upload_v2_param *param;
+				param = (part_data_upload_v2_param *)upload->payload;
+				if (info->uhf != NULL && ((uhf_info_t *)(info->uhf))->upper != NULL) {
+					upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
+								param->tid, param->ante_no, param->time);
+				}
+/*
+			}
+*/
+
+			break;
+		}
+		case TID_DECIP_FAILED:
+			break;
+		case WRONG_CHECK:
+			break;
+		default:
+			printf("%s: unknown error type %d.\n", __func__, err_type);
+			break;
+	}
+}
+
 static void security_upload_tid(security_info_t *info, security_package_t *upload)
 {
 	uint8_t err_type;
@@ -1119,7 +1160,6 @@ void *security_upload_loop(void *data)
 		lock_security(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
-	printf("%s: +++++++\n", __func__);
         if (info->upload_list != NULL) {
             security_result_list_t *upload_list = info->upload_list;
             security_result_list_t *upload_list_prev = info->upload_list;
@@ -1134,18 +1174,17 @@ void *security_upload_loop(void *data)
                 if (upload_list == info->upload_list) {  /* list head, move list head to next */
 					info->upload_list = upload_list->next;
                 }
-	printf("%s: ----------------\n", __func__);
 				if (upload_received == true) {
-					printf("upload.hdr.type = %x.\n", upload.hdr.type);
 					/* TODO: we can process the upload now, TBD */
 					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
 						if (upload.hdr.cmd == REPORT_TID) {
 							security_upload_tid(info, &upload);
 						} else if (upload.hdr.cmd == REPORT_PART) {
-							printf("%s: Got REPORT_PART cmd.\n", __func__);
+							security_upload_part(info, &upload);
+							//printf("%s: Got REPORT_PART cmd.\n", __func__);
 						}
 					} else if (upload.hdr.type == DATA_FORWA_TYPE) {
-						printf("%s: Got DATA_FORWA_TYPE.\n", __func__);
+						//printf("%s: Got DATA_FORWA_TYPE.\n", __func__);
 					}
 				}
 
@@ -1153,7 +1192,6 @@ void *security_upload_loop(void *data)
 				upload.payload = NULL;
                 free(upload_list);
                 upload_list = NULL;
-		printf("%s: #######################\n", __func__);
             }
         }
 		unlock_security(&info->upload_lock);
@@ -1358,7 +1396,7 @@ void test_security(security_info_t *pr)
 
 	//ret = alloc_security(&pr);
 	//if (ret != NO_ERROR)
-		return;
+	//	return;
 
 	//ret = start_security(pr);
 #if 0
@@ -1453,8 +1491,8 @@ void test_security(security_info_t *pr)
 		printf("\n");
 	}
 
-	printf("********************END*****************************\n");
 #endif
+	printf("********************END*****************************\n");
 //test_fail:
 	//stop_security(pr);
 	//release_security(&pr);
@@ -1462,6 +1500,8 @@ void test_security(security_info_t *pr)
 
 int security_main(security_info_t *info)
 {
+	printf("Enter security_main.\n");
 	test_security(info);
+	printf("Exit security_main.\n");
 	return 0;
 }

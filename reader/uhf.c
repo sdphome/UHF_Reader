@@ -68,11 +68,15 @@ void *uhf_heartbeat_loop(void *data)
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
 		base = radio_per_seconds * upper_per_seconds;
 
-		if (count % radio_per_seconds == 0)
+		if (count % radio_per_seconds == 0) {
+			printf("%s: radio send heartbeat.\n");
 			radio_send_heartbeat(radio);
+		}
 
-		if (count % upper_per_seconds == 0)
+		if (count % upper_per_seconds == 0) {
+			printf("%s: upper set heartbeat.\n");
 			upper_send_heartbeat(upper);
+		}
 
 		if (count++ == base)
 			count = 1;
@@ -110,6 +114,8 @@ int main(int argc, char** argv)
 	if (p_uhf == NULL)
 		return -ENOMEM;
 
+	memset(p_uhf, 0, sizeof(uhf_info_t));
+
 	ret = alloc_radio(&p_uhf->radio);
 	ret += alloc_security(&p_uhf->security);
 	ret += alloc_upper(&p_uhf->upper);
@@ -123,14 +129,17 @@ int main(int argc, char** argv)
 	uhf_init_security(p_uhf);
 	p_uhf->upper->uhf = (void *)p_uhf;
 
+	security_main(p_uhf->security);
+
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
 
-	security_main(p_uhf->security);
 	radio_main(p_uhf->radio);
+
+	uhf_create_heartbeat_thread(p_uhf);
 
 	printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 

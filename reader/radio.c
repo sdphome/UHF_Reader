@@ -306,7 +306,7 @@ int radio_read(radio_info_t *radio_info, radio_result_t *rsp)
 	uint16_t len = 0;
 	uint16_t type = 0;
 
-	printf("%s: +\n", __func__);
+	//printf("%s: +\n", __func__);
 
     nrd = read(fd, data, RADIO_MTU);
 
@@ -324,7 +324,7 @@ int radio_read(radio_info_t *radio_info, radio_result_t *rsp)
 			}
 			memcpy(&rsp->end, data, RADIO_PACK_END_SIZE);
 
-			//radio_print_result(*rsp);
+			radio_print_result(*rsp);
 
 			rsp->end.crc16 = conv_type16(rsp->end.crc16);
 			if (rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload)) {
@@ -363,6 +363,13 @@ int radio_write(radio_info_t *radio_info, uint8_t cmd, uint16_t len, uint8_t *pa
         printf("%s: payload is too long.\n", __func__);
         return -FAILED;
     }
+
+	if (radio_info->flashing == true)
+		if (cmd != REQ_RADIO_UPGRADE || cmd != MID_UPGRADE_PACK ||
+			cmd != LAST_UPGRADE_PACK) {
+			printf("%s: can't send cmd 0x%x, radio is flashing...\n", __func__, cmd);
+			return -FAILED;
+		}
 
     hdr.hdr = PACK_HDR;
     hdr.type = REQUEST_TYPE;
@@ -474,6 +481,47 @@ int radio_set_version(radio_info_t *radio_info)
 
     return ret;
 }
+
+int radio_update_firmware(radio_info_t *info)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+	uint8_t buf[128];
+	uint8_t status = 0;
+	unsigned long size = 0;
+	unsigned long left = 0;
+
+	info->flashing = true;
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	lock_radio(&info->c_lock);
+
+	ret = radio_write(info, REQ_RADIO_UPGRADE, 0, NULL);
+	if (ret != NO_ERROR) {
+		printf("request radio upgrade failed.\n");
+		goto out;
+	}
+
+	radio_wait_result(info, REQ_RADIO_UPGRADE, &result);
+	if (result.payload != NULL) {
+		status = *result.payload;
+		free(result.payload);
+	} else {
+		printf("REQ_RADIO_UPGRADE result payload is null.\n");
+		goto out;
+	}
+
+	if (status != NO_ERROR) {
+		printf("REQ_RADIO_UPGRADE result is %x.\n", status);
+		goto out;
+	}
+
+out:
+	unlock_radio(&info->c_lock);
+	return ret;
+}
+
 /*
 int radio_(radio_info_t *radio_info)
 {
@@ -575,6 +623,8 @@ int radio_set_conti_check(radio_info_t *radio_info)
 	uint8_t dummy = 0;
 
 	printf("%s +\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
 
 	lock_radio(&radio_info->c_lock);
 
@@ -682,10 +732,12 @@ int radio_get_status(radio_info_t *radio_info)
 
     unlock_radio(&radio_info->c_lock);
 
-	status = *result.payload;
-    //radio_print_result(result);
-    free(result.payload);
-    result.payload = NULL;
+	if (result.payload != NULL) {
+		status = *result.payload;
+    		//radio_print_result(result);
+    		free(result.payload);
+    		result.payload = NULL;
+	}
 
 	printf("%s, status=%d, -\n", __func__, status);
 	return status;
@@ -747,6 +799,7 @@ int alloc_radio(radio_info_t **radio_info)
 	(*radio_info)->fd = -1;
 	(*radio_info)->result_list = NULL;
 	(*radio_info)->heartbeats_periodic = RADIO_DEFAULT_HEARTBEATS_PERIODIC;
+	(*radio_info)->flashing = false;
 
 	pthread_mutex_init(&(*radio_info)->c_lock, NULL);
 	pthread_cond_init(&(*radio_info)->c_cond, NULL);
@@ -851,7 +904,7 @@ int test_radio(radio_info_t *pr)
 	/* disable fhss */
 	//radio_set_fhss(pr, false);
 
-	radio_set_conti_check(pr);
+	ret = radio_set_conti_check(pr);
 	/* enable no.4 antenna */
 	//radio_set_antenna_attr(pr, NO_TO_ATTR(4));
 
