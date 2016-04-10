@@ -389,7 +389,7 @@ int upper_request_TagSelectAccessReport(upper_info_t *info, llrp_u64_t tid,
 	LLRP_TagSelectAccessReport_destruct(pTSAR);
 	return 0;
 }
-#if 0
+
 static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDeviceCertificateConfig *pDCC)
 {
 	int ret = NO_ERROR;
@@ -425,7 +425,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t *info, LLRP_tSDevi
 
 	return ret;
 }
-#endif
+
 static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 {
 	uint16_t type;
@@ -436,10 +436,10 @@ static void upper_process_request(upper_info_t *info, LLRP_tSMessage *pRequest)
 
 	switch (type) {
 		case 600: //DeviceBinding
-			//upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *)pRequest);
+			upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *)pRequest);
 			break;
 		case 602: //DeviceCertificateConfig
-			//upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *)pRequest);
+			upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *)pRequest);
 			break;
 		default:
 			printf("hasn't support this type.\n");
