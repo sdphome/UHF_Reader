@@ -52,7 +52,11 @@ static int uhf_init_radio(uhf_info_t *p_uhf)
 	radio_info_t *radio = p_uhf->radio;
 
 	radio->uhf = (void *)p_uhf;
-	return 0;
+
+	printf("%s: start continue check.\n", __func__);
+	ret = radio_set_conti_check(radio);
+
+	return ret;
 }
 
 void *uhf_heartbeat_loop(void *data)
@@ -137,18 +141,13 @@ int main(int argc, char** argv)
 
 	uhf_init_radio(p_uhf);
 
-	radio_main(p_uhf->radio);
-
 	uhf_create_heartbeat_thread(p_uhf);
 
-	printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("Let's start the upper loop\n");
 
 	ret = start_upper(p_uhf->upper);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-	while (1)
-		sleep(5);
 
 	return 0;
 
