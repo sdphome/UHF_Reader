@@ -23,9 +23,6 @@
 
 #define SECURITY_DEV        "/dev/uhf_security"
 
-#define false							0
-#define true							1
-
 #define SECURITY_MTU					1500
 #define SECURITY_TIMEOUT				5
 
@@ -35,12 +32,8 @@
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 
 /* security module status */
-#define OK 								0
+#define OK 							0
 #define BUSY							1
-
-/* ---------- Response Result ---------- */
-#define NO_ERROR						0
-#define FAILED							1
 
 
 #define PACK_SEND_HDR					0xAA

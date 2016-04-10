@@ -25,17 +25,10 @@
 
 #define RADIO_PORT      "/dev/ttymxc1"
 
-#define false                           0
-#define true                            1
-
-#define RADIO_TIMEOUT					2
+#define RADIO_TIMEOUT					5
 #define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
 
-#define RADIO_DEFAULT_PATH	"/home/root/radio_fw.bin"
-
-/* ---------- Response Result ---------- */
-#define NO_ERROR                        0
-#define FAILED                          1
+#define RADIO_FW_DEFAULT_PATH	"/home/root/radio_fw.bin"
 
 /* ---------- Package Fixed Value ---------- */
 #define PACK_HDR                        0xFA
@@ -185,12 +178,12 @@ typedef struct {
 }__attribute__ ((packed)) pa_enable_param;
 #define PA_ENABLE_PARAM_SIZE            1
 
-/* start/stop check has no data */
+/* start/stop check, has no data */
 #define START_RADIO_WORK                0x00F0
 #define STOP_RADIO_WORK                 0x00F1
 #define REBOOT_RADIO_MODULE             0x00F2
 
-/* module upgrade cmd has no data */
+/* module upgrade cmd, has no data */
 #define REQ_RADIO_UPGRADE               0x00F3
 #define MID_UPGRADE_PACK                0x00F4
 #define LAST_UPGRADE_PACK               0x00F5

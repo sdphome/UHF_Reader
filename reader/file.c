@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <stdint.h>
+#include <uhf.h>
 
 unsigned long file_get_size(const char *path)
 {

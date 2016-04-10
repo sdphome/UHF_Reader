@@ -183,7 +183,7 @@ int radio_wait_result(radio_info_t *radio_info, uint8_t cmd, radio_result_t *res
 		if (ret == ETIMEDOUT) {
 			printf("%s: timeout for cmd %d\n", __func__, cmd);
 			return ret;
-		}
+		} else ret = NO_ERROR;
         if (radio_info->result_list != NULL) {
             radio_result_list_t *result_list = radio_info->result_list;
             radio_result_list_t *result_list_prev = radio_info->result_list;
@@ -490,21 +490,31 @@ int radio_update_firmware(radio_info_t *info)
 	uint8_t status = 0;
 	unsigned long size = 0;
 	unsigned long left = 0;
+	FILE *fp = NULL;
 
-	info->flashing = true;
 
 	memset(&result, 0, sizeof(radio_result_t));
 
+	size = file_get_size(RADIO_FW_DEFAULT_PATH);
+	left = size;
+	if (size <= 0) {
+		printf("%s: can't get %s size, ret = %d.\n", __func__, RADIO_FW_DEFAULT_PATH);
+		return -FAILED;
+	}
+
 	lock_radio(&info->c_lock);
 
+	info->flashing = true;
+
+	/* 1.request upgrade */
 	ret = radio_write(info, REQ_RADIO_UPGRADE, 0, NULL);
 	if (ret != NO_ERROR) {
 		printf("request radio upgrade failed.\n");
 		goto out;
 	}
 
-	radio_wait_result(info, REQ_RADIO_UPGRADE, &result);
-	if (result.payload != NULL) {
+	ret = radio_wait_result(info, REQ_RADIO_UPGRADE, &result);
+	if (ret = NO_ERROR && result.payload != NULL) {
 		status = *result.payload;
 		free(result.payload);
 	} else {
@@ -517,7 +527,52 @@ int radio_update_firmware(radio_info_t *info)
 		goto out;
 	}
 
+	fp = fopen(RADIO_FW_DEFAULT_PATH, 'r');
+	rewind(fp);
+
+	/* 2. begin upgrade */
+	while (left > 128) {
+		memset(&result, 0, sizeof(radio_result_t));
+		ret = file_read_data(buf, fp, 128);
+		if (ret != NO_ERROR)
+			goto out;
+
+		left = left - 128;
+
+		ret = radio_write(info, MID_UPGRADE_PACK, 128, buf);
+		if (ret != NO_ERROR)
+			goto out;
+
+		ret = radio_wait_result(info, MID_UPGRADE_PACK, &result);
+		if (ret = NO_ERROR && result.payload != NULL) {
+			status = *result.payload;
+			free(result.payload);
+		} else {
+			printf("MID_UPGRADE_PACK result payload is null");
+			goto out;
+		}
+	}
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	/* 3. last package */
+	ret = file_read_data(buf, fp, left);
+	if (ret != NO_ERROR)
+		goto out;
+
+	ret = radio_write(info, LAST_UPGRADE_PACK, left, buf);
+	if (ret != NO_ERROR)
+		goto out;
+
+	ret = radio_wait_result(info, LAST_UPGRADE_PACK, &result);
+	if (ret = NO_ERROR && result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+	}
+
 out:
+	info->flashing = false;
+	if (fp != NULL) fclose(fp);
 	unlock_radio(&info->c_lock);
 	return ret;
 }

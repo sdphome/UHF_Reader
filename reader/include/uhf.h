@@ -25,7 +25,14 @@
 #include "file.h"
 
 #define ACTIVE_CER_PATH     "/home/root/active.cer"
-#define USER_INFO_PATH      "/home/root/user_info"
+#define USER_INFO_PATH      "/home/root/user_info.bin"
+
+#define false			0
+#define true			1
+
+#define NO_ERROR		0
+#define FAILED			1
+
 
 typedef struct uhf_info {
 	int status;

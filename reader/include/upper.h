@@ -21,13 +21,8 @@
 #include <stdint.h>
 #include "../utils/llrp/ltkc.h"
 
-#define NO_ERROR			0
-#define FAILED				1
 
-#define false				0
-#define true				1
-
-#define UPPER_TIMEOUT		3
+#define UPPER_TIMEOUT				5
 
 #define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
 

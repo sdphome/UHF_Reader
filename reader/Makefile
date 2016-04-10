@@ -31,6 +31,7 @@ UHF_HDRS		= include
 
 UHF_OBJS = \
 	$(OBJS)/uhf.o	\
+	$(OBJS)/file.o	\
 	$(OBJS)/upper.o	\
 	$(OBJS)/radio.o	\
 	$(OBJS)/security.o
@@ -54,6 +55,9 @@ $(OBJS)/radio.o: radio.c
 
 $(OBJS)/security.o: security.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(SM2_INCLU) -I $(UHF_HDRS)
+
+$(OBJS)/file.o: file.c
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)
 
 clean:
 	find -name '*.o' -exec rm -rf {} \;
