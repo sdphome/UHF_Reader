@@ -581,7 +581,7 @@ int radio_update_firmware(radio_info_t * info)
 		goto out;
 	}
 
-	fp = fopen(RADIO_FW_DEFAULT_PATH, 'r');
+	fp = fopen(RADIO_FW_DEFAULT_PATH, "r");
 	rewind(fp);
 
 	/* 2. begin upgrade */

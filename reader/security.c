@@ -333,7 +333,7 @@ int security_set_rtc(security_info_t * info)
 	time_t rawtime;
 	struct tm *timeinfo;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	time(&rawtime);
 	printf("%s: %x\n", __func__, (unsigned int)rawtime);
@@ -387,7 +387,7 @@ uint64_t security_get_rtc(security_info_t * info)
 	timestamp_v2_param time;
 	time_t lt;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
 
@@ -433,7 +433,7 @@ static int security_set_params(security_info_t * info, uint8_t * param)
 	security_package_t result;
 	uint16_t len;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	if (*(uint16_t *) param == REPEAT_READ) {
 		len = REPEAT_READ_PARAM_SIZE + 1;
@@ -505,7 +505,7 @@ static uint8_t *security_get_params(security_info_t * info, uint16_t type)
 	get_params_param param;
 	security_package_t result;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	param.type = type;
 
@@ -670,7 +670,7 @@ int security_get_perm(security_info_t * info, perm_table_param * param)
 		return -FAILED;
 	}
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
 
@@ -709,9 +709,8 @@ int security_set_work_mode(security_info_t * info, work_mode_param * param)
 		return -FAILED;
 	}
 
-	memset(&result, 0, result);
-
 	memset(&result, 0, sizeof(security_package_t));
+
 	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, SETUP_MODE,
@@ -748,7 +747,7 @@ uint64_t security_request_rand_num(security_info_t * info)
 	security_package_t result;
 	uint64_t sec_rand;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
 
@@ -782,39 +781,6 @@ uint64_t security_request_rand_num(security_info_t * info)
 		return sec_rand;
 	} else
 		return NO_ERROR;
-}
-
-static unsigned long security_get_file_size(const char *path)
-{
-	unsigned long size = -1;
-	FILE *fp;
-
-	fp = fopen(path, "r");
-	if (fp == NULL)
-		return size;
-
-	fseek(fp, 0L, SEEK_END);
-	size = ftell(fp);
-	fclose(fp);
-
-	return size;
-}
-
-static int security_read_file(uint8_t * x509, char *path, unsigned long size)
-{
-	unsigned long nrd;
-	FILE *fp = fopen(path, "r");
-
-	/* TODO: add a loop to read file */
-	rewind(fp);
-	nrd = fread(x509, 1, size, fp);
-
-	if (nrd == size)
-		return NO_ERROR;
-	else
-		return -FAILED;
-
-	fclose(fp);
 }
 
 static int security_digi_sign(security_info_t * info, auth_data_param * param)
@@ -855,10 +821,11 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	unsigned long size = -1;
 	auth_data_param *param = NULL;
 	security_package_t result;
+	FILE *fp = NULL;
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
-	size = security_get_file_size(info->auth_x509_path);
+	size = file_get_size(info->auth_x509_path);
 	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
 		printf("%s: x509 size error, size = %ld.\n", __func__, size);
 		return -FAILED;
@@ -874,12 +841,16 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	memcpy(param->sec_rand, &sec_rand, RAND_NUM_PARAM_SIZE);
 	param->serial = info->serial;
 	param->reserve = 0;
-	ret = security_read_file(param->x509, info->auth_x509_path, size);
+
+	fp = fopen(info->auth_x509_path, "r");
+	ret = file_read_data(param->x509, fp, size);
 	if (ret != NO_ERROR) {
 		printf("%s: read x509 failed.\n", __func__);
+		fclose(fp);
 		free(param);
 		return ret;
 	}
+	fclose(fp);
 
 	/* 3. digital signature */
 	/* CARE: Need use big endian data */
@@ -928,7 +899,7 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 	int ret = NO_ERROR;
 	user_info_param user_info;
 
-	memset(&result, 0, result);
+	memset(result, 0, sizeof(security_package_t));
 	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
 	/* TODO: fill user_info */
 
@@ -973,7 +944,7 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 		return -FAILED;
 	}
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
 
@@ -1009,7 +980,7 @@ int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_
 		return -FAILED;
 	}
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
 
@@ -1044,6 +1015,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	uint16_t num_block;
 	security_package_t result;
 	firmware_data *data;
+	FILE *fp;
 	int i = 0;
 
 	if (file == NULL) {
@@ -1051,21 +1023,24 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 		return -FAILED;
 	}
 
-	memset(&result, 0, result);
+	memset(&result, 0, sizeof(security_package_t));
 
-	file_size = security_get_file_size(file);
+	file_size = file_get_size(file);
 
 	buf = (uint8_t *) malloc(file_size);
 	if (buf == NULL)
 		return -ENOMEM;
 
-	ret = security_read_file(buf, file, file_size);
+	fp = fopen(file, "r");
+	ret = file_read_data(buf, fp, file_size);
 	if (ret != NO_ERROR) {
 		printf("%s: read firmware failed.\n", __func__);
 		free(buf);
+		fclose(fp);
 		buf = NULL;
 		return ret;
 	}
+	fclose(fp);
 
 	data = (firmware_data *) buf;
 

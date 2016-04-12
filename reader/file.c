@@ -21,6 +21,9 @@ int file_read_data(uint8_t * buf, FILE * fp, unsigned long size)
 	int ret = NO_ERROR;
 	unsigned long nrd = 0;
 
+	if (fp == NULL || size == 0)
+		return -FAILED;
+
 	nrd = fread(buf, size, 1, fp);
 
 	if (nrd != size)
@@ -33,6 +36,9 @@ int file_write_data(uint8_t * buf, FILE * fp, unsigned long size)
 {
 	int ret = NO_ERROR;
 	unsigned long nwr = 0;
+
+	if (fp == NULL || size == 0)
+		return -FAILED;
 
 	nwr = fwrite(buf, size, 1, fp);
 
