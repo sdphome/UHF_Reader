@@ -247,5 +247,6 @@ int alloc_radio(radio_info_t ** radio_info);
 void release_radio(radio_info_t ** radio_info);
 void radio_print_result(radio_result_t result);
 int radio_send_heartbeat(radio_info_t * info);
+int radio_update_firmware(radio_info_t * info);
 
 #endif							/* __RADIO_H */

@@ -54,8 +54,10 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 
 	radio->uhf = (void *)p_uhf;
 
+#ifndef TEST
 	printf("%s: start continue check.\n", __func__);
 	ret = radio_set_conti_check(radio);
+#endif
 
 	return ret;
 }
@@ -108,6 +110,7 @@ static int uhf_create_heartbeat_thread(uhf_info_t * p_uhf)
 	return ret;
 }
 
+#ifndef TEST
 int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
@@ -131,7 +134,9 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 
-	uhf_init_security(p_uhf);
+	ret = uhf_init_security(p_uhf);
+	if (ret != NO_ERROR)
+		goto start_failed;
 	p_uhf->upper->uhf = (void *)p_uhf;
 
 	security_main(p_uhf->security);
@@ -164,3 +169,51 @@ int main(int argc, char **argv)
 	/* TODO: reboot */
 	return ret;
 }
+#else
+int main(int argc, char **argv)
+{
+	int ret = NO_ERROR;
+	uhf_info_t *p_uhf;
+
+	/* TODO: setup rtc */
+
+	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
+	if (p_uhf == NULL)
+		return -ENOMEM;
+
+	memset(p_uhf, 0, sizeof(uhf_info_t));
+
+	ret = alloc_radio(&p_uhf->radio);
+	ret += alloc_security(&p_uhf->security);
+	if (ret != NO_ERROR)
+		goto alloc_failed;
+
+	ret = start_security(p_uhf->security);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	ret = start_radio(p_uhf->radio);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	uhf_init_radio(p_uhf);
+
+	radio_get_version(p_uhf->radio);
+
+	radio_update_firmware(p_uhf->radio);
+	sleep(3);
+
+	security_reset_radio(p_uhf->security->fd);
+	sleep(3);
+	radio_get_version(p_uhf->radio);
+
+	return 0;
+
+  start_failed:
+	stop_radio(p_uhf->radio);
+  alloc_failed:
+	release_radio(&p_uhf->radio);
+
+	return ret;
+}
+#endif
