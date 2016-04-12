@@ -469,6 +469,8 @@ int radio_set_version(radio_info_t * radio_info)
 
 	printf("Enter radio_set_version\n");
 
+	memset(&result, 0, sizeof(radio_result_t));
+
 	version.hw_version[0] = 0x12;
 	version.hw_version[1] = 0x00;
 	version.hw_version[2] = 0x56;
@@ -640,6 +642,8 @@ int radio_set_fhss(radio_info_t * radio_info, uint8_t enable)
 
 	fhss.enable = enable;
 
+	memset(&result, 0, sizeof(radio_result_t));
+
 	lock_radio(&radio_info->c_lock);
 
 	ret = radio_write(radio_info, SET_FHSS_ENABLE, FHSS_ENABLE_PARAM_SIZE, (uint8_t *) & fhss);
@@ -670,6 +674,8 @@ int radio_set_antenna_attr(radio_info_t * radio_info, uint8_t attr)
 	antenna_attr_param antenna_attr;
 
 	printf("%s +\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
 
 	antenna_attr.attribute = attr;
 
@@ -741,6 +747,8 @@ int radio_set_dig_atten(radio_info_t * radio_info, uint8_t attenuation)
 
 	dig_atten.attenuation = attenuation;
 
+	memset(&result, 0, sizeof(radio_result_t));
+
 	lock_radio(&radio_info->c_lock);
 
 	ret = radio_write(radio_info, SET_DIG_ATTEN, DIG_ATTEN_PARAM_SIZE, (uint8_t *) & dig_atten);
@@ -775,6 +783,8 @@ int radio_set_carr(radio_info_t * radio_info, uint8_t enable)
 	carr_enable.enable = enable;
 	lock_radio(&radio_info->c_lock);
 
+	memset(&result, 0, sizeof(radio_result_t));
+
 	ret =
 		radio_write(radio_info, SET_CARR_ENABLE, CARR_ENABLE_PARAM_SIZE, (uint8_t *) & carr_enable);
 	if (ret != NO_ERROR) {
@@ -804,6 +814,8 @@ int radio_get_status(radio_info_t * radio_info)
 	uint8_t dummy = 0;
 
 	printf("%s +\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
 
 	lock_radio(&radio_info->c_lock);
 

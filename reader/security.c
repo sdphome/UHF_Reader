@@ -333,6 +333,8 @@ int security_set_rtc(security_info_t * info)
 	time_t rawtime;
 	struct tm *timeinfo;
 
+	memset(&result, 0, result);
+
 	time(&rawtime);
 	printf("%s: %x\n", __func__, (unsigned int)rawtime);
 	timeinfo = localtime(&rawtime);
@@ -385,6 +387,8 @@ uint64_t security_get_rtc(security_info_t * info)
 	timestamp_v2_param time;
 	time_t lt;
 
+	memset(&result, 0, result);
+
 	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, GET_RTC, NO_PARAM_SIZE, NULL);
@@ -428,6 +432,8 @@ static int security_set_params(security_info_t * info, uint8_t * param)
 	int ret = NO_ERROR;
 	security_package_t result;
 	uint16_t len;
+
+	memset(&result, 0, result);
 
 	if (*(uint16_t *) param == REPEAT_READ) {
 		len = REPEAT_READ_PARAM_SIZE + 1;
@@ -498,6 +504,8 @@ static uint8_t *security_get_params(security_info_t * info, uint16_t type)
 	int ret = NO_ERROR;
 	get_params_param param;
 	security_package_t result;
+
+	memset(&result, 0, result);
 
 	param.type = type;
 
@@ -662,6 +670,8 @@ int security_get_perm(security_info_t * info, perm_table_param * param)
 		return -FAILED;
 	}
 
+	memset(&result, 0, result);
+
 	lock_security(&info->lock);
 
 	ret = security_write(info, SETUP_TYPE, GET_PERMI, NO_PARAM_SIZE, NULL);
@@ -699,6 +709,8 @@ int security_set_work_mode(security_info_t * info, work_mode_param * param)
 		return -FAILED;
 	}
 
+	memset(&result, 0, result);
+
 	memset(&result, 0, sizeof(security_package_t));
 	lock_security(&info->lock);
 
@@ -735,6 +747,8 @@ uint64_t security_request_rand_num(security_info_t * info)
 	int i = 0;
 	security_package_t result;
 	uint64_t sec_rand;
+
+	memset(&result, 0, result);
 
 	lock_security(&info->lock);
 
@@ -842,6 +856,8 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	auth_data_param *param = NULL;
 	security_package_t result;
 
+	memset(&result, 0, result);
+
 	size = security_get_file_size(info->auth_x509_path);
 	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
 		printf("%s: x509 size error, size = %ld.\n", __func__, size);
@@ -912,6 +928,7 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 	int ret = NO_ERROR;
 	user_info_param user_info;
 
+	memset(&result, 0, result);
 	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
 	/* TODO: fill user_info */
 
@@ -956,6 +973,8 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 		return -FAILED;
 	}
 
+	memset(&result, 0, result);
+
 	lock_security(&info->lock);
 
 	ret = security_write(info, AUTH_TYPE, SEND_AUTH, ACTIVE_AUTH_PARAM_SIZE + 1, (uint8_t *) param);
@@ -989,6 +1008,8 @@ int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_
 		printf("%s: param is null\n", __func__);
 		return -FAILED;
 	}
+
+	memset(&result, 0, result);
 
 	lock_security(&info->lock);
 
@@ -1029,6 +1050,8 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 		printf("%s: file is null.\n", __func__);
 		return -FAILED;
 	}
+
+	memset(&result, 0, result);
 
 	file_size = security_get_file_size(file);
 
@@ -1326,11 +1349,13 @@ int start_security(security_info_t * info)
 */
 	/* FIXME : sequential */
 	/* wait for ready */
+#if 0
 #ifndef TEST
 	while (security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);
 	}
+#endif
 #endif
 	printf("Start security successfully...\n");
 

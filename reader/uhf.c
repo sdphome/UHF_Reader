@@ -28,7 +28,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-#define TEST
+//#define TEST
 
 static int uhf_init_security(uhf_info_t * p_uhf)
 {
