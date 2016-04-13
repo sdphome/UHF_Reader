@@ -29,9 +29,6 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <ltkc.h>
-//#include <upper.h>
-//#include <security.h>
-//#include <radio.h>
 #include <uhf.h>
 
 static void upper_print_XML_message(LLRP_tSMessage * pMessage)
@@ -560,6 +557,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 			pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
 			if (pNTPC != NULL) {
+				// upper_config_ntpd(info, pNTPC);
 				LLRP_tSIPAddress * pIPA = NULL;
 				/* TODO: setup ntp */
 				info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
@@ -608,6 +606,7 @@ out:
 static int upper_process_ResetDevice(upper_info_t * info)
 {
 	upper_request_Disconnect(info);
+	sync();
 	system("reboot");
 }
 

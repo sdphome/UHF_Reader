@@ -28,6 +28,19 @@
 
 int upper_main(int argc, char **argv);
 
+typedef struct tag_info {
+	uint64_t TID;
+	uint32_t SelectSpecID;
+	uint16_t SpecIndex;
+	uint16_t RfSpecID;
+	uint8_t AntennalID;
+	uint64_t FistSeenTimestampUTC;
+	uint64_t LastSeenTimestampUTC;
+	uint32_t AccessSpecID;
+	uint16_t TagSeenCount;
+	uint16_t LastSeenCount;
+} tag_info_t;
+
 typedef struct upper_info {
 	int sock;
 	int status;
