@@ -512,6 +512,11 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	return ret;
 }
 
+upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
+{
+
+}
+
 // 662
 static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig *pThis)
 {
@@ -521,9 +526,9 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
 
 	if (pThis->pCommunicationConfiguration != NULL) {
-		LLRP_tSCommunicationConfiguration * pCC = NULL;
+		LLRP_tSCommunicationConfiguration *pCC = NULL;
 		LLRP_tSCommLinkConfiguration *pCLC = NULL;
-		LLRP_tSNTPConfiguration * pNTPC = NULL;
+		LLRP_tSNTPConfiguration *pNTPC = NULL;
 
 		pCC = LLRP_SetDeviceConfig_getCommunicationConfiguration(pThis);
 
@@ -532,8 +537,8 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 			 pCLC = LLRP_CommunicationConfiguration_nextCommLinkConfiguration(pCLC)) {
 			/* Just support TCP now */
 			if (LLRP_CommLinkConfiguration_getLinkType(pCLC) == LLRP_LinkType_TCP) {
-				LLRP_tSKeepaliveSpec * pKS = NULL;
-				LLRP_tSTcpLinkConfiguration * pTLC = NULL;
+				LLRP_tSKeepaliveSpec *pKS = NULL;
+				LLRP_tSTcpLinkConfiguration *pTLC = NULL;
 				pKS = LLRP_CommLinkConfiguration_getKeepaliveSpec(pCLC);
 				if (LLRP_KeepaliveSpec_getKeepaliveTrigger(pKS))
 					info->heartbeats_periodic = LLRP_KeepaliveSpec_getPeriodicTriggerValue(pKS);
@@ -544,7 +549,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 				if (pTLC != NULL) {
 					/* Just support Server mode now */
 					if (LLRP_TcpLinkConfiguration_getCommMode(pTLC) == LLRP_CommMode_ServerMode) {
-						LLRP_tSServerModeConfiguration * pSMC = NULL;
+						LLRP_tSServerModeConfiguration *pSMC = NULL;
 						pSMC = LLRP_TcpLinkConfiguration_getServerModeConfiguration(pTLC);
 						if (pSMC != NULL)
 							info->port = LLRP_ServerModeConfiguration_getPort(pSMC);
@@ -555,7 +560,33 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 			pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
 			if (pNTPC != NULL) {
+				LLRP_tSIPAddress * pIPA = NULL;
 				/* TODO: setup ntp */
+				info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
+				system("mv /etc/ntp.conf /etc/ntp.conf.bak");
+				for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
+					 pIPA != NULL;
+					 pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
+					/* just support ipv4 now */
+					if (LLRP_IPAddress_getVersion(pIPA) == 0) {
+						FILE *fp = NULL;
+						llrp_u32v_t ip;
+						ip = LLRP_IPAddress_getAddress(pIPA);
+						if (ip.nValue < 7)
+							continue;
+
+						fp = fopen("/etc/ntp.conf", "w");
+						if (fp == NULL) {
+							system("mv /etc/ntp.conf.bak /etc/ntp.conf");
+						}
+						file_write_data("\n", fp, 1);
+						file_write_data("server ", fp, 7);
+						file_write_data(ip.pValue, fp, ip.nValue);
+						file_write_data("\n", fp, 1);
+					}
+
+				}
+				system("ntpd");
 			}
 		}
 	}
@@ -572,6 +603,12 @@ out:
 	LLRP_SetDeviceConfigAck_destruct(pSDC_Ack);
 
 	return ret;
+}
+
+static int upper_process_ResetDevice(upper_info_t * info)
+{
+	upper_request_Disconnect(info);
+	system("reboot");
 }
 
 static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest)
@@ -630,6 +667,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 660:				//GetDeviceConfig
 			break;
 	  case 662:				//SetDeviceConfig
+			upper_process_SetDeviceConfig(info, (LLRP_tSSetDeviceConfig *) pRequest);
 			break;
 	  case 700:				//GetVersion
 			break;
@@ -640,6 +678,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 706:				//UnAciveVersion
 			break;
 	  case 760:				//ResetDevice
+			upper_process_ResetDevice(info);
 			break;
 	  default:
 		  printf("hasn't support this type.\n");

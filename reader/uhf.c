@@ -75,6 +75,8 @@ void *uhf_heartbeat_loop(void *data)
 	uint32_t radio_per_seconds, upper_per_seconds, base;
 
 	while (true) {
+		printf("%s: radio_per_seconds=%d, upper_per_seconds=%d.\n",
+				__func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
 		radio_per_seconds = radio->heartbeats_periodic / 1000;
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
 		if (upper_per_seconds != 0)
@@ -149,6 +151,7 @@ int main(int argc, char **argv)
 	uhf_info_t *p_uhf;
 
 	/* TODO: setup rtc */
+	system("ntpd");
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)
@@ -212,6 +215,7 @@ int main(int argc, char **argv)
 	uhf_info_t *p_uhf;
 
 	/* TODO: setup rtc */
+	system("ntpd");
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)

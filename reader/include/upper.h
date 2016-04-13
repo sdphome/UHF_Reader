@@ -39,6 +39,8 @@ typedef struct upper_info {
 	uint64_t serial;
 	uint32_t heartbeats_periodic;;
 
+	uint64_t ntp_left_sec;
+
 	pthread_t read_thread;
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
