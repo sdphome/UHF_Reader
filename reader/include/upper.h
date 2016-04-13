@@ -56,6 +56,8 @@ typedef struct upper_info {
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;
 
+	uint16_t port;
+
 	void *uhf;
 } upper_info_t;
 

@@ -1343,9 +1343,12 @@ int start_security(security_info_t * info)
 
 void stop_security(security_info_t * info)
 {
+	void *ret;
 	if (info == NULL)
 		return;
 
+	pthread_cancel(info->read_thread);
+	pthread_join(info->read_thread, &ret);
 	close(info->fd);
 }
 
@@ -1404,7 +1407,6 @@ void release_security(security_info_t ** security_info)
 void test_security(security_info_t * pr)
 {
 	int ret = NO_ERROR;
-	int i = 0;
 	//security_info_t *pr = NULL;
 	firmware_version_param param;
 	serial_num_param ser_num;

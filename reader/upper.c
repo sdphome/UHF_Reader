@@ -287,8 +287,8 @@ int upper_notify_connected_event(upper_info_t * info)
 
 static int upper_write_to_file(char *path, llrp_u8v_t * data)
 {
-	int fd;
 	int ret;
+	FILE *fp;
 
 	if (path == NULL) {
 		printf("path is null.\n");
@@ -296,31 +296,113 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 	}
 
 	remove(path);
-	fd = open(path, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-	if (fd < 0) {
+
+	fp = fopen(path, "w");
+	if (fp == NULL) {
 		printf("%s: create file error.\n", __func__);
-		return fd;
+		return -FAILED;
 	}
 
-	ret = write(fd, data->pValue, data->nValue);
-	if (ret != data->nValue) {
-		printf("%s: write failed, nValue=%d, ret=%d.\n", __func__, data->nValue, ret);
-		ret = -FAILED;
-	} else
-		ret = NO_ERROR;
+	ret = file_write_data(data->pValue, fp, data->nValue);
+	if (ret != NO_ERROR) {
+		printf("%s: write failed, nValue=%d.\n", __func__, data->nValue);
+	}
 
-	close(fd);
+	fclose(fp);
 	return ret;
 }
 
-static int upper_request_DeviceBinding(upper_info_t * info)
+static LLRP_tSStatus * upper_setup_status(LLRP_tEStatusCode status)
 {
-	return 0;
+	LLRP_tSStatus *pStatus;
+	llrp_utf8v_t description;
+
+	memset(&description, 0, sizeof(llrp_utf8v_t));
+	pStatus = LLRP_Status_construct();
+
+	LLRP_Status_setStatusCode(pStatus, status);
+	LLRP_Status_setErrorDescription(pStatus, description);
+
+	return pStatus;
 }
 
-static int upper_process_DeviceBinding(upper_info_t * info, LLRP_tSDeviceBinding * pDB)
+static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status)
 {
-	return 0;
+	LLRP_tSErrorAck *pEA;
+	LLRP_tSStatus *pStatus;
+
+	pEA = LLRP_ErrorAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pEA == NULL || pStatus == NULL)
+		goto out;
+
+	pEA->hdr.MessageID = info->next_msg_id++;
+
+	LLRP_ErrorAck_setStatus(pEA, pStatus);
+
+	/* don't have ack */
+	lock_upper(&info->lock);
+	upper_send_message(info, &pEA->hdr);
+	unlock_upper(&info->lock);
+
+out:
+	if (pEA != NULL) LLRP_ErrorAck_destruct(pEA);
+}
+
+static int upper_request_Disconnect(upper_info_t * info)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDisconnect *pDis = NULL;
+	LLRP_tSDisconnectAck *pAck = NULL;
+
+	pDis = LLRP_Disconnect_construct();
+	if (pDis == NULL)
+		goto out;
+	pDis->hdr.MessageID = info->next_msg_id++;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pDis->hdr);
+
+	if (ret == NO_ERROR)
+		pAck = (LLRP_tSDisconnectAck *) upper_wait_response(info, &pDis->hdr);
+
+	unlock_upper(&info->lock);
+
+	lock_upper(&info->disconnect_lock);
+	pthread_cond_broadcast(&info->disconnect_cond);
+	unlock_upper(&info->disconnect_lock);
+
+out:
+	if (pDis != NULL) LLRP_Disconnect_destruct(pDis);
+	if (pAck != NULL) LLRP_DisconnectAck_destruct(pAck);
+
+	return ret;
+}
+
+static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDisconnectAck *pAck = NULL;
+
+	pAck = LLRP_DisconnectAck_construct();
+	if (pAck == NULL)
+		goto out;
+
+	pAck->hdr.MessageID = pDis->hdr.MessageID;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pAck->hdr);
+	unlock_upper(&info->lock);
+
+	lock_upper(&info->disconnect_lock);
+	pthread_cond_broadcast(&info->disconnect_cond);
+	unlock_upper(&info->disconnect_lock);
+
+out:
+	if (pDis != NULL) LLRP_Disconnect_destruct(pDis);
+	if (pAck != NULL) LLRP_DisconnectAck_destruct(pAck);
+
+	return ret;
 }
 
 static int upper_request_Keepalive(upper_info_t * info)
@@ -338,7 +420,6 @@ static int upper_request_Keepalive(upper_info_t * info)
 	if (ret == NO_ERROR)
 		pAck = (LLRP_tSKeepaliveAck *) upper_wait_response(info, &pKA->hdr);
 
-	/* TODO: check error message */
 	unlock_upper(&info->lock);
 
 	LLRP_Keepalive_destruct(pKA);
@@ -387,6 +468,13 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	return 0;
 }
 
+// 600
+static int upper_process_DeviceBinding(upper_info_t * info, LLRP_tSDeviceBinding * pDB)
+{
+	return 0;
+}
+
+// 602
 static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 												 LLRP_tSDeviceCertificateConfig * pDCC)
 {
@@ -424,6 +512,68 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	return ret;
 }
 
+// 662
+static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig *pThis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSSetDeviceConfigAck *pSDC_Ack = NULL;
+	LLRP_tSStatus *pStatus;
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+
+	if (pThis->pCommunicationConfiguration != NULL) {
+		LLRP_tSCommunicationConfiguration * pCC = NULL;
+		LLRP_tSCommLinkConfiguration *pCLC = NULL;
+		LLRP_tSNTPConfiguration * pNTPC = NULL;
+
+		pCC = LLRP_SetDeviceConfig_getCommunicationConfiguration(pThis);
+
+		for (pCLC = LLRP_CommunicationConfiguration_beginCommLinkConfiguration(pCC);
+			 pCLC != NULL; 
+			 pCLC = LLRP_CommunicationConfiguration_nextCommLinkConfiguration(pCLC)) {
+			/* Just support TCP now */
+			if (LLRP_CommLinkConfiguration_getLinkType(pCLC) == LLRP_LinkType_TCP) {
+				LLRP_tSKeepaliveSpec * pKS = NULL;
+				LLRP_tSTcpLinkConfiguration * pTLC = NULL;
+				pKS = LLRP_CommLinkConfiguration_getKeepaliveSpec(pCLC);
+				if (LLRP_KeepaliveSpec_getKeepaliveTrigger(pKS))
+					info->heartbeats_periodic = LLRP_KeepaliveSpec_getPeriodicTriggerValue(pKS);
+				else
+					info->heartbeats_periodic = 0;
+
+				pTLC = LLRP_CommLinkConfiguration_getTcpLinkConfiguration(pCLC);
+				if (pTLC != NULL) {
+					/* Just support Server mode now */
+					if (LLRP_TcpLinkConfiguration_getCommMode(pTLC) == LLRP_CommMode_ServerMode) {
+						LLRP_tSServerModeConfiguration * pSMC = NULL;
+						pSMC = LLRP_TcpLinkConfiguration_getServerModeConfiguration(pTLC);
+						if (pSMC != NULL)
+							info->port = LLRP_ServerModeConfiguration_getPort(pSMC);
+					}
+				}
+				break;
+			}
+
+			pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
+			if (pNTPC != NULL) {
+				/* TODO: setup ntp */
+			}
+		}
+	}
+
+	pSDC_Ack = LLRP_SetDeviceConfigAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pSDC_Ack == NULL || pStatus == NULL)
+		goto out;
+
+	LLRP_SetDeviceConfigAck_setStatus(pSDC_Ack, pStatus);
+
+out:
+	LLRP_SetDeviceConfig_destruct(pThis);
+	LLRP_SetDeviceConfigAck_destruct(pSDC_Ack);
+
+	return ret;
+}
+
 static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest)
 {
 	uint16_t type;
@@ -434,12 +584,63 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		   pRequest->elementHdr.pType->pName);
 
 	switch (type) {
+	  case 303:				//Disconnect
+			upper_process_Disconnect(info, (LLRP_tSDisconnect *) pRequest);
+			break;
+	  case 350:				//GetDeviceCapabilities
+			break;
+	  case 400:				//AddSelectSpec
+			break;
+	  case 402:				//DeleteSelectSpec
+			break;
+	  case 404:				//StartSelectSpec
+			break;
+	  case 406:				//StopSelectSpec
+			break;
+	  case 408:				//EnableSelectSpec
+			break;
+	  case 410:				//DisableSelectSpecAck
+			break;
+	  case 412:				//GetSelectSpec
+			break;
+	  case 450:				//AddAccessSpec
+			break;
+	  case 452:				//DeleteAccessSpec
+			break;
+	  case 454:				//EnableAccessSpec
+			break;
+	  case 456:				//DisableAccessSpec
+			break;
+	  case 458:				//GetAccessSpec
+			break;
 	  case 600:				//DeviceBinding
-		  upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *) pRequest);
-		  break;
+			upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *) pRequest);
+			break;
 	  case 602:				//DeviceCertificateConfig
-		  upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
-		  break;
+			upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
+			break;
+	  case 620:				//UploadTagLog
+			break;
+	  case 622:				//ClearLog
+			break;
+	  case 640:				//UploadDeviceLog
+			break;
+	  case 642:				//ClearDeviceLog
+			break;
+	  case 660:				//GetDeviceConfig
+			break;
+	  case 662:				//SetDeviceConfig
+			break;
+	  case 700:				//GetVersion
+			break;
+	  case 702:				//SetVersion
+			break;
+	  case 704:				//ActiveVersion
+			break;
+	  case 706:				//UnAciveVersion
+			break;
+	  case 760:				//ResetDevice
+			break;
 	  default:
 		  printf("hasn't support this type.\n");
 		  break;
@@ -493,7 +694,7 @@ void *upper_read_loop(void *data)
 
 	while (true) {
 		/* Need enqueue pMessage into queue */
-		pMessage = LLRP_Conn_recvMessage(pConn, 2000);
+		pMessage = LLRP_Conn_recvMessage(pConn, 10000);
 		if (pMessage == NULL) {
 			if (pError->eResultCode == LLRP_RC_RecvIOError ||
 				pError->eResultCode == LLRP_RC_RecvEOF) {
@@ -527,8 +728,14 @@ void *upper_read_loop(void *data)
 
 void stop_upper(upper_info_t * info)
 {
+	void *ret;
 	if (info == NULL)
 		return;
+
+	pthread_cancel(info->read_thread);
+	pthread_cancel(info->request_thread);
+	pthread_join(info->read_thread, &ret);
+	pthread_join(info->request_thread, &ret);
 
 	LLRP_Conn_closeConnectionToUpper(info->pConn);
 	close(info->sock);

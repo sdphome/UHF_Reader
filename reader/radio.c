@@ -879,9 +879,12 @@ int start_radio(radio_info_t * radio_info)
 
 void stop_radio(radio_info_t * radio_info)
 {
+	void * ret;
 	if (radio_info == NULL)
 		return;
 
+	pthread_cancel(radio_info->read_thread);
+	pthread_join(radio_info->read_thread, &ret);
 	close_uart(radio_info->fd);
 }
 

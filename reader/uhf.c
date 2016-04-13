@@ -25,16 +25,20 @@
 #include <assert.h>
 #include <errno.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <ltkc.h>
 #include <uhf.h>
 
 //#define TEST
 
+uhf_info_t * g_uhf = NULL;
+
 static int uhf_init_security(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	security_info_t *security = p_uhf->security;
-	uint64_t sec_rand;
+	//uint64_t sec_rand;
 
 	security->uhf = (void *)p_uhf;
 
@@ -73,15 +77,18 @@ void *uhf_heartbeat_loop(void *data)
 	while (true) {
 		radio_per_seconds = radio->heartbeats_periodic / 1000;
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
-		base = radio_per_seconds * upper_per_seconds;
+		if (upper_per_seconds != 0)
+			base = radio_per_seconds * upper_per_seconds;
+		else
+			base = radio_per_seconds;
 
 		if (count % radio_per_seconds == 0) {
-			printf("%s: radio send heartbeat.\n");
+			printf("%s: radio send heartbeat.\n", __func__);
 			radio_send_heartbeat(radio);
 		}
 
-		if (count % upper_per_seconds == 0) {
-			printf("%s: upper set heartbeat.\n");
+		if (upper_per_seconds && count % upper_per_seconds == 0) {
+			printf("%s: upper set heartbeat.\n", __func__);
 			upper_send_heartbeat(upper);
 		}
 
@@ -110,6 +117,31 @@ static int uhf_create_heartbeat_thread(uhf_info_t * p_uhf)
 	return ret;
 }
 
+void uhf_stop(int signo)
+{
+	void *ret;
+	radio_info_t *radio = g_uhf->radio;
+	security_info_t *security = g_uhf->security;
+	upper_info_t *upper = g_uhf->upper;
+
+	pthread_cancel(g_uhf->heartbeat_thread);
+	pthread_join(g_uhf->heartbeat_thread, &ret);
+
+	stop_radio(radio);
+	stop_security(security);
+	stop_upper(upper);
+
+	release_radio(&radio);
+	release_security(&security);
+	release_upper(&upper);
+
+	free(g_uhf);
+	g_uhf = NULL;
+
+	printf("Will stop this process.\n");
+	_exit(0);
+}
+
 #ifndef TEST
 int main(int argc, char **argv)
 {
@@ -122,7 +154,11 @@ int main(int argc, char **argv)
 	if (p_uhf == NULL)
 		return -ENOMEM;
 
+	g_uhf = p_uhf;
 	memset(p_uhf, 0, sizeof(uhf_info_t));
+
+	signal(SIGINT, uhf_stop);
+	signal(SIGSTOP, uhf_stop);
 
 	ret = alloc_radio(&p_uhf->radio);
 	ret += alloc_security(&p_uhf->security);
@@ -182,6 +218,10 @@ int main(int argc, char **argv)
 		return -ENOMEM;
 
 	memset(p_uhf, 0, sizeof(uhf_info_t));
+	g_uhf = p_uhf;
+
+	signal(SIGINT, uhf_stop);
+	signal(SIGSTOP, uhf_stop);
 
 	ret = alloc_radio(&p_uhf->radio);
 	ret += alloc_security(&p_uhf->security);
