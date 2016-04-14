@@ -4,16 +4,18 @@
 #include <stdint.h>
 #include <uhf.h>
 
-unsigned long file_get_size(const char *path)
+int file_get_size(const char *path, unsigned long *filesize)
 {
-	unsigned long filesize = -1;
+	int ret = NO_ERROR;
 	struct stat statbuff;
 
 	if (stat(path, &statbuff) > 0) {
-		filesize = statbuff.st_size;
+		*filesize = statbuff.st_size;
+	} else {
+		ret = -FAILED;
 	}
 
-	return filesize;
+	return ret;
 }
 
 int file_read_data(uint8_t * buf, FILE * fp, unsigned long size)

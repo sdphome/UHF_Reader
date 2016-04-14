@@ -26,7 +26,24 @@
 
 #define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
 
-int upper_main(int argc, char **argv);
+#define UPPER_STOP		0x00
+#define UPPER_READY		0x01
+
+
+typedef struct select_report_spec {
+	uint8_t SelectReportTrigger;
+	uint16_t NValue;
+#define	ENABLE_SELECT_SPEC_ID		0x8000
+#define ENABLE_SPEC_INDEX			0x4000
+#define ENABLE_RF_SPEC_ID			0x2000
+#define ENABLE_ANTENNAL_ID			0x1000
+#define ENABLE_PEAK_RSSI			0x0800
+#define ENABLE_FST					0x0400
+#define ENABLE_LST					0x0200
+#define ENABLE_TSC					0x0100
+#define ENABLE_ACCESS_SPEC_ID		0x0080
+	uint16_t mask;
+} select_report_spec_t;
 
 typedef struct tag_info {
 	uint64_t TID;
@@ -38,8 +55,12 @@ typedef struct tag_info {
 	uint64_t LastSeenTimestampUTC;
 	uint32_t AccessSpecID;
 	uint16_t TagSeenCount;
-	uint16_t LastSeenCount;
 } tag_info_t;
+
+typedef struct tag_list {
+	tag_info_t tag;
+	struct tag_list *next;
+} tag_list_t;
 
 typedef struct upper_info {
 	int sock;
@@ -50,9 +71,13 @@ typedef struct upper_info {
 
 	uint64_t next_msg_id;
 	uint64_t serial;
-	uint32_t heartbeats_periodic;;
+	uint32_t heartbeats_periodic;
 
 	uint64_t ntp_left_sec;
+	uint16_t port;
+
+	select_report_spec_t tag_spec;
+	tag_list_t *tag_list;
 
 	pthread_t read_thread;
 	pthread_mutex_t lock;
@@ -62,6 +87,10 @@ typedef struct upper_info {
 	pthread_mutex_t req_lock;
 	pthread_cond_t req_cond;
 
+	pthread_t upload_thread;
+	pthread_mutex_t upload_lock;
+	pthread_cond_t upload_cond;
+
 	pthread_mutex_t disconnect_lock;
 	pthread_cond_t disconnect_cond;
 
@@ -70,8 +99,6 @@ typedef struct upper_info {
 
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;
-
-	uint16_t port;
 
 	void *uhf;
 } upper_info_t;
@@ -84,4 +111,6 @@ void release_upper(upper_info_t ** info);
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 										llrp_u8_t anten_no, llrp_u64_t timestamp);
 int upper_send_heartbeat(upper_info_t * info);
+int upper_main(int argc, char **argv);
+
 #endif

@@ -825,8 +825,8 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 
 	memset(&result, 0, sizeof(security_package_t));
 
-	size = file_get_size(info->auth_x509_path);
-	if (size < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
+	ret = file_get_size(info->auth_x509_path, &size);
+	if (ret < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
 		printf("%s: x509 size error, size = %ld.\n", __func__, size);
 		return -FAILED;
 	}
@@ -1025,7 +1025,11 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 	memset(&result, 0, sizeof(security_package_t));
 
-	file_size = file_get_size(file);
+	ret = file_get_size(file, &file_size);
+	if (ret < 0) {
+		printf("%s: get file size failed, ret=%d.\n", __func__, ret);
+		return -FAILED;
+	}
 
 	buf = (uint8_t *) malloc(file_size);
 	if (buf == NULL)
@@ -1406,17 +1410,19 @@ void release_security(security_info_t ** security_info)
 
 void test_security(security_info_t * pr)
 {
+/*
 	int ret = NO_ERROR;
-	//security_info_t *pr = NULL;
+	security_info_t *pr = NULL;
 	firmware_version_param param;
 	serial_num_param ser_num;
 	repeat_read_param re_re;
 	filtr_interv_param fi_in;
-	//part_info_param part_ino;
-	work_mode_param *work_mode = NULL;
-	work_mode_param *setup_work_mode = NULL;
-	//perm_table_param perm_table;
+	part_info_param part_ino;
 	uint64_t sec_rand;
+	perm_table_param perm_table;
+	work_mode_param *work_mode = NULL;
+*/
+	work_mode_param *setup_work_mode = NULL;
 
 	//ret = alloc_security(&pr);
 	//if (ret != NO_ERROR)
@@ -1474,7 +1480,7 @@ void test_security(security_info_t * pr)
 	setup_work_mode = (work_mode_param *) malloc(1);
 	setup_work_mode->num = 0;
 #endif
-	ret = security_set_work_mode(pr, setup_work_mode);
+	security_set_work_mode(pr, setup_work_mode);
 	free(setup_work_mode);
 #if 0
 	printf("*********************get_work_mode****************************\n");
@@ -1520,9 +1526,6 @@ void test_security(security_info_t * pr)
 	}
 #endif
 	printf("********************END*****************************\n");
-//test_fail:
-	//stop_security(pr);
-	//release_security(&pr);
 }
 
 int security_main(security_info_t * info)

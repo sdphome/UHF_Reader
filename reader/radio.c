@@ -505,7 +505,7 @@ int radio_set_version(radio_info_t * radio_info)
 int radio_get_version(radio_info_t * radio_info)
 {
 	int ret = NO_ERROR;
-	version_param version;
+	//version_param version;
 	radio_result_t result;
 	uint8_t dummy = 0;
 
@@ -549,13 +549,13 @@ int radio_update_firmware(radio_info_t * info)
 
 	memset(&result, 0, sizeof(radio_result_t));
 
-	size = file_get_size(RADIO_FW_DEFAULT_PATH);
-	left = size;
+	ret = file_get_size(RADIO_FW_DEFAULT_PATH, &size);
 	if (size <= 0) {
-		printf("%s: can't get %s size, ret = %d.\n", __func__, RADIO_FW_DEFAULT_PATH);
+		printf("%s: can't get %s size, ret = %d.\n", __func__, RADIO_FW_DEFAULT_PATH, ret);
 		return -FAILED;
 	}
 
+	left = size;
 	lock_radio(&info->c_lock);
 
 	info->flashing = true;
@@ -568,7 +568,7 @@ int radio_update_firmware(radio_info_t * info)
 	}
 
 	ret = radio_wait_result(info, REQ_RADIO_UPGRADE, &result);
-	if (ret = NO_ERROR && result.payload != NULL) {
+	if (ret == NO_ERROR && result.payload != NULL) {
 		status = *result.payload;
 		free(result.payload);
 	} else {
@@ -598,7 +598,7 @@ int radio_update_firmware(radio_info_t * info)
 			goto out;
 
 		ret = radio_wait_result(info, MID_UPGRADE_PACK, &result);
-		if (ret = NO_ERROR && result.payload != NULL) {
+		if (ret == NO_ERROR && result.payload != NULL) {
 			status = *result.payload;
 			free(result.payload);
 		} else {
@@ -619,7 +619,7 @@ int radio_update_firmware(radio_info_t * info)
 		goto out;
 
 	ret = radio_wait_result(info, LAST_UPGRADE_PACK, &result);
-	if (ret = NO_ERROR && result.payload != NULL) {
+	if (ret == NO_ERROR && result.payload != NULL) {
 		ret = *result.payload;
 		free(result.payload);
 	}
@@ -1014,10 +1014,10 @@ int test_radio(radio_info_t * pr)
 	/* disable carrier wave */
 	//radio_set_carr(pr, false);
 	return ret;
-  test_fail:
-	stop_radio(pr);
-	release_radio(&pr);
-	return ret;
+//  test_fail:
+//	stop_radio(pr);
+//	release_radio(&pr);
+//	return ret;
 }
 
 int radio_main(radio_info_t * info)

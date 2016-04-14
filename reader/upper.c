@@ -209,6 +209,7 @@ static int upper_send_message(upper_info_t * info, LLRP_tSMessage * pSendMsg)
 	return ret;
 }
 
+/*
 static void upper_hton_64(uint8_t * buf, llrp_u64_t value)
 {
 	int i = 0;
@@ -225,6 +226,7 @@ static void upper_hton_64(uint8_t * buf, llrp_u64_t value)
 	buf[i++] = value >> 8u;
 	buf[i++] = value >> 0u;
 }
+*/
 
 static int upper_check_llrp_status(LLRP_tSStatus * pLLRPStatus, char *pWhatStr)
 {
@@ -278,7 +280,7 @@ int upper_notify_connected_event(upper_info_t * info)
 
 	LLRP_DeviceEventNotification_destruct(pThis);
 
-	info->status = 1;
+	info->status = UPPER_READY;
 	return ret;
 }
 
@@ -429,40 +431,66 @@ static int upper_request_Keepalive(upper_info_t * info)
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 										llrp_u8_t anten_no, llrp_u64_t timestamp)
 {
-	LLRP_tSTagSelectAccessReport *pTSAR;
-	LLRP_tSTagReportData *pTRD;
-	llrp_u8v_t Tid;
+	int ret = NO_ERROR;
+	tag_list_t *curr_list;
+	tag_list_t *tag_list = NULL;
+	tag_list_t *tag_list_prev = NULL;
+	int new_tag = true;
+	int need_notify = true;	/* TODO: re-check this condition */
 
 	if (info == NULL) {
 		printf("info is null.\n");
 		return 0;
-	} else
-		printf("info ptr = %p.\n", info);
+	}
 
-	if (info->status != 1) {
+	if (info->status != UPPER_READY) {
 		printf("%s: upper hasn't ready.\n", __func__);
 		return 0;
 	}
-	pTSAR = LLRP_TagSelectAccessReport_construct();
-	pTRD = LLRP_TagReportData_construct();
 
-	pTSAR->hdr.MessageID = info->next_msg_id++;
+	lock_upper(&info->upload_lock);
 
-	Tid.nValue = 8;
-	Tid.pValue = (llrp_u8_t *) malloc(Tid.nValue);
-	//upper_hton_64(Tid.pValue, tid);
-	memcpy(Tid.pValue, &tid, 8);
+	tag_list = info->tag_list;
+	tag_list_prev = info->tag_list;
 
-	LLRP_TagReportData_setTID(pTRD, Tid);
-	LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
+	if(info->tag_list != NULL) {
+		while (tag_list != NULL) {
+			tag_list_prev = tag_list;
+			if (tag_list->tag.TID == tid) {
+				new_tag = false;
+				tag_list->tag.TagSeenCount += 1;
+				tag_list->tag.LastSeenTimestampUTC = timestamp;
+				break;
+			}
+			tag_list = tag_list->next;
+		}
+	}
 
-	lock_upper(&info->lock);
+	if (new_tag) {
+		curr_list = (tag_list_t *)malloc(sizeof(tag_list_t));
+		if (curr_list == NULL)
+			goto out;
+		memset(curr_list, 0, sizeof(tag_list_t));
+		curr_list->tag.TID = tid;
+		curr_list->tag.SelectSpecID = 1;
+		curr_list->tag.SpecIndex = 1;
+		curr_list->tag.RfSpecID = 1;
+		curr_list->tag.AntennalID = anten_no;
+		curr_list->tag.FistSeenTimestampUTC = timestamp;
+		curr_list->tag.LastSeenTimestampUTC = timestamp;
+		curr_list->tag.AccessSpecID = 1;
+		curr_list->tag.TagSeenCount = 1;
+		tag_list_prev->next = curr_list;
+		curr_list->next = NULL;
+	}
 
-	upper_send_message(info, &pTSAR->hdr);
+	if (need_notify)
+		pthread_cond_broadcast(&info->disconnect_cond);
 
-	unlock_upper(&info->lock);
-	LLRP_TagSelectAccessReport_destruct(pTSAR);
-	return 0;
+out:
+	unlock_upper(&info->upload_lock);
+
+	return ret;
 }
 
 // 600
@@ -509,9 +537,9 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	return ret;
 }
 
-upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
+int upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
 {
-
+	return 0;
 }
 
 // 662
@@ -577,10 +605,10 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 						if (fp == NULL) {
 							system("mv /etc/ntp.conf.bak /etc/ntp.conf");
 						}
-						file_write_data("\n", fp, 1);
-						file_write_data("server ", fp, 7);
-						file_write_data(ip.pValue, fp, ip.nValue);
-						file_write_data("\n", fp, 1);
+						file_write_data((uint8_t *)"\n", fp, 1);
+						file_write_data((uint8_t *)"server ", fp, 7);
+						file_write_data((uint8_t *)ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
+						file_write_data((uint8_t *)"\n", fp, 1);
 					}
 
 				}
@@ -603,7 +631,7 @@ out:
 	return ret;
 }
 
-static int upper_process_ResetDevice(upper_info_t * info)
+static void upper_process_ResetDevice(upper_info_t * info)
 {
 	upper_request_Disconnect(info);
 	sync();
@@ -692,6 +720,133 @@ int upper_send_heartbeat(upper_info_t * info)
 	return upper_request_Keepalive(info);
 }
 
+void *upper_upload_loop(void *data)
+{
+	upper_info_t *info = (upper_info_t *) data;
+	LLRP_tSTagSelectAccessReport *pTSAR;
+	llrp_u64_t curr_timestamp;
+	int found = false;
+	struct timeval now;
+
+	while (true) {
+		/* TODO: think indeep about the lock, if we can move the location of the lock
+			to increase the speed */
+		lock_upper(&info->upload_lock);
+		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
+
+		gettimeofday(&now, NULL);
+		curr_timestamp = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
+
+		if (info->tag_list != NULL) {
+			tag_list_t *tag_list = info->tag_list;
+			tag_list_t *tag_list_prev = info->tag_list->next;
+
+			pTSAR = LLRP_TagSelectAccessReport_construct();
+			if (pTSAR == NULL) continue;
+			pTSAR->hdr.MessageID = info->next_msg_id++;
+
+			while (tag_list != NULL) {
+				tag_info_t *tag_info = &tag_list->tag;
+				/* FIXME: maybe other time */
+				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
+					(tag_info->TagSeenCount > info->tag_spec.NValue &&
+					tag_info->TagSeenCount % info->tag_spec.NValue == 0)) {
+					LLRP_tSTagReportData *pTRD = NULL;
+					llrp_u8v_t Tid;
+
+					found = true;
+
+					pTRD = LLRP_TagReportData_construct();
+					Tid.nValue = 8;
+					Tid.pValue = (llrp_u8_t *) malloc(Tid.nValue);
+					memcpy(Tid.pValue, &tag_info->TID, 8);
+
+					LLRP_TagReportData_setTID(pTRD, Tid);
+
+					if (info->tag_spec.mask | ENABLE_SELECT_SPEC_ID) {
+						LLRP_tSSelectSpecID * pSSID = NULL;
+						pSSID = LLRP_SelectSpecID_construct();
+						LLRP_SelectSpecID_setSelectSpecID(pSSID, tag_info->SelectSpecID);
+						LLRP_TagReportData_setSelectSpecID(pTRD, pSSID);
+					}
+
+					if (info->tag_spec.mask | ENABLE_SPEC_INDEX) {
+						LLRP_tSSpecIndex * pSI = NULL;
+						pSI = LLRP_SpecIndex_construct();
+						LLRP_SpecIndex_setSpecIndex(pSI, tag_info->SpecIndex);
+						LLRP_TagReportData_setSpecIndex(pTRD, pSI);
+					}
+
+					if (info->tag_spec.mask | ENABLE_RF_SPEC_ID) {
+						LLRP_tSRfSpecID * pRSID = NULL;
+						pRSID = LLRP_RfSpecID_construct();
+						LLRP_RfSpecID_setRfSpecID(pRSID, tag_info->RfSpecID);
+						LLRP_TagReportData_setRfSpecID(pTRD, pRSID);
+					}
+
+					if (info->tag_spec.mask | ENABLE_ANTENNAL_ID) {
+						LLRP_tSAntennaID * pAID = NULL;
+						pAID = LLRP_AntennaID_construct();
+						LLRP_AntennaID_setAntennaID(pAID, tag_info->AntennalID);
+						LLRP_TagReportData_setAntennaID(pTRD, pAID);
+					}
+
+					if (info->tag_spec.mask | ENABLE_FST) {
+						LLRP_tSFirstSeenTimestampUTC * pFST = NULL;
+						pFST = LLRP_FirstSeenTimestampUTC_construct();
+						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST, tag_info->FistSeenTimestampUTC);
+						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
+					}
+
+					if (info->tag_spec.mask | ENABLE_LST) {
+						LLRP_tSLastSeenTimestampUTC * pLST = NULL;
+						pLST = LLRP_LastSeenTimestampUTC_construct();
+						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST, tag_info->LastSeenTimestampUTC);
+						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
+					}
+
+					if (info->tag_spec.mask | ENABLE_TSC) {
+						LLRP_tSTagSeenCount * pTSC = NULL;
+						pTSC = LLRP_TagSeenCount_construct();
+						LLRP_TagSeenCount_setTagCount(pTSC, tag_info->TagSeenCount);
+						LLRP_TagReportData_setTagSeenCount(pTRD, pTSC);
+					}
+
+					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
+				}
+
+				/* FIXME: maybe other time */
+				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000) {
+					if (info->tag_list == tag_list) {
+						info->tag_list = tag_list->next;
+					}
+
+					tag_list_prev->next = tag_list->next; /* cross tag_list */
+					tag_list = tag_list->next;
+					free(tag_list);
+					tag_list = NULL;
+				} else {
+					tag_list_prev = tag_list;
+					tag_list = tag_list->next;
+				}
+			}
+
+			if (found) {
+				printf("found tag report.\n");
+				lock_upper(&info->lock);
+				upper_send_message(info, &pTSAR->hdr);
+				unlock_upper(&info->lock);
+				found = false;
+			}
+
+			LLRP_TagSelectAccessReport_destruct(pTSAR);
+			pTSAR = NULL;
+		}
+
+		unlock_upper(&info->upload_lock);
+	}
+}
+
 static void *upper_request_loop(void *data)
 {
 	upper_info_t *info = (upper_info_t *) data;
@@ -701,7 +856,7 @@ static void *upper_request_loop(void *data)
 		lock_upper(&info->req_lock);
 		pthread_cond_wait(&info->req_cond, &info->req_lock);
 
-		if (info->status == 0) {
+		if (info->status == UPPER_STOP) {
 			unlock_upper(&info->req_lock);
 			return NULL;
 		}
@@ -754,7 +909,7 @@ void *upper_read_loop(void *data)
 		}
 	}
 
-	//info->status = 0;
+	//info->status = UPPER_STOP;
 	lock_upper(&info->disconnect_lock);
 	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
@@ -772,8 +927,10 @@ void stop_upper(upper_info_t * info)
 
 	pthread_cancel(info->read_thread);
 	pthread_cancel(info->request_thread);
+	pthread_cancel(info->upload_thread);
 	pthread_join(info->read_thread, &ret);
 	pthread_join(info->request_thread, &ret);
+	pthread_join(info->upload_thread, &ret);
 
 	LLRP_Conn_closeConnectionToUpper(info->pConn);
 	close(info->sock);
@@ -811,18 +968,25 @@ int start_upper(upper_info_t * info)
 			ret = -FAILED;
 		}
 
+		ret = pthread_create(&info->upload_thread, &attr, upper_upload_loop, (void *)info);
+		if (ret < 0) {
+			printf("%s: create request thread failed.\n", __func__);
+			stop_upper(info);
+			ret = -FAILED;
+		}
+
 		ret = upper_notify_connected_event(info);
 		if (ret < 0)
 			goto retry;
 
-		info->status = 1;
+		info->status = UPPER_READY;
 		printf("Start upper module, ret=%d\n", ret);
 
 		lock_upper(&info->disconnect_lock);
 		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
 		unlock_upper(&info->disconnect_lock);
 	  retry:
-		info->status = 0;
+		info->status = UPPER_STOP;
 
 		lock_upper(&info->req_lock);
 		pthread_cond_broadcast(&info->req_cond);
@@ -852,12 +1016,14 @@ int alloc_upper(upper_info_t ** info)
 
 	memset(*info, 0, sizeof(upper_info_t));
 	(*info)->sock = -1;
-	(*info)->status = 0;
+	(*info)->status = UPPER_STOP;
 
 	pthread_mutex_init(&(*info)->lock, NULL);
 	pthread_cond_init(&(*info)->cond, NULL);
 	pthread_mutex_init(&(*info)->req_lock, NULL);
 	pthread_cond_init(&(*info)->req_cond, NULL);
+	pthread_mutex_init(&(*info)->upload_lock, NULL);
+	pthread_cond_init(&(*info)->upload_cond, NULL);
 
 	(*info)->pTypeRegistry = LLRP_getTheTypeRegistry();
 	if ((*info)->pTypeRegistry == NULL) {
@@ -869,6 +1035,7 @@ int alloc_upper(upper_info_t ** info)
 	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
 	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
+	(*info)->tag_list = NULL;
 
 	memcpy((*info)->active_cer_path, ACTIVE_CER_PATH, sizeof(ACTIVE_CER_PATH));
 	memcpy((*info)->user_info_path, USER_INFO_PATH, sizeof(USER_INFO_PATH));
@@ -895,6 +1062,8 @@ void release_upper(upper_info_t ** info)
 	pthread_cond_destroy(&(*info)->cond);
 	pthread_mutex_destroy(&(*info)->req_lock);
 	pthread_cond_destroy(&(*info)->req_cond);
+	pthread_mutex_destroy(&(*info)->upload_lock);
+	pthread_cond_destroy(&(*info)->upload_cond);
 
 	LLRP_TypeRegistry_destruct((*info)->pTypeRegistry);
 	LLRP_Conn_destruct((*info)->pConn);

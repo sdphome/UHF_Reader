@@ -66,6 +66,23 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	return ret;
 }
 
+static void uhf_init_upper(uhf_info_t * p_uhf)
+{
+	upper_info_t *upper = p_uhf->upper;
+
+	upper->uhf = (void *)p_uhf;
+
+	/* setup default select report spec */
+	upper->tag_spec.SelectReportTrigger = 1;
+	upper->tag_spec.NValue = 400;
+	upper->tag_spec.mask |= ENABLE_SELECT_SPEC_ID;
+	upper->tag_spec.mask |= ENABLE_RF_SPEC_ID;
+	upper->tag_spec.mask |= ENABLE_ANTENNAL_ID;
+	upper->tag_spec.mask |= ENABLE_FST;
+	upper->tag_spec.mask |= ENABLE_LST;
+	upper->tag_spec.mask |= ENABLE_TSC;
+}
+
 void *uhf_heartbeat_loop(void *data)
 {
 	uhf_info_t *p_uhf = (uhf_info_t *) data;
@@ -179,6 +196,8 @@ int main(int argc, char **argv)
 	p_uhf->upper->uhf = (void *)p_uhf;
 
 	security_main(p_uhf->security);
+
+	uhf_init_upper(p_uhf);
 
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
