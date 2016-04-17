@@ -631,6 +631,18 @@ out:
 	return ret;
 }
 
+static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pThis)
+{
+	int ret = NO_ERROR;
+	char cmd[100];
+
+	memset(cmd, 0, 100);
+
+
+	sprintf(cmd, "tftp -l %s -r %s -g %s", local_file, remote_file, ip);
+	sprintf(cmd, "ftpget -u %s -p %s %s %s %s", user, passwd, ip, local_file, remote_file);
+}
+
 static void upper_process_ResetDevice(upper_info_t * info)
 {
 	upper_request_Disconnect(info);
@@ -699,6 +711,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 700:				//GetVersion
 			break;
 	  case 702:				//SetVersion
+			upper_process_SetVersion(info, (LLRP_tSSetVersion *) pRequest);
 			break;
 	  case 704:				//ActiveVersion
 			break;
