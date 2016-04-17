@@ -44,6 +44,4 @@ typedef struct uhf_info {
 	radio_info_t *radio;
 } uhf_info_t;
 
-int tftp_recv_process(char *host, char *path);
-
 #endif
