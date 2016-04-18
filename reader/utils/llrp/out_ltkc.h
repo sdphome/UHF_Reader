@@ -1105,6 +1105,7 @@ enum LLRP_EVerType
     LLRP_VerType_ReadSystem = 1,
     LLRP_VerType_SecurityModuleSystem = 2,
     LLRP_VerType_SecurityChipSystem = 3,
+    LLRP_VerType_RadioModule = 4,
 };
 
 typedef enum LLRP_EVerType

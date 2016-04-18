@@ -227,7 +227,7 @@ static void upper_hton_64(uint8_t * buf, llrp_u64_t value)
 	buf[i++] = value >> 0u;
 }
 */
-
+/*
 static int upper_check_llrp_status(LLRP_tSStatus * pLLRPStatus, char *pWhatStr)
 {
 	if (NULL == pLLRPStatus) {
@@ -247,7 +247,7 @@ static int upper_check_llrp_status(LLRP_tSStatus * pLLRPStatus, char *pWhatStr)
 
 	return -pLLRPStatus->eStatusCode;
 }
-
+*/
 int upper_notify_connected_event(upper_info_t * info)
 {
 	int ret = NO_ERROR;
@@ -323,6 +323,40 @@ static LLRP_tSStatus * upper_setup_status(LLRP_tEStatusCode status)
 	LLRP_Status_setErrorDescription(pStatus, description);
 
 	return pStatus;
+}
+
+void upper_trans_ip(uint8_t *ip_s, uint32_t ip_i)
+{
+	uint8_t each, tmp;
+	int i = 0;
+	int j = 0;
+	int is_zero = 1;
+
+	if (ip_i == 0) {
+		ip_s[0] = '\0';
+		return;
+	}
+
+	for (i = 0; i < 4; i ++) {
+		each = ip_i >> (8 * i);
+		tmp = each / 100;
+		if (tmp) {
+			ip_s[j++] = tmp + '0';
+			is_zero = 0;
+		}
+
+		tmp = (each % 100) / 10;
+		if (!is_zero || tmp) {
+			ip_s[j++] = tmp + '0';
+		}
+
+		tmp = each % 10;
+		ip_s[j++] = tmp + '0';
+		ip_s[j++] = '.';
+		is_zero = 1;
+	}
+
+	ip_s[j - 1] = '\0';
 }
 
 static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status)
@@ -550,10 +584,21 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	LLRP_tSStatus *pStatus;
 	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
 
+	// Identification Parameter
+	if (pThis->pIdentification != NULL) {
+		LLRP_tSIdentification *pID = NULL;
+
+		pID = LLRP_SetDeviceConfig_getIdentification(pThis);
+
+		printf("%s: DeviceName: %s.\n", __func__, pID->DeviceName.pValue);
+	}
+
+	// CommunicationConfiguration Parameter
 	if (pThis->pCommunicationConfiguration != NULL) {
 		LLRP_tSCommunicationConfiguration *pCC = NULL;
 		LLRP_tSCommLinkConfiguration *pCLC = NULL;
 		LLRP_tSNTPConfiguration *pNTPC = NULL;
+		LLRP_tSParameter * pEC = NULL;
 
 		pCC = LLRP_SetDeviceConfig_getCommunicationConfiguration(pThis);
 
@@ -582,38 +627,69 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 				}
 				break;
 			}
+		}
 
-			pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
-			if (pNTPC != NULL) {
-				// upper_config_ntpd(info, pNTPC);
-				LLRP_tSIPAddress * pIPA = NULL;
-				/* TODO: setup ntp */
-				info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
-				system("mv /etc/ntp.conf /etc/ntp.conf.bak");
-				for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
-					 pIPA != NULL;
-					 pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
-					/* just support ipv4 now */
-					if (LLRP_IPAddress_getVersion(pIPA) == 0) {
-						FILE *fp = NULL;
-						llrp_u32v_t ip;
-						ip = LLRP_IPAddress_getAddress(pIPA);
-						if (ip.nValue < 7)
-							continue;
+		/* just process one vaild ip setting */
+		pEC = LLRP_CommunicationConfiguration_beginEthernetConfiguration(pCC);
+		if (pEC != NULL) {
+			const LLRP_tSTypeDescriptor *pType;
+			pType = pEC->elementHdr.pType;
+			if (&LLRP_tdEthernetIpv4Configuration == pType) {
+				LLRP_tSEthernetIpv4Configuration *pEIV4C = NULL;
+				printf("Setup ipv4---------------\n");
+				pEIV4C = (LLRP_tSEthernetIpv4Configuration *)pEC;
+				if (!LLRP_EthernetIpv4Configuration_getIsDHCP(pEIV4C)) {
+					char cmd[128];
+					uint8_t ip[16];
+					uint8_t mask[16];
+					uint8_t gate[16];
+					uint8_t dns[16];
 
-						fp = fopen("/etc/ntp.conf", "w");
-						if (fp == NULL) {
-							system("mv /etc/ntp.conf.bak /etc/ntp.conf");
-						}
-						file_write_data((uint8_t *)"\n", fp, 1);
-						file_write_data((uint8_t *)"server ", fp, 7);
-						file_write_data((uint8_t *)ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
-						file_write_data((uint8_t *)"\n", fp, 1);
-					}
+					upper_trans_ip(ip, LLRP_EthernetIpv4Configuration_getIPAddress(pEIV4C));
+					upper_trans_ip(mask, LLRP_EthernetIpv4Configuration_getIPMask(pEIV4C));
+					upper_trans_ip(gate, LLRP_EthernetIpv4Configuration_getGateWayAddr(pEIV4C));
+					upper_trans_ip(dns, LLRP_EthernetIpv4Configuration_getDNSAddr(pEIV4C));
 
+					memset(cmd, 0, 128);
+					sprintf(cmd, "setup_ip.sh %s %s %s %s", ip, mask, gate, dns);
+					system(cmd);
+				} else {
+					/* TODO: dhcp */
 				}
-				system("ntpd");
 			}
+		}
+
+		pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
+		if (pNTPC != NULL) {
+			// upper_config_ntpd(info, pNTPC);
+			LLRP_tSIPAddress * pIPA = NULL;
+			/* TODO: setup ntp */
+			info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
+			system("mv /etc/ntp.conf /etc/ntp.conf.bak");
+			for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
+				 pIPA != NULL;
+				 pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
+				/* just support ipv4 now */
+				if (LLRP_IPAddress_getVersion(pIPA) == 0) {
+					FILE *fp = NULL;
+					llrp_u32v_t ip;
+					ip = LLRP_IPAddress_getAddress(pIPA);
+					if (ip.nValue < 7)
+						continue;
+						fp = fopen("/etc/ntp.conf", "w");
+					if (fp == NULL) {
+						system("mv /etc/ntp.conf.bak /etc/ntp.conf");
+						break;
+					}
+					file_write_data((uint8_t *)"\n", fp, 1);
+					file_write_data((uint8_t *)"server ", fp, 7);
+					file_write_data((uint8_t *)ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
+					file_write_data((uint8_t *)"\n", fp, 1);
+					fclose(fp);
+				}
+
+			}
+			system("ntpd");
 		}
 	}
 
@@ -633,14 +709,72 @@ out:
 
 static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pThis)
 {
-	int ret = NO_ERROR;
-	char cmd[100];
+	char cmd[128];
+	char *local_file = NULL;
+	uint8_t server_type = 0;
+	unsigned long filesize = 0;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tSSetVersionAck * pAck = NULL;
+	LLRP_tSVersionDownload * pVD = NULL;
+	/* FIXME: it should be other status */
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_ReaderExcessTemperature;
 
 	memset(cmd, 0, 100);
 
+	if (pThis->eVerType == LLRP_VerType_ReadBoot) {
+		local_file = "boot.bin";
+	} else if (pThis->eVerType == LLRP_VerType_ReadSystem) {
+		local_file = "system.bin";
+	} else if (pThis->eVerType == LLRP_VerType_SecurityModuleSystem) {
+		local_file = "security.bin";
+	} else if (pThis->eVerType == LLRP_VerType_SecurityChipSystem) {
+		local_file = "sec_chip.bin";
+	} else if (pThis->eVerType == LLRP_VerType_RadioModule) {
+		local_file = "radio.bin";
+	} else {
+		goto out;
+	}
 
-	sprintf(cmd, "tftp -l %s -r %s -g %s", local_file, remote_file, ip);
-	sprintf(cmd, "ftpget -u %s -p %s %s %s %s", user, passwd, ip, local_file, remote_file);
+	pVD = LLRP_SetVersion_getVersionDownload(pThis);
+	if (pVD == NULL) {
+		goto out;
+	}
+
+	server_type = LLRP_VersionDownload_getServerType(pVD);
+	if (server_type != LLRP_ServerType_Ftp || server_type != LLRP_ServerType_Tftp) {
+		goto out;
+	} else {
+		uint8_t ip[16];
+		LLRP_tSIPAddress * pIP;
+
+		pIP = LLRP_VersionDownload_getIPAddress(pVD);
+
+		upper_trans_ip(ip, *(pIP->Address.pValue));
+
+		if (server_type == LLRP_ServerType_Ftp)
+			sprintf(cmd, "ftpget -u %s -p %s %s %s %s", pVD->Username.pValue,
+					pVD->UserPass.pValue, ip, local_file, pVD->VersionPath.pValue);
+		else
+			sprintf(cmd, "tftp -l %s -r %s -g %s", local_file, pVD->VersionPath.pValue, ip);
+
+		printf("%s: cmd is %s.\n", __func__, cmd);
+		system(cmd);
+	}
+
+	if (file_get_size(local_file, &filesize) == NO_ERROR && filesize > 0)
+		status = LLRP_StatusCode_M_Success;
+
+out:
+	pStatus = upper_setup_status(status);
+	pAck = LLRP_SetVersionAck_construct();
+	LLRP_SetVersionAck_setStatus(pAck, pStatus);
+
+	lock_upper(&info->lock);
+	upper_send_message(info, &pAck->hdr);
+	unlock_upper(&info->lock);
+
+	LLRP_SetVersionAck_destruct(pAck);
+	LLRP_SetVersion_destruct(pThis);
 }
 
 static void upper_process_ResetDevice(upper_info_t * info)
@@ -908,6 +1042,8 @@ void *upper_read_loop(void *data)
 					   __func__, pError->eResultCode, pError->pWhatStr);
 				break;
 			} else {
+				printf("%s: error code:%d, error message:%s.\n",
+					   __func__, pError->eResultCode, pError->pWhatStr);
 				continue;
 			}
 		}
