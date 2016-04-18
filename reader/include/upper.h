@@ -29,6 +29,7 @@
 #define UPPER_STOP		0x00
 #define UPPER_READY		0x01
 
+#define DB_PATH	"/home/root/uhf.db"
 
 typedef struct select_report_spec {
 	uint8_t SelectReportTrigger;
@@ -66,6 +67,7 @@ typedef struct upper_info {
 	int sock;
 	int status;
 	int verbose;
+	int db_valid;
 	char active_cer_path[48];
 	char user_info_path[48];
 

@@ -27,10 +27,12 @@ OBJS			= objs
 
 SM2_INCLU		= utils/sm2
 LTK_INCLU		= utils/llrp
+SQL_INCLU		= utils/sqlite3
 UHF_HDRS		= include
 
 UHF_OBJS = \
 	$(OBJS)/uhf.o	\
+	$(OBJS)/sql.o	\
 	$(OBJS)/file.o	\
 	$(OBJS)/upper.o	\
 	$(OBJS)/radio.o	\
@@ -42,7 +44,7 @@ $(OUT):
 	$(MKDIR) -p $(OBJS)
 
 $(EXE): $(UHF_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ -L $(LTK_INCLU) -L $(SM2_INCLU) -lpthread -lsm2 -lltkc
+	$(CC) $(CFLAGS) $^ -o $@ -L $(LTK_INCLU) -L $(SM2_INCLU) -L $(SQL_INCLU)  -lpthread -lsm2 -lltkc -lsqlite3 -ldl
 
 $(OBJS)/uhf.o: uhf.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU)
@@ -58,6 +60,9 @@ $(OBJS)/security.o: security.c
 
 $(OBJS)/file.o: file.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)
+
+$(OBJS)/sql.o: sql.c
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(SQL_INCLU)
 
 clean:
 	find -name '*.o' -exec rm -rf {} \;

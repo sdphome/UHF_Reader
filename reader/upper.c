@@ -477,27 +477,36 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		return 0;
 	}
 
-	if (info->status != UPPER_READY) {
-		printf("%s: upper hasn't ready.\n", __func__);
-		return 0;
-	}
-
 	lock_upper(&info->upload_lock);
+
+	if (info->status != UPPER_READY) {
+		printf("%s: upper hasn't ready, store tag info into db.\n", __func__);
+		tag_info_t tag;
+		tag.TID = tid;
+		tag.SelectSpecID = 1;
+		tag.RfSpecID = 1;
+		tag.AntennalID = anten_no;
+		tag.FistSeenTimestampUTC = timestamp;
+		tag.LastSeenTimestampUTC = timestamp;
+		tag.AccessSpecID = 1;
+		tag.TagSeenCount = 1;
+		info->db_valid = true;
+		sql_insert_tag_info(DB_PATH, &tag);
+		goto out;
+	}
 
 	tag_list = info->tag_list;
 	tag_list_prev = info->tag_list;
 
-	if(info->tag_list != NULL) {
-		while (tag_list != NULL) {
-			tag_list_prev = tag_list;
-			if (tag_list->tag.TID == tid) {
-				new_tag = false;
-				tag_list->tag.TagSeenCount += 1;
-				tag_list->tag.LastSeenTimestampUTC = timestamp;
-				break;
-			}
-			tag_list = tag_list->next;
+	while (tag_list != NULL) {
+		tag_list_prev = tag_list;
+		if (tag_list->tag.TID == tid) {
+			new_tag = false;
+			tag_list->tag.TagSeenCount += 1;
+			tag_list->tag.LastSeenTimestampUTC = timestamp;
+			break;
 		}
+		tag_list = tag_list->next;
 	}
 
 	if (new_tag) {
@@ -881,6 +890,11 @@ void *upper_upload_loop(void *data)
 		lock_upper(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
+		if (info->db_valid == true) {
+			sql_get_tag_info(DB_PATH, &info->tag_list);
+			info->db_valid = false;
+		}
+
 		gettimeofday(&now, NULL);
 		curr_timestamp = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
 
@@ -1090,6 +1104,8 @@ int start_upper(upper_info_t * info)
 	int ret = NO_ERROR;
 	pthread_attr_t attr;
 	void *status;
+
+	sql_create_tag_table(DB_PATH);
 
 	while (true) {
 		//if (info->pConn == NULL)

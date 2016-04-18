@@ -24,6 +24,7 @@
 #include "radio.h"
 #include "security.h"
 #include "file.h"
+#include "sql.h"
 
 #define ACTIVE_CER_PATH     "/home/root/active.cer"
 #define USER_INFO_PATH      "/home/root/user_info.bin"
