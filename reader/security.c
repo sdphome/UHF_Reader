@@ -1410,6 +1410,7 @@ void release_security(security_info_t ** security_info)
 
 void test_security(security_info_t * pr)
 {
+
 /*
 	int ret = NO_ERROR;
 	security_info_t *pr = NULL;

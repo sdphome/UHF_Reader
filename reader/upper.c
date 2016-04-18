@@ -227,6 +227,7 @@ static void upper_hton_64(uint8_t * buf, llrp_u64_t value)
 	buf[i++] = value >> 0u;
 }
 */
+
 /*
 static int upper_check_llrp_status(LLRP_tSStatus * pLLRPStatus, char *pWhatStr)
 {
@@ -311,7 +312,7 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 	return ret;
 }
 
-static LLRP_tSStatus * upper_setup_status(LLRP_tEStatusCode status)
+static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status)
 {
 	LLRP_tSStatus *pStatus;
 	llrp_utf8v_t description;
@@ -325,7 +326,7 @@ static LLRP_tSStatus * upper_setup_status(LLRP_tEStatusCode status)
 	return pStatus;
 }
 
-void upper_trans_ip(uint8_t *ip_s, uint32_t ip_i)
+void upper_trans_ip(uint8_t * ip_s, uint32_t ip_i)
 {
 	uint8_t each, tmp;
 	int i = 0;
@@ -337,7 +338,7 @@ void upper_trans_ip(uint8_t *ip_s, uint32_t ip_i)
 		return;
 	}
 
-	for (i = 0; i < 4; i ++) {
+	for (i = 0; i < 4; i++) {
 		each = ip_i >> (8 * i);
 		tmp = each / 100;
 		if (tmp) {
@@ -378,8 +379,9 @@ static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status
 	upper_send_message(info, &pEA->hdr);
 	unlock_upper(&info->lock);
 
-out:
-	if (pEA != NULL) LLRP_ErrorAck_destruct(pEA);
+  out:
+	if (pEA != NULL)
+		LLRP_ErrorAck_destruct(pEA);
 }
 
 static int upper_request_Disconnect(upper_info_t * info)
@@ -405,9 +407,11 @@ static int upper_request_Disconnect(upper_info_t * info)
 	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
 
-out:
-	if (pDis != NULL) LLRP_Disconnect_destruct(pDis);
-	if (pAck != NULL) LLRP_DisconnectAck_destruct(pAck);
+  out:
+	if (pDis != NULL)
+		LLRP_Disconnect_destruct(pDis);
+	if (pAck != NULL)
+		LLRP_DisconnectAck_destruct(pAck);
 
 	return ret;
 }
@@ -431,9 +435,11 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
 
-out:
-	if (pDis != NULL) LLRP_Disconnect_destruct(pDis);
-	if (pAck != NULL) LLRP_DisconnectAck_destruct(pAck);
+  out:
+	if (pDis != NULL)
+		LLRP_Disconnect_destruct(pDis);
+	if (pAck != NULL)
+		LLRP_DisconnectAck_destruct(pAck);
 
 	return ret;
 }
@@ -470,7 +476,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	tag_list_t *tag_list = NULL;
 	tag_list_t *tag_list_prev = NULL;
 	int new_tag = true;
-	int need_notify = true;	/* TODO: re-check this condition */
+	int need_notify = true;		/* TODO: re-check this condition */
 
 	if (info == NULL) {
 		printf("info is null.\n");
@@ -510,7 +516,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	}
 
 	if (new_tag) {
-		curr_list = (tag_list_t *)malloc(sizeof(tag_list_t));
+		curr_list = (tag_list_t *) malloc(sizeof(tag_list_t));
 		if (curr_list == NULL)
 			goto out;
 		memset(curr_list, 0, sizeof(tag_list_t));
@@ -530,7 +536,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	if (need_notify)
 		pthread_cond_broadcast(&info->disconnect_cond);
 
-out:
+  out:
 	unlock_upper(&info->upload_lock);
 
 	return ret;
@@ -586,7 +592,7 @@ int upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
 }
 
 // 662
-static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig *pThis)
+static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig * pThis)
 {
 	int ret = NO_ERROR;
 	LLRP_tSSetDeviceConfigAck *pSDC_Ack = NULL;
@@ -601,19 +607,17 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 		printf("%s: DeviceName: %s.\n", __func__, pID->DeviceName.pValue);
 	}
-
 	// CommunicationConfiguration Parameter
 	if (pThis->pCommunicationConfiguration != NULL) {
 		LLRP_tSCommunicationConfiguration *pCC = NULL;
 		LLRP_tSCommLinkConfiguration *pCLC = NULL;
 		LLRP_tSNTPConfiguration *pNTPC = NULL;
-		LLRP_tSParameter * pEC = NULL;
+		LLRP_tSParameter *pEC = NULL;
 
 		pCC = LLRP_SetDeviceConfig_getCommunicationConfiguration(pThis);
 
 		for (pCLC = LLRP_CommunicationConfiguration_beginCommLinkConfiguration(pCC);
-			 pCLC != NULL; 
-			 pCLC = LLRP_CommunicationConfiguration_nextCommLinkConfiguration(pCLC)) {
+			 pCLC != NULL; pCLC = LLRP_CommunicationConfiguration_nextCommLinkConfiguration(pCLC)) {
 			/* Just support TCP now */
 			if (LLRP_CommLinkConfiguration_getLinkType(pCLC) == LLRP_LinkType_TCP) {
 				LLRP_tSKeepaliveSpec *pKS = NULL;
@@ -646,7 +650,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 			if (&LLRP_tdEthernetIpv4Configuration == pType) {
 				LLRP_tSEthernetIpv4Configuration *pEIV4C = NULL;
 				printf("Setup ipv4---------------\n");
-				pEIV4C = (LLRP_tSEthernetIpv4Configuration *)pEC;
+				pEIV4C = (LLRP_tSEthernetIpv4Configuration *) pEC;
 				if (!LLRP_EthernetIpv4Configuration_getIsDHCP(pEIV4C)) {
 					char cmd[128];
 					uint8_t ip[16];
@@ -671,13 +675,12 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 		pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
 		if (pNTPC != NULL) {
 			// upper_config_ntpd(info, pNTPC);
-			LLRP_tSIPAddress * pIPA = NULL;
+			LLRP_tSIPAddress *pIPA = NULL;
 			/* TODO: setup ntp */
 			info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
 			system("mv /etc/ntp.conf /etc/ntp.conf.bak");
 			for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
-				 pIPA != NULL;
-				 pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
+				 pIPA != NULL; pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
 				/* just support ipv4 now */
 				if (LLRP_IPAddress_getVersion(pIPA) == 0) {
 					FILE *fp = NULL;
@@ -685,15 +688,15 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					ip = LLRP_IPAddress_getAddress(pIPA);
 					if (ip.nValue < 7)
 						continue;
-						fp = fopen("/etc/ntp.conf", "w");
+					fp = fopen("/etc/ntp.conf", "w");
 					if (fp == NULL) {
 						system("mv /etc/ntp.conf.bak /etc/ntp.conf");
 						break;
 					}
-					file_write_data((uint8_t *)"\n", fp, 1);
-					file_write_data((uint8_t *)"server ", fp, 7);
-					file_write_data((uint8_t *)ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
-					file_write_data((uint8_t *)"\n", fp, 1);
+					file_write_data((uint8_t *) "\n", fp, 1);
+					file_write_data((uint8_t *) "server ", fp, 7);
+					file_write_data((uint8_t *) ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
+					file_write_data((uint8_t *) "\n", fp, 1);
 					fclose(fp);
 				}
 
@@ -709,7 +712,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 	LLRP_SetDeviceConfigAck_setStatus(pSDC_Ack, pStatus);
 
-out:
+  out:
 	LLRP_SetDeviceConfig_destruct(pThis);
 	LLRP_SetDeviceConfigAck_destruct(pSDC_Ack);
 
@@ -723,8 +726,8 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	uint8_t server_type = 0;
 	unsigned long filesize = 0;
 	LLRP_tSStatus *pStatus = NULL;
-	LLRP_tSSetVersionAck * pAck = NULL;
-	LLRP_tSVersionDownload * pVD = NULL;
+	LLRP_tSSetVersionAck *pAck = NULL;
+	LLRP_tSVersionDownload *pVD = NULL;
 	/* FIXME: it should be other status */
 	LLRP_tEStatusCode status = LLRP_StatusCode_M_ReaderExcessTemperature;
 
@@ -754,7 +757,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		goto out;
 	} else {
 		uint8_t ip[16];
-		LLRP_tSIPAddress * pIP;
+		LLRP_tSIPAddress *pIP;
 
 		pIP = LLRP_VersionDownload_getIPAddress(pVD);
 
@@ -773,7 +776,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	if (file_get_size(local_file, &filesize) == NO_ERROR && filesize > 0)
 		status = LLRP_StatusCode_M_Success;
 
-out:
+  out:
 	pStatus = upper_setup_status(status);
 	pAck = LLRP_SetVersionAck_construct();
 	LLRP_SetVersionAck_setStatus(pAck, pStatus);
@@ -804,65 +807,65 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 
 	switch (type) {
 	  case 303:				//Disconnect
-			upper_process_Disconnect(info, (LLRP_tSDisconnect *) pRequest);
-			break;
+		  upper_process_Disconnect(info, (LLRP_tSDisconnect *) pRequest);
+		  break;
 	  case 350:				//GetDeviceCapabilities
-			break;
+		  break;
 	  case 400:				//AddSelectSpec
-			break;
+		  break;
 	  case 402:				//DeleteSelectSpec
-			break;
+		  break;
 	  case 404:				//StartSelectSpec
-			break;
+		  break;
 	  case 406:				//StopSelectSpec
-			break;
+		  break;
 	  case 408:				//EnableSelectSpec
-			break;
+		  break;
 	  case 410:				//DisableSelectSpecAck
-			break;
+		  break;
 	  case 412:				//GetSelectSpec
-			break;
+		  break;
 	  case 450:				//AddAccessSpec
-			break;
+		  break;
 	  case 452:				//DeleteAccessSpec
-			break;
+		  break;
 	  case 454:				//EnableAccessSpec
-			break;
+		  break;
 	  case 456:				//DisableAccessSpec
-			break;
+		  break;
 	  case 458:				//GetAccessSpec
-			break;
+		  break;
 	  case 600:				//DeviceBinding
-			upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *) pRequest);
-			break;
+		  upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *) pRequest);
+		  break;
 	  case 602:				//DeviceCertificateConfig
-			upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
-			break;
+		  upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
+		  break;
 	  case 620:				//UploadTagLog
-			break;
+		  break;
 	  case 622:				//ClearLog
-			break;
+		  break;
 	  case 640:				//UploadDeviceLog
-			break;
+		  break;
 	  case 642:				//ClearDeviceLog
-			break;
+		  break;
 	  case 660:				//GetDeviceConfig
-			break;
+		  break;
 	  case 662:				//SetDeviceConfig
-			upper_process_SetDeviceConfig(info, (LLRP_tSSetDeviceConfig *) pRequest);
-			break;
+		  upper_process_SetDeviceConfig(info, (LLRP_tSSetDeviceConfig *) pRequest);
+		  break;
 	  case 700:				//GetVersion
-			break;
+		  break;
 	  case 702:				//SetVersion
-			upper_process_SetVersion(info, (LLRP_tSSetVersion *) pRequest);
-			break;
+		  upper_process_SetVersion(info, (LLRP_tSSetVersion *) pRequest);
+		  break;
 	  case 704:				//ActiveVersion
-			break;
+		  break;
 	  case 706:				//UnAciveVersion
-			break;
+		  break;
 	  case 760:				//ResetDevice
-			upper_process_ResetDevice(info);
-			break;
+		  upper_process_ResetDevice(info);
+		  break;
 	  default:
 		  printf("hasn't support this type.\n");
 		  break;
@@ -886,7 +889,7 @@ void *upper_upload_loop(void *data)
 
 	while (true) {
 		/* TODO: think indeep about the lock, if we can move the location of the lock
-			to increase the speed */
+		   to increase the speed */
 		lock_upper(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
@@ -903,7 +906,8 @@ void *upper_upload_loop(void *data)
 			tag_list_t *tag_list_prev = info->tag_list->next;
 
 			pTSAR = LLRP_TagSelectAccessReport_construct();
-			if (pTSAR == NULL) continue;
+			if (pTSAR == NULL)
+				continue;
 			pTSAR->hdr.MessageID = info->next_msg_id++;
 
 			while (tag_list != NULL) {
@@ -911,7 +915,7 @@ void *upper_upload_loop(void *data)
 				/* FIXME: maybe other time */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
 					(tag_info->TagSeenCount > info->tag_spec.NValue &&
-					tag_info->TagSeenCount % info->tag_spec.NValue == 0)) {
+					 tag_info->TagSeenCount % info->tag_spec.NValue == 0)) {
 					LLRP_tSTagReportData *pTRD = NULL;
 					llrp_u8v_t Tid;
 
@@ -925,49 +929,51 @@ void *upper_upload_loop(void *data)
 					LLRP_TagReportData_setTID(pTRD, Tid);
 
 					if (info->tag_spec.mask | ENABLE_SELECT_SPEC_ID) {
-						LLRP_tSSelectSpecID * pSSID = NULL;
+						LLRP_tSSelectSpecID *pSSID = NULL;
 						pSSID = LLRP_SelectSpecID_construct();
 						LLRP_SelectSpecID_setSelectSpecID(pSSID, tag_info->SelectSpecID);
 						LLRP_TagReportData_setSelectSpecID(pTRD, pSSID);
 					}
 
 					if (info->tag_spec.mask | ENABLE_SPEC_INDEX) {
-						LLRP_tSSpecIndex * pSI = NULL;
+						LLRP_tSSpecIndex *pSI = NULL;
 						pSI = LLRP_SpecIndex_construct();
 						LLRP_SpecIndex_setSpecIndex(pSI, tag_info->SpecIndex);
 						LLRP_TagReportData_setSpecIndex(pTRD, pSI);
 					}
 
 					if (info->tag_spec.mask | ENABLE_RF_SPEC_ID) {
-						LLRP_tSRfSpecID * pRSID = NULL;
+						LLRP_tSRfSpecID *pRSID = NULL;
 						pRSID = LLRP_RfSpecID_construct();
 						LLRP_RfSpecID_setRfSpecID(pRSID, tag_info->RfSpecID);
 						LLRP_TagReportData_setRfSpecID(pTRD, pRSID);
 					}
 
 					if (info->tag_spec.mask | ENABLE_ANTENNAL_ID) {
-						LLRP_tSAntennaID * pAID = NULL;
+						LLRP_tSAntennaID *pAID = NULL;
 						pAID = LLRP_AntennaID_construct();
 						LLRP_AntennaID_setAntennaID(pAID, tag_info->AntennalID);
 						LLRP_TagReportData_setAntennaID(pTRD, pAID);
 					}
 
 					if (info->tag_spec.mask | ENABLE_FST) {
-						LLRP_tSFirstSeenTimestampUTC * pFST = NULL;
+						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
-						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST, tag_info->FistSeenTimestampUTC);
+						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
+																   tag_info->FistSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
 					if (info->tag_spec.mask | ENABLE_LST) {
-						LLRP_tSLastSeenTimestampUTC * pLST = NULL;
+						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
-						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST, tag_info->LastSeenTimestampUTC);
+						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
+																  tag_info->LastSeenTimestampUTC);
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
 					if (info->tag_spec.mask | ENABLE_TSC) {
-						LLRP_tSTagSeenCount * pTSC = NULL;
+						LLRP_tSTagSeenCount *pTSC = NULL;
 						pTSC = LLRP_TagSeenCount_construct();
 						LLRP_TagSeenCount_setTagCount(pTSC, tag_info->TagSeenCount);
 						LLRP_TagReportData_setTagSeenCount(pTRD, pTSC);
@@ -982,7 +988,7 @@ void *upper_upload_loop(void *data)
 						info->tag_list = tag_list->next;
 					}
 
-					tag_list_prev->next = tag_list->next; /* cross tag_list */
+					tag_list_prev->next = tag_list->next;	/* cross tag_list */
 					tag_list = tag_list->next;
 					free(tag_list);
 					tag_list = NULL;

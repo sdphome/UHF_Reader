@@ -32,7 +32,7 @@
 
 //#define TEST
 
-uhf_info_t * g_uhf = NULL;
+uhf_info_t *g_uhf = NULL;
 
 static int uhf_init_security(uhf_info_t * p_uhf)
 {
@@ -93,7 +93,7 @@ void *uhf_heartbeat_loop(void *data)
 
 	while (true) {
 		printf("%s: radio_per_seconds=%d, upper_per_seconds=%d.\n",
-				__func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
+			   __func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
 		radio_per_seconds = radio->heartbeats_periodic / 1000;
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
 		if (upper_per_seconds != 0)

@@ -20,16 +20,15 @@ int sql_create_tag_table(char *path)
 		return -FAILED;
 	}
 
-	sql = "CREATE TABLE TAG("
-		  "TID INTEGER PRIMARY KEY NOT NULL,"	  	// TID
-		  "SSID INTEGER NOT NULL,"					// SelectSpecID
-		  "SI INTEGER NOT NULL,"					// SpecIndex
-		  "RFSID INTEGER NOT NULL,"					// RfSpecID
-		  "AID INTEGER NOT NULL,"					// AntennaID
-		  "FSTU INTEGER,"							// FirstSeenTimestampUTC
-		  "LSTU INTEGER,"							// LastSeenTimestampUTC
-		  "TSC INTEGER,"							// TagSeenCount
-		  "ASID INTEGER);";							// AccessSpecID
+	sql = "CREATE TABLE TAG(" "TID INTEGER PRIMARY KEY NOT NULL,"	// TID
+		"SSID INTEGER NOT NULL,"	// SelectSpecID
+		"SI INTEGER NOT NULL,"	// SpecIndex
+		"RFSID INTEGER NOT NULL,"	// RfSpecID
+		"AID INTEGER NOT NULL,"	// AntennaID
+		"FSTU INTEGER,"			// FirstSeenTimestampUTC
+		"LSTU INTEGER,"			// LastSeenTimestampUTC
+		"TSC INTEGER,"			// TagSeenCount
+		"ASID INTEGER);";		// AccessSpecID
 
 	ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 	if (ret != SQLITE_OK) {
@@ -42,7 +41,7 @@ int sql_create_tag_table(char *path)
 	return ret;
 }
 
-int sql_insert_tag_info(char *path, tag_info_t *tag)
+int sql_insert_tag_info(char *path, tag_info_t * tag)
 {
 	int ret = NO_ERROR;
 	sqlite3 *db = NULL;
@@ -66,10 +65,10 @@ int sql_insert_tag_info(char *path, tag_info_t *tag)
 	printf("nRow=%d, nColumn=%d.\n", nRow, nColumn);
 	if (nRow == 0) {
 		memset(sql, 0, 512);
-		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "	\
-					"VALUES (%llu, %u, %u, %u, %u, %llu, 0, 1, %u);",	\
-					tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,	\
-			tag->AntennalID, tag->FistSeenTimestampUTC, tag->AccessSpecID);
+		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
+				"VALUES (%llu, %u, %u, %u, %u, %llu, 0, 1, %u);",
+				tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,
+				tag->AntennalID, tag->FistSeenTimestampUTC, tag->AccessSpecID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 	} else {
 		uint16_t count = 0;
@@ -79,7 +78,8 @@ int sql_insert_tag_info(char *path, tag_info_t *tag)
 		memset(sql, 0, 512);
 		sprintf(sql, "UPDATE TAG set TSC = %u where TID = %llu;", count + 1, tag->TID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
-		sprintf(sql, "UPDATE TAG set LSTU = %llu where TID = %llu;", tag->LastSeenTimestampUTC, tag->TID);
+		sprintf(sql, "UPDATE TAG set LSTU = %llu where TID = %llu;", tag->LastSeenTimestampUTC,
+				tag->TID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 	}
 
@@ -88,7 +88,7 @@ int sql_insert_tag_info(char *path, tag_info_t *tag)
 	return 0;
 }
 
-int sql_get_tag_info(char *path, tag_list_t **list)
+int sql_get_tag_info(char *path, tag_list_t ** list)
 {
 	int ret = NO_ERROR;
 	sqlite3 *db = NULL;
@@ -121,7 +121,7 @@ int sql_get_tag_info(char *path, tag_list_t **list)
 		goto out;
 	}
 
-	curr = (tag_list_t *)malloc(sizeof(tag_list_t));
+	curr = (tag_list_t *) malloc(sizeof(tag_list_t));
 	curr->next = NULL;
 
 	if (*list == NULL) {
@@ -147,7 +147,7 @@ int sql_get_tag_info(char *path, tag_list_t **list)
 		curr->tag.AccessSpecID = atol(dbResult[index++]);
 
 		next = curr;
-		curr = (tag_list_t *)malloc(sizeof(tag_list_t));
+		curr = (tag_list_t *) malloc(sizeof(tag_list_t));
 		curr->next = NULL;
 		next->next = curr;
 	}
@@ -158,12 +158,13 @@ int sql_get_tag_info(char *path, tag_list_t **list)
 	memset(sql, 0, 512);
 	sprintf(sql, "DELETE FROM TAG");
 
-out:
+  out:
 	sqlite3_close(db);
 	return ret;
 }
 
 #if 0
+
 /* spec : TODO */
 int sql_create_SRC_table(char *path)
 {
@@ -179,11 +180,10 @@ int sql_create_SRC_table(char *path)
 		return -FAILED;
 	}
 
-	sql = "CREATE TABLE SRC("
-		  "ID INTEGER PRIMARY KEY NOT NULL,"	  	// TID
-		  "SRT INTEGER NOT NULL,"					// SelectSpecID
-		  "NV INTEGER NOT NULL,"					// SpecIndex
-		  "MASK INTEGER NOT NULL);";				// RfSpecID
+	sql = "CREATE TABLE SRC(" "ID INTEGER PRIMARY KEY NOT NULL,"	// TID
+		"SRT INTEGER NOT NULL,"	// SelectSpecID
+		"NV INTEGER NOT NULL,"	// SpecIndex
+		"MASK INTEGER NOT NULL);";	// RfSpecID
 
 	ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 	if (ret != SQLITE_OK) {
@@ -194,7 +194,7 @@ int sql_create_SRC_table(char *path)
 	sqlite3_close(db);
 }
 
-int sql_insert_SRC_info(char *path, src_info_t *tag)
+int sql_insert_SRC_info(char *path, src_info_t * tag)
 {
 	int ret = NO_ERROR;
 	sqlite3 *db = NULL;
@@ -218,10 +218,10 @@ int sql_insert_SRC_info(char *path, src_info_t *tag)
 	printf("nRow=%d, nColumn=%d.\n", nRow, nColumn);
 	if (nRow == 0) {
 		memset(sql, 0, 512);
-		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "	\
-					"VALUES (%llu, %lu, %u, %u, %u, %llu, 0, 1, %lu);",	\
-					tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,	\
-			tag->AntennalID, tag->FistSeenTimestampUTC, tag->AccessSpecID);
+		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
+				"VALUES (%llu, %lu, %u, %u, %u, %llu, 0, 1, %lu);",
+				tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,
+				tag->AntennalID, tag->FistSeenTimestampUTC, tag->AccessSpecID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 	} else {
 		uint16_t count = 0;

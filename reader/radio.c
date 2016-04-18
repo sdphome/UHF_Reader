@@ -879,7 +879,7 @@ int start_radio(radio_info_t * radio_info)
 
 void stop_radio(radio_info_t * radio_info)
 {
-	void * ret;
+	void *ret;
 	if (radio_info == NULL)
 		return;
 
@@ -1015,9 +1015,9 @@ int test_radio(radio_info_t * pr)
 	//radio_set_carr(pr, false);
 	return ret;
 //  test_fail:
-//	stop_radio(pr);
-//	release_radio(&pr);
-//	return ret;
+//  stop_radio(pr);
+//  release_radio(&pr);
+//  return ret;
 }
 
 int radio_main(radio_info_t * info)

@@ -11,7 +11,7 @@
 
 #define MIRACL 32
 
-																																												/*#define MR_LITTLE_ENDIAN *//* This may need to be changed        */
+																																																			 /*#define MR_LITTLE_ENDIAN *//* This may need to be changed        */
 #define MR_BIG_ENDIAN			/* This may need to be changed        */
 #define mr_utype int
 							/* the underlying type is usually int *
@@ -33,4 +33,4 @@
 #define MR_NOASM
 #define MR_NO_STANDARD_IO		/* no printf support */
 
-																																							  /*#define MR_GENERIC_MT *//* multi-threaded */
+																																														/*#define MR_GENERIC_MT *//* multi-threaded */
