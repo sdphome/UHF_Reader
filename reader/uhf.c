@@ -193,7 +193,6 @@ int main(int argc, char **argv)
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
-	p_uhf->upper->uhf = (void *)p_uhf;
 
 	security_main(p_uhf->security);
 

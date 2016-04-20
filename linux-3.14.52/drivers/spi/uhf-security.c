@@ -40,6 +40,9 @@
 #include <linux/delay.h>
 #include <linux/of.h>
 #include <linux/errno.h>
+#include <linux/sched.h>
+#include <linux/kthread.h>
+#include <linux/timer.h>
 #include <linux/spi/uhf-security.h>
 
 
@@ -449,6 +452,83 @@ static irqreturn_t us_intr_handler(int irq, void *handle)
     return IRQ_HANDLED;
 }
 
+static void us_calc_crc(struct uhf_security_data *data)
+{
+	int i;
+	uint8_t crc = 0;
+
+	for (i = 1; i < data->len - 1; i ++) {
+		crc ^= *(data->data + i);
+	}
+
+	*(data->data + i) = crc;
+}
+
+static int us_stress_func(void *data)
+{
+	struct uhf_security *uhf = (struct uhf_security *)data;
+	struct uhf_security_data us_data_1;
+	struct uhf_security_data us_data_2;
+	int index = 0;
+	int data2_index = 0;
+	uint64_t time = 0;
+	struct timeval tv;
+	unsigned int count = 0;
+
+	memset(&us_data_1, 0, sizeof(struct uhf_security_data));
+	/* hardcode for stress test */
+	us_data_1.data[index++] = 0xAB;
+	us_data_1.data[index++] = 0x51;
+	us_data_1.data[index++] = 0x13;
+	us_data_1.data[index++] = 0x00;
+	us_data_1.data[index++] = 0x01;
+	us_data_1.data[index++] = 0x00; /* error type */
+	data2_index = index;
+	us_data_1.data[index++] = 0x11;
+	us_data_1.data[index++] = 0x22;
+	us_data_1.data[index++] = 0x33;
+	us_data_1.data[index++] = 0x44;
+	us_data_1.data[index++] = 0x55;
+	us_data_1.data[index++] = 0x66;
+	us_data_1.data[index++] = 0x77;
+	us_data_1.data[index++] = 0x88;
+	us_data_1.data[index++] = 0x03; /* antenn id */
+
+	memcpy(&us_data_2, &us_data_1, sizeof(struct uhf_security_data));
+	us_data_2.data[data2_index++] = 0x99;
+	us_data_2.data[data2_index++] = 0xAA;
+	us_data_2.data[data2_index++] = 0xBB;
+	us_data_2.data[data2_index++] = 0xCC;
+	us_data_2.data[data2_index++] = 0xDD;
+	us_data_2.data[data2_index++] = 0xEE;
+	us_data_2.data[data2_index++] = 0xFF;
+	us_data_2.data[data2_index++] = 0x00;
+	us_data_2.data[data2_index++] = 0x01; /* antenn id */
+
+	us_data_1.len = 24;
+	us_data_2.len = 24;
+
+	while (!kthread_should_stop()) {
+		msleep(uhf->stress_interval);
+
+		if (count ++ % 3) {
+			do_gettimeofday(&tv);
+			time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+			*((uint64_t *)(us_data_1.data + index)) = time;
+			us_calc_crc(&us_data_1);
+			us_copy_to_cache(uhf, us_data_1);
+		} else {
+			do_gettimeofday(&tv);
+			time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+			*((uint64_t *)(us_data_2.data + index)) = time;
+			us_calc_crc(&us_data_2);
+			us_copy_to_cache(uhf, us_data_2);
+		}
+	}
+
+	return 0;
+}
+
 static ssize_t us_sys_show(struct device *dev,
             struct device_attribute *attr, char *buf)
 {
@@ -461,17 +541,52 @@ static ssize_t us_sys_store(struct device *dev,
     int ret;
     struct uhf_security *uhf = __uhf;
 
-    if (strstr(buf,"status") != NULL) {
+    if (strstr(buf, "status") != NULL) {
         ret = us_get_status(uhf->status);
         printk(KERN_ALERT "uhf security module status is %s.\n", ret == OK ? "OK" : "BUSY");
-    } else if (strstr(buf,"reset") != NULL) {
+    } else if (strstr(buf, "reset") != NULL) {
         us_reset(uhf->reset);
     }
 
     return size;
 }
 
+static ssize_t us_stress_show(struct device *dev,
+            struct device_attribute *attr, char *buf)
+{
+    return 0;
+}
+
+static ssize_t us_stress_store(struct device *dev,
+            struct device_attribute *attr, const char *buf, size_t size)
+{
+    struct uhf_security *uhf = __uhf;
+
+    if (strstr(buf, "start") != NULL) {
+		uhf->stress_task = kthread_run(us_stress_func, (void *)uhf, "us_stress_task");
+        if (uhf->stress_task)
+            printk(KERN_ALERT "uhf security start stress work.\n");
+    } else if (strstr(buf, "stop") != NULL) {
+        if (uhf->stress_task) {
+            kthread_stop(uhf->stress_task);
+            uhf->stress_task = NULL;
+            printk(KERN_ALERT "uhf security stop stress work.\n");
+		}
+    } else {
+		unsigned long interval_ms;
+		if (strict_strtoul(buf, 10, &interval_ms))
+			return -1;
+		if (!interval_ms)
+			return -1;
+
+		uhf->stress_interval = (unsigned int)interval_ms;
+	}
+
+    return size;
+}
+
 static DEVICE_ATTR(us_sys, 0664, us_sys_show, us_sys_store);
+static DEVICE_ATTR(us_stress, 0664, us_stress_show, us_stress_store);
 
 static int us_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
 {
@@ -586,11 +701,19 @@ static int us_probe(struct spi_device *spi)
     uhf->irq = spi->irq;
     spi_set_drvdata(spi, uhf);
 
+	uhf->stress_interval = 1000;
+
     ret = us_init(uhf);
 
     ret += device_create_file(uhf->dev, &dev_attr_us_sys);
     if (ret) {
         printk(KERN_ALERT "%s: create sys file failed.\n", __func__);
+        goto sys_fail;
+    }
+
+    ret += device_create_file(uhf->dev, &dev_attr_us_stress);
+    if (ret) {
+        printk(KERN_ALERT "%s: create stress sys file failed.\n", __func__);
         goto sys_fail;
     }
 

@@ -1228,6 +1228,7 @@ void *security_read_loop(void *data)
 	int fd = info->fd;
 	security_package_t result;
 	uint8_t *buf = NULL;
+	int i = 0;
 
 	while (true) {
 		buf = info->rbuf;
@@ -1240,6 +1241,12 @@ void *security_read_loop(void *data)
 			continue;
 		}
 		printf("%s: nrd = %d\n", __func__, nrd);
+#ifdef DEBUG
+		for (i = 0; i < nrd; i ++) {
+			printf("%4x", *(buf + i));
+		}
+		printf("\n");
+#endif
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
 		if (nrd != result.hdr.len + SECURITY_PACK_HDR_SIZE) {

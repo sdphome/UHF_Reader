@@ -81,6 +81,9 @@ struct uhf_security {
     dev_t devt;
     struct device *dev;
 
+	struct task_struct *stress_task;
+	unsigned int stress_interval;
+
     spinlock_t lock;
     struct mutex buf_lock;
     struct semaphore sem;
