@@ -122,6 +122,7 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 	}
 
 	curr = (tag_list_t *) malloc(sizeof(tag_list_t));
+	memset(curr, 0, sizeof(tag_list_t));
 	curr->next = NULL;
 
 	if (*list == NULL) {
@@ -136,6 +137,7 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 	index = nColumn;
 	for (i = 0; i < nRow; i++) {
+		printf("%s: i = %d, nRow = %d.\n", __func__, i, nRow);
 		curr->tag.TID = atoll(dbResult[index++]);
 		curr->tag.SelectSpecID = atol(dbResult[index++]);
 		curr->tag.SpecIndex = atoi(dbResult[index++]);
@@ -148,9 +150,12 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 		next = curr;
 		curr = (tag_list_t *) malloc(sizeof(tag_list_t));
+		memset(curr, 0, sizeof(tag_list_t));
 		curr->next = NULL;
 		next->next = curr;
 	}
+
+	printf("%s: finish analysis db.\n", __func__);
 
 	next->next = NULL;
 	free(curr);
