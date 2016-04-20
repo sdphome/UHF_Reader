@@ -39,7 +39,7 @@
 
 /* FIXME: undef it */
 //#define TEST
-#define DEBUG
+//#define DEBUG
 
 static inline int security_open(char *dev)
 {
@@ -277,11 +277,10 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 {
 	int nwt;
 	int ret = NO_ERROR;
-	int i = 0;
 	uint8_t *buf = info->wbuf;
 	security_pack_hdr hdr;
 
-	printf("%s: +++++++\n", __func__);
+	//printf("%s: +++++++\n", __func__);
 
 	hdr.hdr = PACK_SEND_HDR;
 	hdr.type = type;
@@ -299,6 +298,7 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	*buf = security_crc(&hdr, payload);
 
 #ifdef DEBUG
+	int i = 0;
 	printf("before security_write:");
 	for (i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
 		printf("%4x", *(info->wbuf + i));
@@ -1120,8 +1120,9 @@ static void security_upload_part(security_info_t * info, security_package_t * up
 /*
 			}
 */
-
-			  break;
+			free(upload->payload);
+			upload->payload = NULL;
+			break;
 		  }
 	  case TID_DECIP_FAILED:
 		  break;
@@ -1139,7 +1140,7 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 
 	err_type = *upload->payload;
 
-	printf("%s: error_type = 0x%x.\n", __func__, err_type);
+//	printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 	  case NO_ERROR:{
 
@@ -1151,17 +1152,18 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 							param->tid, param->ante_no, param->time);
 			} else {
 */
-			  tid_upload_v2_param *param;
-			  param = (tid_upload_v2_param *) upload->payload;
-			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
-				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
-													  param->tid, param->ante_no, param->time);
+			tid_upload_v2_param *param;
+			param = (tid_upload_v2_param *) upload->payload;
+			if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
+				upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
+											  param->tid, param->ante_no, param->time);
 
 /*
 			}
 */
-
-			  break;
+			free(upload->payload);
+			upload->payload = NULL;
+			break;
 		  }
 	  case TID_DECIP_FAILED:
 		  break;
@@ -1228,7 +1230,6 @@ void *security_read_loop(void *data)
 	int fd = info->fd;
 	security_package_t result;
 	uint8_t *buf = NULL;
-	int i = 0;
 
 	while (true) {
 		buf = info->rbuf;
@@ -1240,12 +1241,15 @@ void *security_read_loop(void *data)
 			printf("%s: the data is too few. ignore it.\n", __func__);
 			continue;
 		}
-		printf("%s: nrd = %d\n", __func__, nrd);
 #ifdef DEBUG
+	{
+		int i = 0;
+		printf("%s: nrd = %d\n", __func__, nrd);
 		for (i = 0; i < nrd; i ++) {
 			printf("%4x", *(buf + i));
 		}
 		printf("\n");
+	}
 #endif
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);

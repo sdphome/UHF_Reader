@@ -33,6 +33,7 @@
 
 static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 {
+#if 1
 	char aBuf[100 * 1024];
 
 	/*
@@ -47,6 +48,7 @@ static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 	 * Print the XML Text to the standard output.
 	 */
 	printf("%s", aBuf);
+#endif
 }
 
 static void inline lock_upper(pthread_mutex_t * lock)
@@ -359,7 +361,7 @@ void upper_trans_ip(uint8_t * ip_s, uint32_t ip_i)
 
 	ip_s[j - 1] = '\0';
 }
-
+/*
 static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status)
 {
 	LLRP_tSErrorAck *pEA;
@@ -374,7 +376,6 @@ static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status
 
 	LLRP_ErrorAck_setStatus(pEA, pStatus);
 
-	/* don't have ack */
 	lock_upper(&info->lock);
 	upper_send_message(info, &pEA->hdr);
 	unlock_upper(&info->lock);
@@ -383,7 +384,7 @@ static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status
 	if (pEA != NULL)
 		LLRP_ErrorAck_destruct(pEA);
 }
-
+*/
 static int upper_request_Disconnect(upper_info_t * info)
 {
 	int ret = NO_ERROR;
@@ -529,12 +530,16 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.LastSeenTimestampUTC = timestamp;
 		curr_list->tag.AccessSpecID = 1;
 		curr_list->tag.TagSeenCount = 1;
-		tag_list_prev->next = curr_list;
+		if (tag_list_prev == NULL)
+			info->tag_list = curr_list;
+		else
+			tag_list_prev->next = curr_list;
 		curr_list->next = NULL;
 	}
 
-	if (need_notify)
-		pthread_cond_broadcast(&info->disconnect_cond);
+	if (need_notify) {
+		pthread_cond_broadcast(&info->upload_cond);
+	}
 
   out:
 	unlock_upper(&info->upload_lock);
@@ -928,6 +933,7 @@ void *upper_upload_loop(void *data)
 
 					LLRP_TagReportData_setTID(pTRD, Tid);
 
+
 					if (info->tag_spec.mask | ENABLE_SELECT_SPEC_ID) {
 						LLRP_tSSelectSpecID *pSSID = NULL;
 						pSSID = LLRP_SelectSpecID_construct();
@@ -960,7 +966,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
-																   tag_info->FistSeenTimestampUTC);
+												tag_info->FistSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
@@ -968,7 +974,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
 						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
-																  tag_info->LastSeenTimestampUTC);
+												tag_info->LastSeenTimestampUTC);
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
@@ -982,16 +988,20 @@ void *upper_upload_loop(void *data)
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}
 
+				printf("curr_timestamp=%lld, LastSeenTimestampUTC=%lld., count=%u\n", curr_timestamp,
+													tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
 				/* FIXME: maybe other time */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000) {
 					if (info->tag_list == tag_list) {
 						info->tag_list = tag_list->next;
+						tag_list_prev = info->tag_list;
+						free(tag_list);
+						tag_list = info->tag_list;
+					} else {
+						tag_list = tag_list->next;
+						free(tag_list_prev->next);
+						tag_list_prev->next = tag_list;
 					}
-
-					tag_list_prev->next = tag_list->next;	/* cross tag_list */
-					tag_list = tag_list->next;
-					free(tag_list);
-					tag_list = NULL;
 				} else {
 					tag_list_prev = tag_list;
 					tag_list = tag_list->next;
@@ -999,7 +1009,6 @@ void *upper_upload_loop(void *data)
 			}
 
 			if (found) {
-				printf("found tag report.\n");
 				lock_upper(&info->lock);
 				upper_send_message(info, &pTSAR->hdr);
 				unlock_upper(&info->lock);
@@ -1068,7 +1077,6 @@ void *upper_read_loop(void *data)
 			}
 		}
 
-		printf("%s: pType->pName=%s\n", __func__, pMessage->elementHdr.pType->pName);
 		upper_print_XML_message(pMessage);
 
 		if (strstr(pMessage->elementHdr.pType->pName, "Ack") != NULL) {
@@ -1111,15 +1119,13 @@ int start_upper(upper_info_t * info)
 	pthread_attr_t attr;
 	void *status;
 
-	sql_create_tag_table(DB_PATH);
-
 	while (true) {
 		//if (info->pConn == NULL)
 		//  printf("%s: pConn is null.\n", __func__);
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
 			printf("%s: start server failed, error:%s.\n", __func__, info->pConn->pConnectErrorStr);
-			return info->sock;
+			goto retry;
 		}
 
 		pthread_attr_init(&attr);
@@ -1218,6 +1224,8 @@ int alloc_upper(upper_info_t ** info)
 		free(*info);
 		return -FAILED;
 	}
+
+	sql_create_tag_table(DB_PATH);
 
 	return ret;
 }

@@ -513,13 +513,13 @@ static int us_stress_func(void *data)
 
 		if (count ++ % 3) {
 			do_gettimeofday(&tv);
-			time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+			time = ((uint64_t) tv.tv_sec) * (uint64_t)1000 +  (uint64_t)(tv.tv_usec / 1000);
 			*((uint64_t *)(us_data_1.data + index)) = time;
 			us_calc_crc(&us_data_1);
 			us_copy_to_cache(uhf, us_data_1);
 		} else {
 			do_gettimeofday(&tv);
-			time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+			time = ((uint64_t) tv.tv_sec) * (uint64_t)1000 +  (uint64_t)(tv.tv_usec / 1000);
 			*((uint64_t *)(us_data_2.data + index)) = time;
 			us_calc_crc(&us_data_2);
 			us_copy_to_cache(uhf, us_data_2);

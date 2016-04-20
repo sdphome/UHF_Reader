@@ -367,7 +367,7 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 		printf("%s: read data is too few, nrd=%d, data[0]:%x.\n", __func__, nrd, *data);
 	}
 
-	printf("%s: -, nrd=%d\n", __func__, nrd);
+	//printf("%s: -, nrd=%d\n", __func__, nrd);
 	return ret;
 }
 
@@ -380,7 +380,7 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 	uint8_t *data = radio_info->data;
 	uint16_t total_len = RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE + len;
 
-	printf("radio_write +\n");
+	//printf("radio_write +\n");
 
 	if (total_len > RADIO_MTU) {
 		printf("%s: payload is too long.\n", __func__);
@@ -400,7 +400,7 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 
 	end.crc16 = calc_crc16(&hdr, payload);
 	end.crc16 = conv_type16(end.crc16);
-	printf("%s : crc16 = %x\n", __func__, end.crc16);
+	//printf("%s : crc16 = %x\n", __func__, end.crc16);
 	end.end = PACK_END;
 
 	memcpy(data, (uint8_t *) & hdr, RADIO_PACK_HDR_SIZE);
@@ -419,8 +419,8 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, total_len);
 		ret = -FAILED;
 	}
-	printf("nwt=%d\n", nwt);
-	printf("radio_write -\n");
+	//printf("nwt=%d\n", nwt);
+	//printf("radio_write -\n");
 	return ret;
 }
 
@@ -813,7 +813,7 @@ int radio_get_status(radio_info_t * radio_info)
 	radio_result_t result;
 	uint8_t dummy = 0;
 
-	printf("%s +\n", __func__);
+	//printf("%s +\n", __func__);
 
 	memset(&result, 0, sizeof(radio_result_t));
 
@@ -836,7 +836,7 @@ int radio_get_status(radio_info_t * radio_info)
 		result.payload = NULL;
 	}
 
-	printf("%s, status=%d, -\n", __func__, ret);
+	//printf("%s, status=%d, -\n", __func__, ret);
 	return ret;
 }
 

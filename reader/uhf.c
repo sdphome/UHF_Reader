@@ -75,6 +75,7 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 	/* setup default select report spec */
 	upper->tag_spec.SelectReportTrigger = 1;
 	upper->tag_spec.NValue = 400;
+	upper->tag_spec.mask = 0;
 	upper->tag_spec.mask |= ENABLE_SELECT_SPEC_ID;
 	upper->tag_spec.mask |= ENABLE_RF_SPEC_ID;
 	upper->tag_spec.mask |= ENABLE_ANTENNAL_ID;
@@ -92,8 +93,10 @@ void *uhf_heartbeat_loop(void *data)
 	uint32_t radio_per_seconds, upper_per_seconds, base;
 
 	while (true) {
+/*
 		printf("%s: radio_per_seconds=%d, upper_per_seconds=%d.\n",
 			   __func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
+*/
 		radio_per_seconds = radio->heartbeats_periodic / 1000;
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
 		if (upper_per_seconds != 0)
@@ -102,12 +105,12 @@ void *uhf_heartbeat_loop(void *data)
 			base = radio_per_seconds;
 
 		if (count % radio_per_seconds == 0) {
-			printf("%s: radio send heartbeat.\n", __func__);
+			//printf("%s: radio send heartbeat.\n", __func__);
 			radio_send_heartbeat(radio);
 		}
 
 		if (upper_per_seconds && count % upper_per_seconds == 0) {
-			printf("%s: upper set heartbeat.\n", __func__);
+			//printf("%s: upper set heartbeat.\n", __func__);
 			upper_send_heartbeat(upper);
 		}
 
