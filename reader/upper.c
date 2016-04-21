@@ -51,6 +51,32 @@ static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 #endif
 }
 
+static void upper_show_report_speed(upper_info_t *info)
+{
+	double speed;
+	int64_t diff = 0;
+	uint64_t curr;
+	struct timeval now;
+
+	gettimeofday(&now, NULL);
+	curr = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
+
+	diff = curr - info->last_report_time;
+	if (diff == 0)
+		printf("%s: timestamp disorder.\n", __func__);
+
+	info->tid_count ++;
+
+	if (diff > 250) {
+		speed = (((double)(info->tid_count - info->last_tid_count)) *
+				(double)(1000)) / (double)diff;
+		printf("%s:tid_diff=%lld, time_fidd=%lld, speed is %.4f TIDs/sec.\n",
+				__func__, info->tid_count - info->last_tid_count, diff, speed);
+		info->last_tid_count = info->tid_count;
+		info->last_report_time = curr;
+	}
+}
+
 static void inline lock_upper(pthread_mutex_t * lock)
 {
 	pthread_mutex_lock(lock);
@@ -485,6 +511,8 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	}
 
 	lock_upper(&info->upload_lock);
+
+	upper_show_report_speed(info);
 
 	if (info->status != UPPER_READY) {
 		printf("%s: upper hasn't ready, store tag info into db.\n", __func__);
@@ -988,8 +1016,8 @@ void *upper_upload_loop(void *data)
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}
 
-				printf("curr_timestamp=%lld, LastSeenTimestampUTC=%lld., count=%u\n", curr_timestamp,
-													tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
+				//printf("curr_timestamp=%lld, LastSeenTimestampUTC=%lld., count=%u\n", curr_timestamp,
+				//									tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
 				/* FIXME: maybe other time */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000) {
 					if (info->tag_list == tag_list) {

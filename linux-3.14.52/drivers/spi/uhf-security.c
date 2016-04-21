@@ -509,7 +509,7 @@ static int us_stress_func(void *data)
 	us_data_2.len = 24;
 
 	while (!kthread_should_stop()) {
-		msleep(uhf->stress_interval);
+		mdelay(uhf->stress_interval);
 
 		if (count ++ % 3) {
 			do_gettimeofday(&tv);
@@ -756,6 +756,10 @@ static int us_remove(struct spi_device *spi)
 {
     struct uhf_security *uhf = spi_get_drvdata(spi);
 
+    if (uhf->stress_task) {
+        kthread_stop(uhf->stress_task);
+        uhf->stress_task = NULL;
+    }
     /* make sure ops on existing fds can abort cleanly */
     spin_lock_irq(&uhf->lock);
     uhf->spi = NULL;

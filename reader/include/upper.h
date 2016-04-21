@@ -102,6 +102,10 @@ typedef struct upper_info {
 	LLRP_tSTypeRegistry *pTypeRegistry;
 	LLRP_tSConnection *pConn;
 
+	uint64_t last_report_time;
+	uint64_t tid_count;
+	uint64_t last_tid_count;
+
 	void *uhf;
 } upper_info_t;
 
