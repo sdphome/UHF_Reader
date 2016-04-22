@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <assert.h>
@@ -27,6 +28,8 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <execinfo.h>
 #include <ltkc.h>
 #include <uhf.h>
 
@@ -167,11 +170,37 @@ void uhf_stop(int signo)
 	_exit(0);
 }
 
+static void upper_print_trace(int signum)
+{
+	void *array[10];
+
+	size_t size;
+	char **strings;
+	size_t i;
+
+	signal(signum, SIG_DFL);
+	size = backtrace (array, 10);
+	strings = (char **)backtrace_symbols (array, size);
+
+	fprintf(stderr, "widebright received SIGSEGV! Stack trace:\n");
+	for (i = 0; i < size; i++) {
+		fprintf(stderr, "%d %s \n", i, strings[i]);
+	}
+
+	free (strings);
+
+	//system("reboot");
+	exit(1);
+}
+
 #ifndef TEST
 int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
 	uhf_info_t *p_uhf;
+
+	signal(SIGSEGV, upper_print_trace);
+	signal(SIGABRT, upper_print_trace);
 
 	/* TODO: setup rtc */
 	system("ntpd");
