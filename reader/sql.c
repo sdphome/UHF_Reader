@@ -25,6 +25,125 @@
 
 #include <sqlite3.h>
 
+static int sql_isspace(int x )
+{
+	if (x == ' ' || x == '\n' || x == '\f'
+		|| x == '\b' || x == '\r')
+		return 1;
+	else
+		return 0;
+}
+
+static int sql_isdigit(int x)
+{
+	if (x <= '9' && x >= '0')
+		return 1;
+	else
+		return 0;
+}
+
+static uint8_t sql_atou8(const char *nptr)
+{
+	while (sql_isspace((int)(uint8_t)*nptr))
+		++nptr;
+
+	return (uint8_t)*nptr;
+}
+
+static uint16_t sql_atou16(const char *nptr)
+{
+	int c;
+	uint16_t total = 0;
+
+	while (sql_isspace((int)(uint8_t)*nptr))
+		++nptr;
+
+	c = (int)(uint8_t)*nptr++;
+
+	while (sql_isdigit(c)) {
+		total = 10 * total + (c - '0');
+		c = (uint8_t)*nptr++;
+	}
+
+	return total;
+}
+
+static uint32_t sql_atou32(const char *nptr)
+{
+	int c;
+	uint32_t total = 0;
+
+	while (sql_isspace((int)(uint8_t)*nptr))
+		++nptr;
+
+	c = (int)(uint8_t)*nptr++;
+
+	while (sql_isdigit(c)) {
+		total = 10 * total + (c - '0');
+		c = (uint8_t)*nptr++;
+	}
+
+	return total;
+}
+
+static uint64_t sql_atou64(const char *nptr)
+{
+	int c;
+	uint64_t total = 0;
+
+/*
+	while (sql_isspace((int)(uint8_t)*nptr))
+		++nptr;
+*/
+	while (!sql_isdigit((int)(uint8_t)*nptr))
+		++nptr;
+
+	c = (int)(uint8_t)*nptr++;
+
+	while (sql_isdigit(c)) {
+		total = 10 * total + (c - '0');
+		c = (uint8_t)*nptr++;
+	}
+
+	return total;
+}
+#if 0 /* unused */
+static char *sql_u64toa(uint64_t n, char *nptr)
+{
+	char string[] = "0123456789";
+	char *ptr = nptr;
+	char temp;
+	uint64_t denom = 0;
+	uint64_t radix = 10;
+	int count = -1;
+	int i, j;
+
+	while (n > radix) {
+		denom = n % radix;
+		n = n / radix;
+
+		*ptr++ = string[denom];
+		count ++;
+	}
+
+	if (n) {
+		*ptr++ = string[n];
+		count ++;
+	}
+
+	*ptr = '\0';
+
+	j = count;
+
+	for (i = 0; i < (count + 1) / 2; i++) {
+		temp = nptr[i];
+		nptr[i] = nptr[j];
+		nptr[j--] = temp;
+	}
+
+	return nptr;
+}
+#endif
 /* tag info */
 int sql_create_tag_table(char *path)
 {
@@ -40,13 +159,13 @@ int sql_create_tag_table(char *path)
 		return -FAILED;
 	}
 
-	sql = "CREATE TABLE TAG(" "TID BLOB PRIMARY KEY NOT NULL,"	// TID
+	sql = "CREATE TABLE TAG(" "TID TEXT PRIMARY KEY NOT NULL,"	// TID
 		"SSID INTEGER NOT NULL,"	// SelectSpecID
 		"SI INTEGER NOT NULL,"	// SpecIndex
 		"RFSID INTEGER NOT NULL,"	// RfSpecID
 		"AID INTEGER NOT NULL,"	// AntennaID
-		"FSTU BLOB,"			// FirstSeenTimestampUTC
-		"LSTU BLOB,"			// LastSeenTimestampUTC
+		"FSTU INTEGER,"			// FirstSeenTimestampUTC
+		"LSTU INTEGER,"			// LastSeenTimestampUTC
 		"TSC INTEGER,"			// TagSeenCount
 		"ASID INTEGER);";		// AccessSpecID
 
@@ -86,7 +205,7 @@ int sql_insert_tag_info(char *path, tag_info_t * tag)
 	if (nRow == 0) {
 		memset(sql, 0, 512);
 		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
-				"VALUES (%llu, %u, %u, %u, %u, %llu, %llu, 1, %u);",
+				"VALUES (%lld, %u, %u, %u, %u, %llu, %llu, 1, %u);",
 				tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,
 				tag->AntennalID, tag->FirstSeenTimestampUTC, tag->LastSeenTimestampUTC, tag->AccessSpecID);
 		ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
@@ -160,16 +279,16 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 	index = nColumn;
 	for (i = 0; i < nRow; i++) {
-		printf("%s: i = %d, nRow = %d.\n", __func__, i, nRow);
-		curr->tag.TID = atoll(dbResult[index++]);
-		curr->tag.SelectSpecID = atol(dbResult[index++]);
-		curr->tag.SpecIndex = atoi(dbResult[index++]);
-		curr->tag.RfSpecID = atoi(dbResult[index++]);
-		curr->tag.AntennalID = atoi(dbResult[index++]);
-		curr->tag.FirstSeenTimestampUTC = atoll(dbResult[index++]);
-		curr->tag.LastSeenTimestampUTC = atoll(dbResult[index++]);
-		curr->tag.TagSeenCount = atoi(dbResult[index++]);
-		curr->tag.AccessSpecID = atol(dbResult[index++]);
+		printf("%s: i = %d, nRow = %d., dbResult[%d]=%s\n", __func__, i, nRow, index, dbResult[index]);
+		curr->tag.TID = sql_atou64(dbResult[index++]);
+		curr->tag.SelectSpecID = sql_atou32(dbResult[index++]);
+		curr->tag.SpecIndex = sql_atou16(dbResult[index++]);
+		curr->tag.RfSpecID = sql_atou16(dbResult[index++]);
+		curr->tag.AntennalID = sql_atou8(dbResult[index++]);
+		curr->tag.FirstSeenTimestampUTC = sql_atou64(dbResult[index++]);
+		curr->tag.LastSeenTimestampUTC = sql_atou64(dbResult[index++]);
+		curr->tag.TagSeenCount = sql_atou16(dbResult[index++]);
+		curr->tag.AccessSpecID = sql_atou32(dbResult[index++]);
 
 		next = curr;
 		curr = (tag_list_t *) malloc(sizeof(tag_list_t));
@@ -182,6 +301,9 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 	next->next = NULL;
 	free(curr);
+
+	if (nRow == 0)
+		*list = NULL;
 
 	memset(sql, 0, 512);
 	sprintf(sql, "DELETE FROM TAG");

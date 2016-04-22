@@ -491,7 +491,7 @@ static int us_stress_func(void *data)
 	us_data_1.data[index++] = 0x55;
 	us_data_1.data[index++] = 0x66;
 	us_data_1.data[index++] = 0x77;
-	us_data_1.data[index++] = 0x88;
+	us_data_1.data[index++] = 0x00;
 	us_data_1.data[index++] = 0x03; /* antenn id */
 
 	memcpy(&us_data_2, &us_data_1, sizeof(struct uhf_security_data));

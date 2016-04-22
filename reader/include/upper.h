@@ -56,8 +56,8 @@ typedef struct tag_info {
 	uint8_t AntennalID;
 	uint64_t FirstSeenTimestampUTC;
 	uint64_t LastSeenTimestampUTC;
-	uint32_t AccessSpecID;
 	uint16_t TagSeenCount;
+	uint32_t AccessSpecID;
 } tag_info_t;
 
 typedef struct tag_list {
@@ -116,6 +116,7 @@ int start_upper(upper_info_t * info);
 int alloc_upper(upper_info_t ** info);
 void release_upper(upper_info_t ** info);
 
+void upper_signal_upload(upper_info_t * info);
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 										llrp_u8_t anten_no, llrp_u64_t timestamp);
 int upper_send_heartbeat(upper_info_t * info);

@@ -114,6 +114,9 @@ void *uhf_heartbeat_loop(void *data)
 			upper_send_heartbeat(upper);
 		}
 
+		if (count % 5 == 0)
+			upper_signal_upload(upper);
+
 		if (count++ == base)
 			count = 1;
 

@@ -1135,6 +1135,15 @@ void *upper_read_loop(void *data)
 	return NULL;
 }
 
+void upper_signal_upload(upper_info_t * info)
+{
+	if (info->status == UPPER_READY) {
+		lock_upper(&info->upload_lock);
+		pthread_cond_broadcast(&info->upload_cond);
+		unlock_upper(&info->upload_lock);
+	}
+}
+
 void stop_upper(upper_info_t * info)
 {
 	void *ret;
@@ -1201,9 +1210,7 @@ int start_upper(upper_info_t * info)
 		info->status = UPPER_READY;
 		printf("Start upper module, ret=%d\n", ret);
 
-		lock_upper(&info->upload_lock);
-		pthread_cond_broadcast(&info->upload_cond);
-		unlock_upper(&info->upload_lock);
+		upper_signal_upload(info);
 
 		lock_upper(&info->disconnect_lock);
 		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
@@ -1261,7 +1268,7 @@ int alloc_upper(upper_info_t ** info)
 		return -FAILED;
 	}
 
-	(*info)->verbose = 0;
+	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
 	(*info)->serial = 0x11223344;	// FIXME
 	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
