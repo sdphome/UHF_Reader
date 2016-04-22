@@ -271,7 +271,6 @@ void security_signal_upload(security_info_t * info, security_package_t * upload)
 	unlock_security(&info->upload_lock);
 }
 
-/* len include cmd, so len = payload_size + 1 */
 int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t len,
 				   uint8_t * payload)
 {
@@ -320,7 +319,7 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	}
 */
 
-	printf("%s: ret = %d.\n", __func__, ret);
+//	printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
 }
 
@@ -1016,12 +1015,16 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	security_package_t result;
 	firmware_data *data;
 	FILE *fp;
-	int i = 0;
+	int i, flag;
 
 	if (file == NULL) {
 		printf("%s: file is null.\n", __func__);
 		return -FAILED;
 	}
+
+	security_reset(info->fd);
+	sleep(1);
+	while (security_get_status(info->fd));
 
 	memset(&result, 0, sizeof(security_package_t));
 
@@ -1057,10 +1060,18 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 	temp = buf + FIRMWARE_DATA_HDR_SIZE;
 
-	num_block = data->firmware_size / data->block_size;
+	flag = data->firmware_size % data->block_size;
+	if (flag)
+		num_block = data->firmware_size / data->block_size + 1;
+	else
+		num_block = data->firmware_size / data->block_size;
 
 	for (i = 0; i < num_block; i++) {
 		lock_security(&info->lock);
+
+		temp = temp + data->block_size;
+		if (flag && i == num_block - 1)
+			data->block_size = data->firmware_size - i * data->block_size;
 
 		ret = security_write(info, DATA_FORWA_TYPE, data->cmd, data->block_size + 1, temp);
 		if (ret != NO_ERROR) {
@@ -1076,13 +1087,16 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 		unlock_security(&info->lock);
 
-		if (ret != NO_ERROR || *result.payload != NO_ERROR) {
+		if (ret != NO_ERROR || result.payload == NULL) {
 			printf("%s: wait result failed, ret = %d.\n", __func__, ret);
 			free(buf);
 			buf = NULL;
 			return -FAILED;
 		}
 
+		ret = *result.payload;
+		if (ret != NO_ERROR)
+			i = num_block;
 		free(result.payload);
 	}
 
@@ -1140,6 +1154,8 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 
 	err_type = *upload->payload;
 
+	printf("%s: Enter...\n", __func__);
+
 //	printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 	  case NO_ERROR:{
@@ -1173,6 +1189,7 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 		  printf("%s: unknown error type %d.\n", __func__, err_type);
 		  break;
 	}
+	printf("%s: Exit...\n", __func__);
 }
 
 void *security_upload_loop(void *data)

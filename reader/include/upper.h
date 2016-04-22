@@ -26,8 +26,10 @@
 
 #define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
 
-#define UPPER_STOP		0x00
-#define UPPER_READY		0x01
+#define UPPER_STOP			0x00
+#define UPPER_DISCONNECTED	0x01
+#define UPPER_CONNECTED		0x02
+#define UPPER_READY			0x03
 
 #define DB_PATH	"/home/root/uhf.db"
 
@@ -52,7 +54,7 @@ typedef struct tag_info {
 	uint16_t SpecIndex;
 	uint16_t RfSpecID;
 	uint8_t AntennalID;
-	uint64_t FistSeenTimestampUTC;
+	uint64_t FirstSeenTimestampUTC;
 	uint64_t LastSeenTimestampUTC;
 	uint32_t AccessSpecID;
 	uint16_t TagSeenCount;

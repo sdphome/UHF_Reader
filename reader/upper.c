@@ -33,7 +33,6 @@
 
 static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 {
-#if 0
 	char aBuf[100 * 1024];
 
 	/*
@@ -48,21 +47,20 @@ static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 	 * Print the XML Text to the standard output.
 	 */
 	printf("%s", aBuf);
-#endif
 }
 
 static void upper_show_report_speed(upper_info_t *info)
 {
 	double speed;
 	int64_t diff = 0;
-	uint64_t curr;
+	int64_t curr;
 	struct timeval now;
 
 	gettimeofday(&now, NULL);
 	curr = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
 
 	diff = curr - info->last_report_time;
-	if (diff == 0)
+	if (diff <= 0)
 		printf("%s: timestamp disorder.\n", __func__);
 
 	info->tid_count ++;
@@ -196,7 +194,12 @@ static int upper_send_message(upper_info_t * info, LLRP_tSMessage * pSendMsg)
 
 	if (pConn == NULL) {
 		printf("%s: pConn is null.\n", __func__);
-		return -1;
+		return -FAILED;
+	}
+
+	if (info->status < UPPER_CONNECTED) {
+		printf("%s: now status is %d.\n", __func__, info->status);
+		return -FAILED;
 	}
 	/*
 	 * Print the XML text for the outbound message if
@@ -207,9 +210,8 @@ static int upper_send_message(upper_info_t * info, LLRP_tSMessage * pSendMsg)
 		printf("INFO: Sending:\n");
 		upper_print_XML_message(pSendMsg);
 	}
-	pSendMsg->DeviceSN = 0x1234;
+	pSendMsg->DeviceSN = info->serial;
 	pSendMsg->Version = 1;
-	//pSendMsg->MessageID = info->next_msg_id ++;
 
 	/*
 	 * If LLRP_Conn_sendMessage() returns other than LLRP_RC_OK
@@ -477,6 +479,9 @@ static int upper_request_Keepalive(upper_info_t * info)
 	LLRP_tSKeepalive *pKA = NULL;
 	LLRP_tSKeepaliveAck *pAck = NULL;
 
+	if (info->status != UPPER_READY)
+		return -FAILED;
+
 	pKA = LLRP_Keepalive_construct();
 	pKA->hdr.MessageID = info->next_msg_id++;
 
@@ -514,14 +519,14 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 
 	upper_show_report_speed(info);
 
-	if (info->status != UPPER_READY) {
-		printf("%s: upper hasn't ready, store tag info into db.\n", __func__);
+	if (info->status < UPPER_CONNECTED) {
+		printf("%s: upper hasn't ready, status = %d, store tag info into db.\n", __func__, info->status);
 		tag_info_t tag;
 		tag.TID = tid;
 		tag.SelectSpecID = 1;
 		tag.RfSpecID = 1;
 		tag.AntennalID = anten_no;
-		tag.FistSeenTimestampUTC = timestamp;
+		tag.FirstSeenTimestampUTC = timestamp;
 		tag.LastSeenTimestampUTC = timestamp;
 		tag.AccessSpecID = 1;
 		tag.TagSeenCount = 1;
@@ -554,7 +559,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.SpecIndex = 1;
 		curr_list->tag.RfSpecID = 1;
 		curr_list->tag.AntennalID = anten_no;
-		curr_list->tag.FistSeenTimestampUTC = timestamp;
+		curr_list->tag.FirstSeenTimestampUTC = timestamp;
 		curr_list->tag.LastSeenTimestampUTC = timestamp;
 		curr_list->tag.AccessSpecID = 1;
 		curr_list->tag.TagSeenCount = 1;
@@ -926,6 +931,11 @@ void *upper_upload_loop(void *data)
 		lock_upper(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
+		if (info->status <= UPPER_DISCONNECTED) {
+			unlock_upper(&info->upload_lock);
+			return NULL;
+		}
+
 		if (info->db_valid == true) {
 			sql_get_tag_info(DB_PATH, &info->tag_list);
 			info->db_valid = false;
@@ -994,7 +1004,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
-												tag_info->FistSeenTimestampUTC);
+												tag_info->FirstSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
@@ -1060,7 +1070,7 @@ static void *upper_request_loop(void *data)
 		lock_upper(&info->req_lock);
 		pthread_cond_wait(&info->req_cond, &info->req_lock);
 
-		if (info->status == UPPER_STOP) {
+		if (info->status <= UPPER_DISCONNECTED) {
 			unlock_upper(&info->req_lock);
 			return NULL;
 		}
@@ -1095,6 +1105,7 @@ void *upper_read_loop(void *data)
 		if (pMessage == NULL) {
 			if (pError->eResultCode == LLRP_RC_RecvIOError ||
 				pError->eResultCode == LLRP_RC_RecvEOF) {
+				info->status = UPPER_DISCONNECTED;
 				printf("%s: error code:%d, error message:%s.\n",
 					   __func__, pError->eResultCode, pError->pWhatStr);
 				break;
@@ -1127,9 +1138,11 @@ void *upper_read_loop(void *data)
 void stop_upper(upper_info_t * info)
 {
 	void *ret;
+
 	if (info == NULL)
 		return;
 
+	info->status = UPPER_STOP;
 	pthread_cancel(info->read_thread);
 	pthread_cancel(info->request_thread);
 	pthread_cancel(info->upload_thread);
@@ -1156,6 +1169,7 @@ int start_upper(upper_info_t * info)
 			goto retry;
 		}
 
+		info->status = UPPER_CONNECTED;
 		pthread_attr_init(&attr);
 		//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
@@ -1187,6 +1201,10 @@ int start_upper(upper_info_t * info)
 		info->status = UPPER_READY;
 		printf("Start upper module, ret=%d\n", ret);
 
+		lock_upper(&info->upload_lock);
+		pthread_cond_broadcast(&info->upload_cond);
+		unlock_upper(&info->upload_lock);
+
 		lock_upper(&info->disconnect_lock);
 		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
 		unlock_upper(&info->disconnect_lock);
@@ -1197,9 +1215,15 @@ int start_upper(upper_info_t * info)
 		pthread_cond_broadcast(&info->req_cond);
 		unlock_upper(&info->req_lock);
 
+		lock_upper(&info->upload_lock);
+		pthread_cond_broadcast(&info->upload_cond);
+		unlock_upper(&info->upload_lock);
+
+		LLRP_Conn_closeConnectionToUpper(info->pConn);
+		close(info->sock);
 		pthread_join(info->read_thread, &status);
 		pthread_join(info->request_thread, &status);
-		stop_upper(info);
+		pthread_join(info->upload_thread, &status);
 		sleep(2);				/* workaround to release the link */
 	}
 
@@ -1237,8 +1261,9 @@ int alloc_upper(upper_info_t ** info)
 		return -FAILED;
 	}
 
-	(*info)->verbose = 1;
+	(*info)->verbose = 0;
 	(*info)->next_msg_id = 1;
+	(*info)->serial = 0x11223344;	// FIXME
 	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
 	(*info)->tag_list = NULL;
 

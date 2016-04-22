@@ -18,6 +18,7 @@
  *
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <uhf.h>
@@ -39,13 +40,13 @@ int sql_create_tag_table(char *path)
 		return -FAILED;
 	}
 
-	sql = "CREATE TABLE TAG(" "TID INTEGER PRIMARY KEY NOT NULL,"	// TID
+	sql = "CREATE TABLE TAG(" "TID BLOB PRIMARY KEY NOT NULL,"	// TID
 		"SSID INTEGER NOT NULL,"	// SelectSpecID
 		"SI INTEGER NOT NULL,"	// SpecIndex
 		"RFSID INTEGER NOT NULL,"	// RfSpecID
 		"AID INTEGER NOT NULL,"	// AntennaID
-		"FSTU INTEGER,"			// FirstSeenTimestampUTC
-		"LSTU INTEGER,"			// LastSeenTimestampUTC
+		"FSTU BLOB,"			// FirstSeenTimestampUTC
+		"LSTU BLOB,"			// LastSeenTimestampUTC
 		"TSC INTEGER,"			// TagSeenCount
 		"ASID INTEGER);";		// AccessSpecID
 
@@ -85,15 +86,18 @@ int sql_insert_tag_info(char *path, tag_info_t * tag)
 	if (nRow == 0) {
 		memset(sql, 0, 512);
 		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
-				"VALUES (%llu, %u, %u, %u, %u, %llu, 0, 1, %u);",
+				"VALUES (%llu, %u, %u, %u, %u, %llu, %llu, 1, %u);",
 				tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,
-				tag->AntennalID, tag->FistSeenTimestampUTC, tag->AccessSpecID);
-		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
+				tag->AntennalID, tag->FirstSeenTimestampUTC, tag->LastSeenTimestampUTC, tag->AccessSpecID);
+		ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
+		if (ret != SQLITE_OK) {
+			printf("SQL error: %s.\n", zErrMsg);
+		}
 	} else {
 		uint16_t count = 0;
 
 		count = atoi(dbResult[nColumn]);
-		printf("tid: %llx, count = %d.\n", tag->TID, count);
+		printf("%s: tid: %llx, count = %d.\n", __func__, tag->TID, count);
 		memset(sql, 0, 512);
 		sprintf(sql, "UPDATE TAG set TSC = %u where TID = %llu;", count + 1, tag->TID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
@@ -162,7 +166,7 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 		curr->tag.SpecIndex = atoi(dbResult[index++]);
 		curr->tag.RfSpecID = atoi(dbResult[index++]);
 		curr->tag.AntennalID = atoi(dbResult[index++]);
-		curr->tag.FistSeenTimestampUTC = atoll(dbResult[index++]);
+		curr->tag.FirstSeenTimestampUTC = atoll(dbResult[index++]);
 		curr->tag.LastSeenTimestampUTC = atoll(dbResult[index++]);
 		curr->tag.TagSeenCount = atoi(dbResult[index++]);
 		curr->tag.AccessSpecID = atol(dbResult[index++]);
@@ -181,6 +185,9 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 	memset(sql, 0, 512);
 	sprintf(sql, "DELETE FROM TAG");
+	ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
+	if (ret != SQLITE_OK)
+		printf("SQL error: %s.\n", zErrMsg);
 
   out:
 	sqlite3_close(db);

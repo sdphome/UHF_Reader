@@ -26,8 +26,10 @@
 #include "file.h"
 #include "sql.h"
 
-#define ACTIVE_CER_PATH     "/home/root/active.cer"
-#define USER_INFO_PATH      "/home/root/user_info.bin"
+#define ACTIVE_CER_PATH     "/home/root/uhf/active.cer"
+#define USER_INFO_PATH      "/home/root/uhf/user_info.bin"
+
+#define UUID_PATH			"/home/root/uhf/uuid"
 
 #define false			0
 #define true			1

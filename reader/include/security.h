@@ -32,6 +32,8 @@
 #define US_IOC_GET_STATUS       		_IO(US_IOC_MAGIC, 2)
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 
+#define SECURITY_FW_DEFAULT_PATH   "/home/root/fw/security_fw.bin"
+
 /* security module status */
 #define OK 							0
 #define BUSY							1
