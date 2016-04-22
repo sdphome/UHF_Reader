@@ -30,6 +30,7 @@
 #define USER_INFO_PATH      "/home/root/uhf/user_info.bin"
 
 #define UUID_PATH			"/home/root/uhf/uuid"
+#define UHF_SIGSEGV_PATH	"/home/root/uhf_backtrace"
 
 #define false			0
 #define true			1

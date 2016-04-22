@@ -173,22 +173,26 @@ void uhf_stop(int signo)
 static void upper_print_trace(int signum)
 {
 	void *array[10];
-
 	size_t size;
 	char **strings;
 	size_t i;
+	FILE *fp;
 
 	signal(signum, SIG_DFL);
 	size = backtrace (array, 10);
 	strings = (char **)backtrace_symbols (array, size);
 
-	fprintf(stderr, "widebright received SIGSEGV! Stack trace:\n");
+	fp = fopen(UHF_SIGSEGV_PATH, "w");
+
+	fprintf(stderr, "uhf received SIGSEGV! Stack trace:\n");
 	for (i = 0; i < size; i++) {
 		fprintf(stderr, "%d %s \n", i, strings[i]);
+		file_write_data((uint8_t *)strings[i], fp, strlen(strings[i]));
+		file_write_data((uint8_t *)"\n", fp, 1);
 	}
 
 	free (strings);
-
+	fclose(fp);
 	//system("reboot");
 	exit(1);
 }
