@@ -201,7 +201,7 @@ int sql_insert_tag_info(char *path, tag_info_t * tag)
 	sprintf(sql, "SELECT TSC FROM TAG WHERE TID = %llu;", tag->TID);
 	ret = sqlite3_get_table(db, sql, &dbResult, &nRow, &nColumn, &zErrMsg);
 
-	printf("nRow=%d, nColumn=%d.\n", nRow, nColumn);
+	//printf("nRow=%d, nColumn=%d.\n", nRow, nColumn);
 	if (nRow == 0) {
 		memset(sql, 0, 512);
 		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
@@ -216,7 +216,7 @@ int sql_insert_tag_info(char *path, tag_info_t * tag)
 		uint16_t count = 0;
 
 		count = atoi(dbResult[nColumn]);
-		printf("%s: tid: %llx, count = %d.\n", __func__, tag->TID, count);
+		//printf("%s: tid: %llx, count = %d.\n", __func__, tag->TID, count);
 		memset(sql, 0, 512);
 		sprintf(sql, "UPDATE TAG set TSC = %u where TID = %llu;", count + 1, tag->TID);
 		sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);

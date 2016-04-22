@@ -65,7 +65,7 @@ static void upper_show_report_speed(upper_info_t *info)
 
 	info->tid_count ++;
 
-	if (diff > 250) {
+	if (diff > 1000) {
 		speed = (((double)(info->tid_count - info->last_tid_count)) *
 				(double)(1000)) / (double)diff;
 		printf("%s:tid_diff=%lld, time_fidd=%lld, speed is %.4f TIDs/sec.\n",

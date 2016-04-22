@@ -1154,8 +1154,6 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 
 	err_type = *upload->payload;
 
-	printf("%s: Enter...\n", __func__);
-
 //	printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 	  case NO_ERROR:{
@@ -1189,7 +1187,6 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 		  printf("%s: unknown error type %d.\n", __func__, err_type);
 		  break;
 	}
-	printf("%s: Exit...\n", __func__);
 }
 
 void *security_upload_loop(void *data)
