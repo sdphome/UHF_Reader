@@ -55,6 +55,7 @@ static DECLARE_BITMAP(minors, UHF_SPI_MINORS);
 #define US_IOC_RESET			_IO(US_IOC_MAGIC, 1)
 #define US_IOC_GET_STATUS		_IO(US_IOC_MAGIC, 2)
 #define US_IOC_RESET_RADIO		_IO(US_IOC_MAGIC, 3)
+#define US_IOC_GET_RADIO_STATUS	_IO(US_IOC_MAGIC, 4)
 
 /*-------------------------------------------------------------------------*/
 
@@ -97,6 +98,7 @@ struct uhf_security {
     int reset;
     int status;
 	int radio_reset;
+	int radio_status;
 
 	struct uhf_security_cache *cache;
 

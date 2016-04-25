@@ -104,6 +104,17 @@ static inline int us_get_status(int status)
         return BUSY;
 }
 
+static inline int us_get_radio_status(int status)
+{
+    int value;
+
+    value = gpio_get_value(status);
+    if (value == 0)
+        return OK;
+    else
+        return BUSY;
+}
+
 static int us_init(struct uhf_security *uhf)
 {
 	uhf->cache = devm_kzalloc(uhf->dev, sizeof(struct uhf_security_cache), GFP_KERNEL);
@@ -400,6 +411,9 @@ static long us_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		case US_IOC_RESET_RADIO:
 			us_reset_radio(uhf->radio_reset);
 			break;
+		case US_IOC_GET_RADIO_STATUS:
+			ret = us_get_radio_status(uhf->radio_status);
+			break;
 		default:
 			printk(KERN_ALERT "%s: no this cmd.\n", __func__);
 	};
@@ -607,6 +621,12 @@ static int us_parse_dt(struct spi_device *spi, struct uhf_security *uhf)
     uhf->radio_reset = of_get_named_gpio(np, "radio_reset-gpio", 0);
     if (!gpio_is_valid(uhf->radio_reset)) {
         dev_err(&spi->dev, "no radio reset gpio setting in dts\n");
+        return -EINVAL;
+    }
+
+    uhf->radio_status = of_get_named_gpio(np, "radio_status-gpio", 0);
+    if (!gpio_is_valid(uhf->radio_status)) {
+        dev_err(&spi->dev, "no radio status gpio setting in dts\n");
         return -EINVAL;
     }
 
