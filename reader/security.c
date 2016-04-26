@@ -41,6 +41,18 @@
 //#define TEST
 #define DEBUG
 
+char pubKey[64] = {0x19, 0x3d, 0xba, 0x9d, 0x05, 0xb5, 0xdf, 0x64, 0x2b,
+					0x40, 0xef, 0x56, 0x52, 0xa0, 0xe9, 0x7b, 0x31, 0x89,
+					0x37, 0x7b, 0xf9, 0x5b, 0x1e, 0x2a, 0x42, 0x6b, 0xe3,
+					0xd9, 0xe7, 0x50, 0xf6, 0x5e, 0xd6, 0x30, 0x94, 0xef,
+					0x21, 0xe0, 0x75, 0x98, 0x6f, 0x0c, 0xae, 0x58, 0xa9,
+					0xc8, 0xc5, 0xc0, 0xc5, 0xd6, 0x6c, 0x85, 0x20, 0xb2,
+					0x34, 0xca, 0x35, 0x18, 0x13, 0x30, 0xa3, 0x1a, 0x7c, 0x70};
+
+char priKey[32] = {0xd4, 0xa0, 0x3d, 0x62, 0xa4, 0xb8, 0xd4, 0x1f, 0x3d, 0xaa,
+					0xd5, 0x02, 0x97, 0xfd, 0x2d, 0xdd, 0xb4, 0x36, 0xdb, 0x18,
+					0xa6, 0x61, 0x4a, 0x3a, 0x88, 0xdf, 0x3a, 0x10, 0x20, 0xbd, 0xb6, 0xc9};
+
 static inline int security_open(char *dev)
 {
 	return open(dev, O_RDWR);
@@ -299,8 +311,11 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 #ifdef DEBUG
 	int i = 0;
 	printf("before security_write:");
-	for (i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++)
+	for (i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++) {
+		if (!(i%16))
+			printf("\n");
 		printf("%4x", *(info->wbuf + i));
+	}
 	printf("\n");
 #endif
 	nwt = write(info->fd, info->wbuf, SECURITY_PACK_HDR_SIZE + len);
@@ -742,7 +757,6 @@ int security_set_work_mode(security_info_t * info, work_mode_param * param)
 uint64_t security_request_rand_num(security_info_t * info)
 {
 	int ret = NO_ERROR;
-	int i = 0;
 	security_package_t result;
 	uint64_t sec_rand;
 
@@ -767,14 +781,7 @@ uint64_t security_request_rand_num(security_info_t * info)
 	}
 
 	if (result.payload != NULL) {
-		printf("result.hdr.len=%x\n", result.hdr.len);
-		printf("zxxxx\n");
 		sec_rand = *(uint64_t *) result.payload;
-		//memcpy(param, result.payload, RAND_NUM_PARAM_SIZE);
-		printf("%s: sec_rand=%lx, ", __func__, (unsigned long)sec_rand);
-		for (i = 0; i < 8; i++)
-			printf("%4x", *(result.payload + i));
-		printf("\n");
 		free(result.payload);
 		result.payload = NULL;
 		return sec_rand;
@@ -782,10 +789,21 @@ uint64_t security_request_rand_num(security_info_t * info)
 		return NO_ERROR;
 }
 
+static void security_revert_32(uint8_t * buf)
+{
+	int i;
+	uint8_t temp;
+
+	for (i = 0; i < 16; i ++) {
+		temp = buf[i];
+		buf[i] = buf[31 - i];
+		buf[31 - i] = temp;
+	}
+}
+
 static int security_digi_sign(security_info_t * info, auth_data_param * param)
 {
 	int ret = NO_ERROR;
-	uint8_t hash[32] = { 0 };
 	uint8_t message[32] = { 0 };
 	int rlen, slen;
 
@@ -794,12 +812,11 @@ static int security_digi_sign(security_info_t * info, auth_data_param * param)
 	memcpy(message + 16, (uint8_t *) & param->serial, 8);
 	memcpy(message + 24, (uint8_t *) & param->reserve, 8);
 
-	ret = sm3_e((uint8_t *) & info->serial, 8, info->pub_key, 32,
-				info->pub_key + 32, 32, message, 32, hash);
-	if (ret != NO_ERROR)
-		return ret;
+	security_revert_32(message);
+	sm2_sign(message, 32, info->priv_key, 32, param->sign, &rlen, param->sign + 32, &slen);
 
-	sm2_sign(hash, 32, info->priv_key, 32, param->sign, &rlen, param->sign + 32, &slen);
+	security_revert_32(param->sign);
+	security_revert_32(param->sign + 32);
 
 	return ret;
 }
@@ -816,7 +833,6 @@ static int security_digi_sign(security_info_t * info, auth_data_param * param)
 int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 {
 	int ret = NO_ERROR;
-	//uint64_t rand_num = 0;
 	unsigned long size = -1;
 	auth_data_param *param = NULL;
 	security_package_t result;
@@ -824,7 +840,7 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 
 	memset(&result, 0, sizeof(security_package_t));
 
-	ret = file_get_size(info->auth_x509_path, &size);
+	ret = file_get_size(SECURITY_AUTH_X509_PATH, &size);
 	if (ret < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
 		printf("%s: x509 size error, size = %ld.\n", __func__, size);
 		return -FAILED;
@@ -841,7 +857,9 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	param->serial = info->serial;
 	param->reserve = 0;
 
-	fp = fopen(info->auth_x509_path, "r");
+	fp = fopen(SECURITY_AUTH_X509_PATH, "r");
+	if (fp == NULL)
+		printf("read data. fp is null.\n");
 	ret = file_read_data(param->x509, fp, size);
 	if (ret != NO_ERROR) {
 		printf("%s: read x509 failed.\n", __func__);
@@ -852,7 +870,7 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	fclose(fp);
 
 	/* 3. digital signature */
-	/* CARE: Need use big endian data */
+	/* CARE: May need use big endian data */
 	ret = security_digi_sign(info, param);
 	if (ret != NO_ERROR) {
 		free(param);
@@ -882,13 +900,13 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 		return ret;
 	}
 
-	/* upper level check the result */
-	ret = *result.payload;
-
 	if (result.payload != NULL) {
+		/* upper level check the result */
+		ret = *result.payload;
 		free(result.payload);
 		result.payload = NULL;
-	}
+	} else
+		ret = -FAILED;
 
 	return ret;
 }
@@ -1385,6 +1403,7 @@ void stop_security(security_info_t * info)
 
 int alloc_security(security_info_t ** security_info)
 {
+	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31};
 	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
@@ -1394,6 +1413,11 @@ int alloc_security(security_info_t ** security_info)
 	(*security_info)->fd = -1;
 	(*security_info)->result_list = NULL;
 	(*security_info)->upload_list = NULL;
+	memcpy(&(*security_info)->serial, userid, 8);
+	//(*security_info)->serial = ;
+	memcpy(&(*security_info)->pub_key, pubKey, 64);
+	memcpy(&(*security_info)->priv_key, priKey, 32);
+	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH, sizeof(SECURITY_AUTH_X509_PATH));
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
 	pthread_cond_init(&(*security_info)->cond, NULL);

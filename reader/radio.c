@@ -337,9 +337,6 @@ uint16_t calc_crc16(radio_pack_hdr * hdr, uint8_t * payload)
 
 uint16_t calc_crc16_1(uint8_t * p, int len)
 {
-//	uint16_t len = conv_type16(hdr->len);
-//	uint8_t *p = (uint8_t *) malloc(RADIO_PACK_HDR_SIZE + len);
-	uint8_t *p_t = p;
 	uint16_t shift, data, val;
 	int i;
 
@@ -355,8 +352,6 @@ uint16_t calc_crc16_1(uint8_t * p, int len)
 			shift = shift ^ 0x1021;
 	}
 
-	//free(p_t);
-	//p_t = NULL;
 	return (uint16_t) (~shift);
 }
 
@@ -668,15 +663,16 @@ int radio_update_firmware(radio_info_t * info)
 		free(result.payload);
 	} else {
 		printf("REQ_RADIO_UPGRADE result payload is null.\n");
+		status = FAILED;
 		//goto out;
 	}
 
-/*
+
 	if (status != NO_ERROR) {
 		printf("REQ_RADIO_UPGRADE result is %x.\n", status);
-		goto out;
+//		goto out;
 	}
-*/
+
 	temp = buf;
 
 	/* 2. begin upgrade */

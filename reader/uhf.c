@@ -33,7 +33,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-//#define TEST
+#define TEST
 
 uhf_info_t *g_uhf = NULL;
 
@@ -41,15 +41,16 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	security_info_t *security = p_uhf->security;
-	//uint64_t sec_rand;
+	uint64_t sec_rand = 0;
 
 	security->uhf = (void *)p_uhf;
 
 	//ret = security_set_rtc(security);
 
-	//sec_rand = security_request_rand_num(security);
+	sec_rand = security_request_rand_num(security);
 
-	//ret = security_send_auth_data(security, sec_rand);
+	ret = security_send_auth_data(security, sec_rand);
+	printf("%s: security_send_auth_data ret = %d.\n", __func__, ret);
 
 	return ret;
 }
@@ -304,22 +305,11 @@ int main(int argc, char **argv)
 
 	uhf_init_radio(p_uhf);
 
-	//radio_send_heartbeat(p_uhf->radio);
+	ret = uhf_init_security(p_uhf);
+	if (ret != NO_ERROR)
+		goto start_failed;
 
-	security_reset_radio(p_uhf->security->fd);
-	sleep(1);
-
-	radio_update_firmware(p_uhf->radio);
-	sleep(10);
-
-	security_reset_radio(p_uhf->security->fd);
-	sleep(50);
-	printf("%s: 1ada\n", __func__);
-	radio_send_heartbeat(p_uhf->radio);
-	sleep(50);
-	printf("%s: 1ada\n", __func__);
-
-	radio_send_heartbeat(p_uhf->radio);
+	security_main(p_uhf->security);
 
 /*
 	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);

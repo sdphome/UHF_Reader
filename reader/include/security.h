@@ -33,6 +33,7 @@
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 
 #define SECURITY_FW_DEFAULT_PATH   "/home/root/fw/security_fw.bin"
+#define SECURITY_AUTH_X509_PATH    "/home/root/fw/ReaderCert.cer"
 
 /* security module status */
 #define OK 							0

@@ -25,7 +25,6 @@
 
 int file_get_size(const char *path, unsigned long *filesize)
 {
-	struct stat statbuff;
 	FILE *fp;
 
 	fp = fopen(path, "r");
