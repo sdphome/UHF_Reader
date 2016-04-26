@@ -39,7 +39,7 @@
 
 /* FIXME: undef it */
 //#define TEST
-//#define DEBUG
+#define DEBUG
 
 static inline int security_open(char *dev)
 {
@@ -1023,7 +1023,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	}
 
 	security_reset(info->fd);
-	sleep(1);
+	//sleep(1);
 	while (security_get_status(info->fd));
 
 	memset(&result, 0, sizeof(security_package_t));
@@ -1069,9 +1069,9 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	for (i = 0; i < num_block; i++) {
 		lock_security(&info->lock);
 
-		temp = temp + data->block_size;
 		if (flag && i == num_block - 1)
-			data->block_size = data->firmware_size - i * data->block_size;
+			//data->block_size = data->firmware_size - i * data->block_size;
+			data->block_size = flag;
 
 		ret = security_write(info, DATA_FORWA_TYPE, data->cmd, data->block_size + 1, temp);
 		if (ret != NO_ERROR) {
@@ -1094,10 +1094,13 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 			return -FAILED;
 		}
 
+		temp = temp + data->block_size;
+
 		ret = *result.payload;
 		if (ret != NO_ERROR)
 			i = num_block;
 		free(result.payload);
+		result.payload = NULL;
 	}
 
 	free(buf);
@@ -1325,7 +1328,6 @@ int start_security(security_info_t * info)
 
 	security_reset(info->fd);
 	security_get_status(info->fd);
-	security_reset_radio(info->fd);
 	security_get_status(info->fd);
 	sleep(6);
 

@@ -265,7 +265,7 @@ int main(int argc, char **argv)
 	/* TODO: reboot */
 	return ret;
 }
-#else
+#else // TEST
 int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
@@ -273,6 +273,9 @@ int main(int argc, char **argv)
 
 	/* TODO: setup rtc */
 	system("ntpd");
+
+	signal(SIGSEGV, upper_print_trace);
+	signal(SIGABRT, upper_print_trace);
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)
@@ -288,26 +291,51 @@ int main(int argc, char **argv)
 	ret += alloc_security(&p_uhf->security);
 	if (ret != NO_ERROR)
 		goto alloc_failed;
-
+/*
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
+	security_main(p_uhf->security);
+*/
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
 
-	radio_get_version(p_uhf->radio);
-
-	radio_update_firmware(p_uhf->radio);
-	sleep(3);
+	//radio_send_heartbeat(p_uhf->radio);
 
 	security_reset_radio(p_uhf->security->fd);
-	sleep(3);
-	radio_get_version(p_uhf->radio);
+	sleep(1);
 
+	radio_update_firmware(p_uhf->radio);
+	sleep(10);
+
+	security_reset_radio(p_uhf->security->fd);
+	sleep(50);
+	printf("%s: 1ada\n", __func__);
+	radio_send_heartbeat(p_uhf->radio);
+	sleep(50);
+	printf("%s: 1ada\n", __func__);
+
+	radio_send_heartbeat(p_uhf->radio);
+
+/*
+	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
+	sleep(30);
+
+	security_reset(p_uhf->security->fd);
+	security_get_status(p_uhf->security->fd);
+	security_get_status(p_uhf->security->fd);
+	sleep(6);
+
+	ret = uhf_init_security(p_uhf);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	security_main(p_uhf->security);
+*/
 	return 0;
 
   start_failed:

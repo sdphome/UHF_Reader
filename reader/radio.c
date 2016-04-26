@@ -229,7 +229,7 @@ int radio_wait_result(radio_info_t * radio_info, uint8_t cmd, radio_result_t * r
 		outtime.tv_nsec = now.tv_usec * 1000;
 		ret = pthread_cond_timedwait(&radio_info->c_cond, &radio_info->c_lock, &outtime);
 		if (ret == ETIMEDOUT) {
-			printf("%s: timeout for cmd %d\n", __func__, cmd);
+			printf("%s: timeout for cmd %x\n", __func__, cmd);
 			return ret;
 		} else
 			ret = NO_ERROR;
@@ -240,7 +240,7 @@ int radio_wait_result(radio_info_t * radio_info, uint8_t cmd, radio_result_t * r
 				if (result_list->result.hdr.cmd == cmd) {
 					resultReceived = 1;
 					*result = result_list->result;
-					radio_print_result(*result);
+					//radio_print_result(*result);
 					result_list_prev->next = result_list->next;
 					if (result_list == radio_info->result_list) {
 						radio_info->result_list = result_list->next;
@@ -291,6 +291,21 @@ uint16_t inline conv_type16(uint16_t value)
 	return (value >> 8) | ((value << 8) & 0xFF00);
 }
 
+/*
+uint32_t inline conv_type32(uint32_t value)
+{
+	uint32_t ret = 0;
+	uint8_t tmp = 0;
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		tmp = value >> i * 8;
+		ret = ret | ((uint32_t)tmp << ((4 - i) * 8));
+	}
+	return ret;
+}
+*/
+
 uint16_t calc_crc16(radio_pack_hdr * hdr, uint8_t * payload)
 {
 	uint16_t len = conv_type16(hdr->len);
@@ -320,48 +335,88 @@ uint16_t calc_crc16(radio_pack_hdr * hdr, uint8_t * payload)
 	return (uint16_t) (~shift);
 }
 
+uint16_t calc_crc16_1(uint8_t * p, int len)
+{
+//	uint16_t len = conv_type16(hdr->len);
+//	uint8_t *p = (uint8_t *) malloc(RADIO_PACK_HDR_SIZE + len);
+	uint8_t *p_t = p;
+	uint16_t shift, data, val;
+	int i;
+
+	shift = 0xFFFF;
+
+	for (i = 0; i < (len - 3) * 8; i++) {
+		if ((i % 8) == 0)
+			data = (*p++) << 8;
+		val = shift ^ data;
+		shift = shift << 1;
+		data = data << 1;
+		if (val & 0x8000)
+			shift = shift ^ 0x1021;
+	}
+
+	//free(p_t);
+	//p_t = NULL;
+	return (uint16_t) (~shift);
+}
+
 int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 {
 	int nrd;
 	int ret = -FAILED;
 	int fd = radio_info->fd;
 	uint8_t *data = radio_info->data;
+	uint8_t *temp;
 	uint16_t len = 0;
 	uint16_t type = 0;
+	int i = 0;
 
 	//printf("%s: +\n", __func__);
 
 	nrd = read(fd, data, RADIO_MTU);
+	temp = data;
+	for (i = 0; i < nrd; i++) {
+		printf("%4x", data[i]);
+	}
+	printf("\n");
 
 	if (nrd >= RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
-		memcpy(&rsp->hdr, data, RADIO_PACK_HDR_SIZE);
+		memcpy(&rsp->hdr, temp, RADIO_PACK_HDR_SIZE);
 		len = conv_type16(rsp->hdr.len);
+		printf("rsp->hdr.len=%x, len=%x.\n", rsp->hdr.len, len);
 		type = conv_type16(rsp->hdr.type);
 		if (nrd == len + RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
-			data += RADIO_PACK_HDR_SIZE;
+			temp += RADIO_PACK_HDR_SIZE;
 			rsp->payload = NULL;
 			if (len != 0) {
 				rsp->payload = (uint8_t *) malloc(len);	/* free in main thread */
-				memcpy(rsp->payload, data, len);
-				data += len;
+				memcpy(rsp->payload, temp, len);
+				temp += len;
 			}
-			memcpy(&rsp->end, data, RADIO_PACK_END_SIZE);
+			memcpy(&rsp->end, temp, RADIO_PACK_END_SIZE);
 
 			radio_print_result(*rsp);
 
 			rsp->end.crc16 = conv_type16(rsp->end.crc16);
-			if (rsp->end.crc16 != calc_crc16(&rsp->hdr, rsp->payload)) {
+/*
+			if (rsp->end.crc16 != calc_crc16_1(data, nrd)) {
 				printf("%s: crc by read:%x, crc by calc:%x\n", __func__,
-					   rsp->end.crc16, calc_crc16(&rsp->hdr, rsp->payload));
-				if (rsp->hdr.len != 0)
+					   rsp->end.crc16, calc_crc16_1(data, nrd));
+				if (rsp->hdr.len != 0) {
 					free(rsp->payload);
-			} else {
+					rsp->payload = NULL;
+				}
+			} else
+*/
+			{
 				rsp->hdr.len = len;
 				rsp->hdr.type = type;
 				ret = NO_ERROR;
 			}
 		} else {
 			printf("%s: oops, nrd=%d, payload len=%d.\n", __func__, nrd, rsp->hdr.len);
+			free(rsp->payload);
+			rsp->payload = NULL;
 		}
 	} else {
 		printf("%s: read data is too few, nrd=%d, data[0]:%x.\n", __func__, nrd, *data);
@@ -541,25 +596,65 @@ int radio_update_firmware(radio_info_t * info)
 {
 	int ret = NO_ERROR;
 	radio_result_t result;
-	uint8_t buf[128];
+	uint8_t *buf;
+	uint8_t *temp;
+	uint16_t num_block;
+	uint16_t block_size;
+	uint32_t file_size_read;
 	uint8_t status = 0;
-	unsigned long size = 0;
-	unsigned long left = 0;
+	unsigned long file_size = 0;
 	FILE *fp = NULL;
+	int i;
+	uint16_t flag;
 
 	memset(&result, 0, sizeof(radio_result_t));
 
-	ret = file_get_size(RADIO_FW_DEFAULT_PATH, &size);
-	if (size <= 0) {
+	ret = file_get_size(RADIO_FW_DEFAULT_PATH, &file_size);
+	if (file_size <= 0) {
 		printf("%s: can't get %s size, ret = %d.\n", __func__, RADIO_FW_DEFAULT_PATH, ret);
 		return -FAILED;
 	}
 
-	left = size;
+	printf("%s: file size = %ld.\n", __func__, file_size);
+
+	buf = (uint8_t *)malloc(file_size);
+	if (buf == NULL)
+		return -ENOMEM;
+
+	fp = fopen(RADIO_FW_DEFAULT_PATH, "r");
+	fseek(fp, 0L, SEEK_SET);
+	ret = file_read_data(buf, fp, file_size);
+	if (ret != NO_ERROR) {
+		printf("%s: read firmware failed.\n", __func__);
+		free(buf);
+		fclose(fp);
+		return ret;
+	}
+	fclose(fp);
+
+	file_size_read = *(uint32_t *)(buf + 1);
+	block_size = *(uint16_t *)(buf + 9);
+
+	if (file_size_read != (uint32_t)file_size) {
+		printf("%s: size not match, read: %x, size:%x.\n", __func__, file_size_read, (uint32_t)file_size);
+		free(buf);
+		return -FAILED;
+	}
+
+	flag = file_size_read % block_size;
+
+	if (flag)
+		num_block = file_size_read / block_size + 1;
+	else {
+		num_block = file_size_read / block_size;
+		flag = block_size;
+	}
+
 	lock_radio(&info->c_lock);
 
 	info->flashing = true;
 
+	printf("%s: num_block = %u.\n", __func__, num_block);
 	/* 1.request upgrade */
 	ret = radio_write(info, REQ_RADIO_UPGRADE, 0, NULL);
 	if (ret != NO_ERROR) {
@@ -573,48 +668,41 @@ int radio_update_firmware(radio_info_t * info)
 		free(result.payload);
 	} else {
 		printf("REQ_RADIO_UPGRADE result payload is null.\n");
-		goto out;
+		//goto out;
 	}
 
+/*
 	if (status != NO_ERROR) {
 		printf("REQ_RADIO_UPGRADE result is %x.\n", status);
 		goto out;
 	}
-
-	fp = fopen(RADIO_FW_DEFAULT_PATH, "r");
-	rewind(fp);
+*/
+	temp = buf;
 
 	/* 2. begin upgrade */
-	while (left > 128) {
+	for (i = 0; i < num_block - 1; i++) {
+		printf("%s: loop %d ...\n", __func__, i);
+		ret = radio_write(info, MID_UPGRADE_PACK, block_size, temp);
+		if (ret != NO_ERROR)
+			goto out;
+
 		memset(&result, 0, sizeof(radio_result_t));
-		ret = file_read_data(buf, fp, 128);
-		if (ret != NO_ERROR)
-			goto out;
-
-		left = left - 128;
-
-		ret = radio_write(info, MID_UPGRADE_PACK, 128, buf);
-		if (ret != NO_ERROR)
-			goto out;
-
 		ret = radio_wait_result(info, MID_UPGRADE_PACK, &result);
 		if (ret == NO_ERROR && result.payload != NULL) {
 			status = *result.payload;
 			free(result.payload);
 		} else {
 			printf("MID_UPGRADE_PACK result payload is null");
-			goto out;
+			//goto out;
 		}
+
+		temp = temp + block_size;
 	}
 
 	memset(&result, 0, sizeof(radio_result_t));
 
 	/* 3. last package */
-	ret = file_read_data(buf, fp, left);
-	if (ret != NO_ERROR)
-		goto out;
-
-	ret = radio_write(info, LAST_UPGRADE_PACK, left, buf);
+	ret = radio_write(info, LAST_UPGRADE_PACK, flag, temp);
 	if (ret != NO_ERROR)
 		goto out;
 
@@ -626,8 +714,7 @@ int radio_update_firmware(radio_info_t * info)
 
   out:
 	info->flashing = false;
-	if (fp != NULL)
-		fclose(fp);
+	free(buf);
 	unlock_radio(&info->c_lock);
 	return ret;
 }
@@ -813,7 +900,7 @@ int radio_get_status(radio_info_t * radio_info)
 	radio_result_t result;
 	uint8_t dummy = 0;
 
-	//printf("%s +\n", __func__);
+	printf("%s +\n", __func__);
 
 	memset(&result, 0, sizeof(radio_result_t));
 
@@ -836,7 +923,7 @@ int radio_get_status(radio_info_t * radio_info)
 		result.payload = NULL;
 	}
 
-	//printf("%s, status=%d, -\n", __func__, ret);
+	printf("%s, status=%d, -\n", __func__, ret);
 	return ret;
 }
 
@@ -936,11 +1023,12 @@ void release_radio(radio_info_t ** radio_info)
 void radio_print_result(radio_result_t result)
 {
 	int i;
+	uint16_t len = conv_type16(result.hdr.len);
 	printf("\n===============================\n");
 	printf("hdr:%x, type:%x, cmd:%x, len:%x\n", result.hdr.hdr, result.hdr.type, result.hdr.cmd,
 		   result.hdr.len);
 	printf("payload: ");
-	for (i = 0; i < result.hdr.len; i++) {
+	for (i = 0; i < len; i++) {
 		printf("%4x", result.payload[i]);
 	}
 	printf("\ncrc16:%x, end:%x\n", result.end.crc16, result.end.end);

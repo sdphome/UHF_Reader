@@ -485,5 +485,7 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_t len);
 int security_upgrade_firmware(security_info_t * info, char *file);
 int security_main(security_info_t * info);
-
+int inline security_reset_radio(int fd);
+int inline security_reset(int fd);
+int inline security_get_status(int fd);
 #endif
