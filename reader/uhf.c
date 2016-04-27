@@ -33,7 +33,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-//#define TEST
+#define TEST
 
 uhf_info_t *g_uhf = NULL;
 
@@ -41,15 +41,16 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	security_info_t *security = p_uhf->security;
-	//uint64_t sec_rand;
+	uint64_t sec_rand = 0;
 
 	security->uhf = (void *)p_uhf;
 
 	//ret = security_set_rtc(security);
 
-	//sec_rand = security_request_rand_num(security);
+	sec_rand = security_request_rand_num(security);
 
-	//ret = security_send_auth_data(security, sec_rand);
+	ret = security_send_auth_data(security, sec_rand);
+	printf("%s: security_send_auth_data ret = %d.\n", __func__, ret);
 
 	return ret;
 }
@@ -265,7 +266,7 @@ int main(int argc, char **argv)
 	/* TODO: reboot */
 	return ret;
 }
-#else
+#else // TEST
 int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
@@ -273,6 +274,9 @@ int main(int argc, char **argv)
 
 	/* TODO: setup rtc */
 	system("ntpd");
+
+	signal(SIGSEGV, upper_print_trace);
+	signal(SIGABRT, upper_print_trace);
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)
@@ -288,26 +292,40 @@ int main(int argc, char **argv)
 	ret += alloc_security(&p_uhf->security);
 	if (ret != NO_ERROR)
 		goto alloc_failed;
-
+/*
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
+	security_main(p_uhf->security);
+*/
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
 
-	radio_get_version(p_uhf->radio);
+	ret = uhf_init_security(p_uhf);
+	if (ret != NO_ERROR)
+		goto start_failed;
 
-	radio_update_firmware(p_uhf->radio);
-	sleep(3);
+	security_main(p_uhf->security);
 
-	security_reset_radio(p_uhf->security->fd);
-	sleep(3);
-	radio_get_version(p_uhf->radio);
+/*
+	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
+	sleep(30);
 
+	security_reset(p_uhf->security->fd);
+	security_get_status(p_uhf->security->fd);
+	security_get_status(p_uhf->security->fd);
+	sleep(6);
+
+	ret = uhf_init_security(p_uhf);
+	if (ret != NO_ERROR)
+		goto start_failed;
+
+	security_main(p_uhf->security);
+*/
 	return 0;
 
   start_failed:

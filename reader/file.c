@@ -25,16 +25,20 @@
 
 int file_get_size(const char *path, unsigned long *filesize)
 {
-	int ret = NO_ERROR;
-	struct stat statbuff;
+	FILE *fp;
 
-	if (stat(path, &statbuff) > 0) {
-		*filesize = statbuff.st_size;
-	} else {
-		ret = -FAILED;
+	fp = fopen(path, "r");
+	if (fp == NULL) {
+		printf("can't open %s.\n", path);
+		return -FAILED;
 	}
 
-	return ret;
+	fseek(fp, 0L, SEEK_END);
+	*filesize = ftell(fp);
+	fseek(fp, 0L, SEEK_SET);
+	fclose(fp);
+
+	return NO_ERROR;
 }
 
 int file_read_data(uint8_t * buf, FILE * fp, unsigned long size)
@@ -47,8 +51,10 @@ int file_read_data(uint8_t * buf, FILE * fp, unsigned long size)
 
 	nrd = fread(buf, size, 1, fp);
 
-	if (nrd != size)
+	if (nrd < 0) {
+		printf("%s: nrd=%ld, size=%ld.\n", __func__, nrd, size);
 		ret = -FAILED;
+	}
 
 	return ret;
 }
@@ -63,7 +69,7 @@ int file_write_data(uint8_t * buf, FILE * fp, unsigned long size)
 
 	nwr = fwrite(buf, size, 1, fp);
 
-	if (nwr != size)
+	if (nwr < 0)
 		ret = -FAILED;
 
 	return ret;
