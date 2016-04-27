@@ -33,7 +33,7 @@
 #include <ltkc.h>
 #include <uhf.h>
 
-#define TEST
+//#define TEST
 
 uhf_info_t *g_uhf = NULL;
 
@@ -171,7 +171,7 @@ void uhf_stop(int signo)
 	_exit(0);
 }
 
-static void upper_print_trace(int signum)
+static void uhf_print_trace(int signum)
 {
 	void *array[10];
 	size_t size;
@@ -204,8 +204,8 @@ int main(int argc, char **argv)
 	int ret = NO_ERROR;
 	uhf_info_t *p_uhf;
 
-	signal(SIGSEGV, upper_print_trace);
-	signal(SIGABRT, upper_print_trace);
+	signal(SIGSEGV, uhf_print_trace);
+	signal(SIGABRT, uhf_print_trace);
 
 	/* TODO: setup rtc */
 	system("ntpd");
@@ -275,8 +275,8 @@ int main(int argc, char **argv)
 	/* TODO: setup rtc */
 	system("ntpd");
 
-	signal(SIGSEGV, upper_print_trace);
-	signal(SIGABRT, upper_print_trace);
+	signal(SIGSEGV, uhf_print_trace);
+	signal(SIGABRT, uhf_print_trace);
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
 	if (p_uhf == NULL)
@@ -292,24 +292,22 @@ int main(int argc, char **argv)
 	ret += alloc_security(&p_uhf->security);
 	if (ret != NO_ERROR)
 		goto alloc_failed;
-/*
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	security_main(p_uhf->security);
-*/
+/*
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
+*/
 
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-	security_main(p_uhf->security);
 
 /*
 	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
@@ -326,12 +324,13 @@ int main(int argc, char **argv)
 
 	security_main(p_uhf->security);
 */
+
+	printf("Will return.\n");
+
 	return 0;
 
   start_failed:
-	stop_radio(p_uhf->radio);
   alloc_failed:
-	release_radio(&p_uhf->radio);
 
 	return ret;
 }

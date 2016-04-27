@@ -33,7 +33,6 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <sm2.h>
 //#include <security.h>
 #include <uhf.h>
 
@@ -813,7 +812,7 @@ static int security_digi_sign(security_info_t * info, auth_data_param * param)
 	memcpy(message + 24, (uint8_t *) & param->reserve, 8);
 
 	security_revert_32(message);
-	sm2_sign(message, 32, info->priv_key, 32, param->sign, &rlen, param->sign + 32, &slen);
+	sm2_sign(message, 32, param->sign, &rlen, param->sign + 32, &slen);
 
 	security_revert_32(param->sign);
 	security_revert_32(param->sign + 32);

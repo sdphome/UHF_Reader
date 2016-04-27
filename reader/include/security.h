@@ -462,6 +462,8 @@ typedef struct security_info {
 	void *uhf;
 } security_info_t;
 
+void sm2_sign(unsigned char *data, int datalen, unsigned char *sA, int *Alen, unsigned char *sB, int *Blen);
+
 int start_security(security_info_t * info);
 void stop_security(security_info_t * info);
 int alloc_security(security_info_t ** security_info);
