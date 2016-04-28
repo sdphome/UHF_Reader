@@ -102,7 +102,6 @@ int inline security_get_status(int fd)
 	int status = OK;
 
 	status = ioctl(fd, US_IOC_GET_STATUS, NULL);
-	printf("%s: status is %s\n", __func__, (status ? "BUSY" : "OK"));
 
 	return status;
 }
@@ -110,6 +109,15 @@ int inline security_get_status(int fd)
 int inline security_reset_radio(int fd)
 {
 	return ioctl(fd, US_IOC_RESET_RADIO, NULL);
+}
+
+int inline security_get_radio_status(int fd)
+{
+	int status = OK;
+
+	status = ioctl(fd, US_IOC_GET_RADIO_STATUS, NULL);
+
+	return status;
 }
 
 const char *security_upload_err_to_str(uint8_t errno)
@@ -776,7 +784,7 @@ uint64_t security_request_rand_num(security_info_t * info)
 		return NO_ERROR;
 }
 
-static void security_revert_32(uint8_t * buf)
+static void security_reverse_32(uint8_t * buf)
 {
 	int i;
 	uint8_t temp;
@@ -799,11 +807,11 @@ static int security_digi_sign(security_info_t * info, auth_data_param * param)
 	memcpy(message + 16, (uint8_t *) & param->serial, 8);
 	memcpy(message + 24, (uint8_t *) & param->reserve, 8);
 
-	security_revert_32(message);
+	security_reverse_32(message);
 	sm2_sign(message, 32, param->sign, &rlen, param->sign + 32, &slen);
 
-	security_revert_32(param->sign);
-	security_revert_32(param->sign + 32);
+	security_reverse_32(param->sign);
+	security_reverse_32(param->sign + 32);
 
 	return ret;
 }
@@ -964,13 +972,13 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
  * 2 : verify failed
  * 3 : serial not unanimous
  */
-int security_send_active_auth(security_info_t * info, active_auth_param * param)
+int security_send_active_auth(security_info_t * info, uint8_t * active, uint16_t len)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
 
-	if (param == NULL) {
-		printf("%s: param is null\n", __func__);
+	if (active == NULL || len != 216) {
+		printf("%s: active = 0x%p, len = %d.\n", __func__, active, len);
 		return -FAILED;
 	}
 
@@ -978,7 +986,7 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, SEND_AUTH, ACTIVE_AUTH_PARAM_SIZE + 1, (uint8_t *) param);
+	ret = security_write(info, AUTH_TYPE, SEND_AUTH, len + 1, active);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -989,7 +997,7 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 
 	unlock_security(&info->lock);
 
-	if (ret != NO_ERROR) {
+	if (ret != NO_ERROR || result.payload == NULL) {
 		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
 		return -FAILED;
 	}

@@ -645,6 +645,10 @@ int radio_update_firmware(radio_info_t * info)
 		flag = block_size;
 	}
 
+	security_reset_radio(((uhf_info_t *)(info->uhf))->radio->fd);
+	//sleep(1);
+	while (security_get_radio_status(((uhf_info_t *)(info->uhf))->radio->fd));
+
 	lock_radio(&info->c_lock);
 
 	info->flashing = true;

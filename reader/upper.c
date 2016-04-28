@@ -609,22 +609,35 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pDB->hdr);
 	printf("%s: ret = %d.\n", __func__, ret);
+#undef UPPER_TIMEOUT
+#define UPPER_TIMEOUT 60
 
 	if (ret == NO_ERROR)
 		pAck = (LLRP_tSDeviceBindingAck *) upper_wait_response(info, &pDB->hdr);
-
-	printf("%s: pAck = %p.\n", __func__, pAck);
+#undef UPPER_TIMEOUT
+#define UPPER_TIMEOUT 5
 
 	unlock_upper(&info->lock);
 
+	if (pAck != NULL) {
+		llrp_u8v_t binding_result;
+		LLRP_tSStatus *pStatus;
+		binding_result = LLRP_DeviceBindingAck_getBindingResultData(pAck);
+		pStatus = LLRP_DeviceBindingAck_getStatus(pAck);
+
+		if (LLRP_Status_getStatusCode(pStatus) == LLRP_StatusCode_M_Success) {
+			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
+									binding_result.pValue, binding_result.nValue);
+		}
+	}
+
+	printf("###############################################\n");
+	printf("%s: the active result is %s.\n", __func__, ret ? "FAIL" : "SUCC");
+	printf("###############################################\n");
 
 out:
 	if (pDB != NULL) {
-		printf("bbb\n");
 		LLRP_DeviceBinding_destruct(pDB);
-		printf("eeee\n");
-	} else {
-		free(binding);
 	}
 
 	if (pAck != NULL)
