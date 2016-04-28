@@ -29,7 +29,7 @@
 #define RADIO_TIMEOUT					5
 #define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
 
-#define RADIO_FW_DEFAULT_PATH	"/home/root/uhf/fw/radio_fw.bin"
+#define RADIO_FW_DEFAULT_PATH	"/uhf/fw/radio_fw.bin"
 
 /* ---------- Package Fixed Value ---------- */
 #define PACK_HDR                        0xFA

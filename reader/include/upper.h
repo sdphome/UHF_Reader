@@ -31,7 +31,7 @@
 #define UPPER_CONNECTED		0x02
 #define UPPER_READY			0x03
 
-#define DB_PATH	"/home/root/uhf.db"
+#define DB_PATH	"/uhf/uhf.db"
 
 typedef struct select_report_spec {
 	uint8_t SelectReportTrigger;

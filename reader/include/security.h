@@ -33,8 +33,8 @@
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 #define US_IOC_GET_RADIO_STATUS      	_IO(US_IOC_MAGIC, 4)
 
-#define SECURITY_FW_DEFAULT_PATH   "/home/root/uhf/fw/security_fw.bin"
-#define SECURITY_AUTH_X509_PATH    "/home/root/uhf/cert/ReaderCert.cer"
+#define SECURITY_FW_DEFAULT_PATH   "/uhf/fw/security_fw.bin"
+#define SECURITY_AUTH_X509_PATH    "/uhf/cert/ReaderCert.cer"
 
 /* security module status */
 #define OK 							0

@@ -33,7 +33,6 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-//#include <security.h>
 #include <uhf.h>
 
 /* FIXME: undef it */

@@ -26,11 +26,11 @@
 #include "file.h"
 #include "sql.h"
 
-#define ACTIVE_CER_PATH     "/home/root/uhf/cert/active.cer"
-#define USER_INFO_PATH      "/home/root/uhf/cert/user_info.bin"
+#define ACTIVE_CER_PATH     "/uhf/cert/active.cer"
+#define USER_INFO_PATH      "/uhf/cert/user_info.bin"
 
-#define UUID_PATH			"/home/root/uhf/uuid"
-#define UHF_SIGSEGV_PATH	"/home/root/uhf/uhf_backtrace"
+#define UUID_PATH			"/uhf/uuid"
+#define UHF_SIGSEGV_PATH	"/uhf/uhf_backtrace"
 
 #define false			0
 #define true			1
