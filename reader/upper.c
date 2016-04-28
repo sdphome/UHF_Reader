@@ -1319,6 +1319,9 @@ int start_upper(upper_info_t * info)
 int alloc_upper(upper_info_t ** info)
 {
 	int ret = NO_ERROR;
+	FILE * fp = NULL;
+	unsigned long size = -1;
+	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31}; // "03000001"
 
 	*info = (upper_info_t *) malloc(sizeof(upper_info_t));
 	if (*info == NULL) {
@@ -1346,9 +1349,20 @@ int alloc_upper(upper_info_t ** info)
 
 	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
-	(*info)->serial = 0x11223344;	// FIXME
 	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
 	(*info)->tag_list = NULL;
+
+	ret = file_get_size(UUID_PATH, &size);
+	if (ret == NO_ERROR && size == 9) {
+		fp = fopen(UUID_PATH, "r");
+		if (fp != NULL) {
+			file_read_data(userid, fp, 8);
+			printf("%s: userid = %llx.\n", __func__, *(uint64_t *)userid);
+			fclose(fp);
+		}
+	}
+
+	memcpy(&(*info)->serial, userid, 8);
 
 	memcpy((*info)->active_cer_path, ACTIVE_CER_PATH, sizeof(ACTIVE_CER_PATH));
 	memcpy((*info)->user_info_path, USER_INFO_PATH, sizeof(USER_INFO_PATH));

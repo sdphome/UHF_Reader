@@ -1418,6 +1418,10 @@ void stop_security(security_info_t * info)
 int alloc_security(security_info_t ** security_info)
 {
 	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31}; // "03000001"
+	FILE * fp = NULL;
+	int ret = NO_ERROR;
+	unsigned long size = -1;
+
 	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
@@ -1427,8 +1431,19 @@ int alloc_security(security_info_t ** security_info)
 	(*security_info)->fd = -1;
 	(*security_info)->result_list = NULL;
 	(*security_info)->upload_list = NULL;
+
+	ret = file_get_size(UUID_PATH, &size);
+	if (ret == NO_ERROR && size == 9) {
+		fp = fopen(UUID_PATH, "r");
+		if (fp != NULL) {
+			file_read_data(userid, fp, 8);
+			printf("%s: userid = %llx.\n", __func__, *(uint64_t *)userid);
+			fclose(fp);
+		}
+	}
+
 	memcpy(&(*security_info)->serial, userid, 8);
-	//(*security_info)->serial = ;
+
 	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH, sizeof(SECURITY_AUTH_X509_PATH));
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
