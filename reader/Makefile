@@ -18,7 +18,8 @@
 ############################################################################
 
 CC				= ${CROSS_COMPILE}gcc
-CFLAGS			= -Wall -g -rdynamic -funwind-tables
+CFLAGS			= -Wall -g
+#-rdynamic -funwind-tables
 MKDIR			= mkdir
 RM				= rm
 OUT				= out

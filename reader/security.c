@@ -40,18 +40,6 @@
 //#define TEST
 #define DEBUG
 
-char pubKey[64] = {0x19, 0x3d, 0xba, 0x9d, 0x05, 0xb5, 0xdf, 0x64, 0x2b,
-					0x40, 0xef, 0x56, 0x52, 0xa0, 0xe9, 0x7b, 0x31, 0x89,
-					0x37, 0x7b, 0xf9, 0x5b, 0x1e, 0x2a, 0x42, 0x6b, 0xe3,
-					0xd9, 0xe7, 0x50, 0xf6, 0x5e, 0xd6, 0x30, 0x94, 0xef,
-					0x21, 0xe0, 0x75, 0x98, 0x6f, 0x0c, 0xae, 0x58, 0xa9,
-					0xc8, 0xc5, 0xc0, 0xc5, 0xd6, 0x6c, 0x85, 0x20, 0xb2,
-					0x34, 0xca, 0x35, 0x18, 0x13, 0x30, 0xa3, 0x1a, 0x7c, 0x70};
-
-char priKey[32] = {0xd4, 0xa0, 0x3d, 0x62, 0xa4, 0xb8, 0xd4, 0x1f, 0x3d, 0xaa,
-					0xd5, 0x02, 0x97, 0xfd, 0x2d, 0xdd, 0xb4, 0x36, 0xdb, 0x18,
-					0xa6, 0x61, 0x4a, 0x3a, 0x88, 0xdf, 0x3a, 0x10, 0x20, 0xbd, 0xb6, 0xc9};
-
 static inline int security_open(char *dev)
 {
 	return open(dev, O_RDWR);
@@ -857,8 +845,10 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 	param->reserve = 0;
 
 	fp = fopen(SECURITY_AUTH_X509_PATH, "r");
-	if (fp == NULL)
+	if (fp == NULL) {
 		printf("read data. fp is null.\n");
+		return -FAILED;
+	}
 	ret = file_read_data(param->x509, fp, size);
 	if (ret != NO_ERROR) {
 		printf("%s: read x509 failed.\n", __func__);
@@ -913,11 +903,34 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 int security_send_user_info(security_info_t * info, security_package_t * result)
 {
 	int ret = NO_ERROR;
+	unsigned long size = -1;
+	FILE * fp = NULL;
 	user_info_param user_info;
+
+	printf("Enter %s.\n", __func__);
 
 	memset(result, 0, sizeof(security_package_t));
 	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
 	/* TODO: fill user_info */
+	ret = file_get_size(USER_INFO_PATH, &size);
+	if (ret != NO_ERROR || size != USER_INFO_PARAM_SIZE) {
+		printf("%s: %s size is %ld, ret = %d.\n", __func__, USER_INFO_PATH, size, ret);
+		ret = -FAILED;
+		return ret;
+	}
+
+	fp = fopen(USER_INFO_PATH, "r");
+	if (fp == NULL) {
+		printf("open %s fp is null.\n", USER_INFO_PATH);
+		return -FAILED;
+	}
+	ret = file_read_data((uint8_t *) &user_info, fp, size);
+	if (ret != NO_ERROR) {
+		printf("%s: read x509 failed.\n", __func__);
+		fclose(fp);
+		return ret;
+	}
+	fclose(fp);
 
 	lock_security(&info->lock);
 
@@ -939,6 +952,7 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 		return ret;
 	}
 
+	printf("Exit %s.\n", __func__);
 	/* Need send the data to upper computer */
 	return ret;
 }
@@ -986,13 +1000,17 @@ int security_send_active_auth(security_info_t * info, active_auth_param * param)
 	return ret;
 }
 
-int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_t len)
+int security_send_cert(security_info_t * info, uint8_t * cert, uint16_t len)
 {
 	int ret = NO_ERROR;
 	security_package_t result;
 
-	if (param == NULL) {
-		printf("%s: param is null\n", __func__);
+	printf("Enter %s.\n", __func__);
+
+	printf("cert len = %u.\n", len);
+
+	if (cert == NULL || len < 512) {
+		printf("%s: cert is %p, len = %u.\n", __func__, cert, len);
 		return -FAILED;
 	}
 
@@ -1000,7 +1018,7 @@ int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_
 
 	lock_security(&info->lock);
 
-	ret = security_write(info, AUTH_TYPE, SEND_CERT, len + 1, (uint8_t *) param);
+	ret = security_write(info, AUTH_TYPE, SEND_CERT, len + 1, cert);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
@@ -1011,14 +1029,11 @@ int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_
 
 	unlock_security(&info->lock);
 
-	if (ret != NO_ERROR) {
-		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
-		return -FAILED;
+	if (result.payload != NULL) {
+		ret = *result.payload;
 	}
 
-	ret = *result.payload;
-	free(result.payload);
-
+	printf("Exit %s.\n", __func__);
 	return ret;
 }
 
@@ -1402,7 +1417,7 @@ void stop_security(security_info_t * info)
 
 int alloc_security(security_info_t ** security_info)
 {
-	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31};
+	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31}; // "03000001"
 	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
@@ -1414,8 +1429,6 @@ int alloc_security(security_info_t ** security_info)
 	(*security_info)->upload_list = NULL;
 	memcpy(&(*security_info)->serial, userid, 8);
 	//(*security_info)->serial = ;
-	memcpy(&(*security_info)->pub_key, pubKey, 64);
-	memcpy(&(*security_info)->priv_key, priKey, 32);
 	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH, sizeof(SECURITY_AUTH_X509_PATH));
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);

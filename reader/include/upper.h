@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include "../utils/llrp/ltkc.h"
 
-#define UPPER_TIMEOUT				5
+#define UPPER_TIMEOUT				10
 
 #define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
 

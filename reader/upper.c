@@ -581,9 +581,56 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 }
 
 // 600
-static int upper_process_DeviceBinding(upper_info_t * info, LLRP_tSDeviceBinding * pDB)
+static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, uint16_t len)
 {
-	return 0;
+	int ret = NO_ERROR;
+	LLRP_tSDeviceBinding * pDB = NULL;
+	LLRP_tSDeviceBindingAck * pAck = NULL;
+	llrp_u8v_t binding_data;
+
+	if (info->status != UPPER_READY)
+		goto out;
+
+	pDB = LLRP_DeviceBinding_construct();
+	if (pDB == NULL)
+		goto out;
+
+	LLRP_DeviceBinding_setBindingType(pDB, *binding - 8);
+
+	binding_data.nValue = len;
+	binding_data.pValue = (llrp_u8_t *)malloc(len);
+	if (binding_data.pValue == NULL)
+		goto out;
+
+	memcpy(binding_data.pValue, binding + 1, len);
+
+	LLRP_DeviceBinding_setBindingData(pDB, binding_data);
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pDB->hdr);
+	printf("%s: ret = %d.\n", __func__, ret);
+
+	if (ret == NO_ERROR)
+		pAck = (LLRP_tSDeviceBindingAck *) upper_wait_response(info, &pDB->hdr);
+
+	printf("%s: pAck = %p.\n", __func__, pAck);
+
+	unlock_upper(&info->lock);
+
+
+out:
+	if (pDB != NULL) {
+		printf("bbb\n");
+		LLRP_DeviceBinding_destruct(pDB);
+		printf("eeee\n");
+	} else {
+		free(binding);
+	}
+
+	if (pAck != NULL)
+		LLRP_DeviceBindingAck_destruct(pAck);
+
+	return ret;
 }
 
 // 602
@@ -599,7 +646,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 
 	pDCC_Ack = LLRP_DeviceCertificateConfigAck_construct();
 	pStatus = LLRP_Status_construct();
-	Error.nValue = 0;
+	memset(&Error, 0, sizeof(llrp_utf8v_t));
 	LLRP_Status_setStatusCode(pStatus, LLRP_StatusCode_M_Success);
 	LLRP_Status_setErrorDescription(pStatus, Error);
 	LLRP_DeviceCertificateConfigAck_setStatus(pDCC_Ack, pStatus);
@@ -618,8 +665,28 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	ret += upper_write_to_file(info->active_cer_path, &pCer);
 	ret += upper_write_to_file(info->user_info_path, &pUser);
 
-	LLRP_DeviceCertificateConfigAck_destruct(pDCC_Ack);
+	if (ret == NO_ERROR) {
+		security_package_t result;
+		active_req_param * active_req;
+
+		ret = security_send_cert(((uhf_info_t *)(info->uhf))->security, pCer.pValue, pCer.nValue);
+
+		ret = security_send_user_info(((uhf_info_t *)(info->uhf))->security, &result);
+		if (ret == NO_ERROR && result.payload != NULL) {
+			active_req = (active_req_param *)result.payload;
+			printf("active flag=%d, len=%x, mode=%d, serial=%llx.\n", active_req->active_flag, active_req->len,
+								active_req->mode, active_req->serial);
+			upper_request_DeviceBinding(info, result.payload, result.hdr.len - 2);
+			free(result.payload);
+			result.payload = NULL;
+		} else {
+			printf("security_send_user_info return %d.\n", ret);
+			ret = -FAILED;
+		}
+	}
+
 	LLRP_DeviceCertificateConfig_destruct(pDCC);
+	LLRP_DeviceCertificateConfigAck_destruct(pDCC_Ack);
 
 	return ret;
 }
@@ -874,7 +941,6 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 458:				//GetAccessSpec
 		  break;
 	  case 600:				//DeviceBinding
-		  upper_process_DeviceBinding(info, (LLRP_tSDeviceBinding *) pRequest);
 		  break;
 	  case 602:				//DeviceCertificateConfig
 		  upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
@@ -1116,7 +1182,15 @@ void *upper_read_loop(void *data)
 			}
 		}
 
-		upper_print_XML_message(pMessage);
+	/*
+	 * Print the XML text for the outbound message if
+	 * verbosity is 1 or higher.
+	 */
+		if (info->verbose > 0) {
+			printf("\n===================================\n");
+			printf("INFO: Recving:\n");
+			upper_print_XML_message(pMessage);
+		}
 
 		if (strstr(pMessage->elementHdr.pType->pName, "Ack") != NULL) {
 			upper_signal_response(info, pMessage);
@@ -1226,8 +1300,10 @@ int start_upper(upper_info_t * info)
 		pthread_cond_broadcast(&info->upload_cond);
 		unlock_upper(&info->upload_lock);
 
-		LLRP_Conn_closeConnectionToUpper(info->pConn);
-		close(info->sock);
+		if (info->sock > 0) {
+			close(info->sock);
+			info->sock = -1;
+		}
 		pthread_join(info->read_thread, &status);
 		pthread_join(info->request_thread, &status);
 		pthread_join(info->upload_thread, &status);

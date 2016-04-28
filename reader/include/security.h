@@ -33,7 +33,7 @@
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 
 #define SECURITY_FW_DEFAULT_PATH   "/home/root/fw/security_fw.bin"
-#define SECURITY_AUTH_X509_PATH    "/home/root/fw/ReaderCert.cer"
+#define SECURITY_AUTH_X509_PATH    "/home/root/cert/ReaderCert.cer"
 
 /* security module status */
 #define OK 							0
@@ -456,8 +456,6 @@ typedef struct security_info {
 	uint64_t serial;
 	char auth_x509_path[50];
 	char active_x509_path[50];
-	uint8_t pub_key[64];
-	uint8_t priv_key[32];
 
 	void *uhf;
 } security_info_t;
@@ -485,7 +483,7 @@ uint64_t security_request_rand_num(security_info_t * info);
 int security_send_auth_data(security_info_t * info, uint64_t sec_rand);
 int security_send_user_info(security_info_t * info, security_package_t * result);
 int security_send_active_auth(security_info_t * info, active_auth_param * param);
-int security_send_cert(security_info_t * info, cert_chain_param * param, uint16_t len);
+int security_send_cert(security_info_t * info, uint8_t * cert, uint16_t len);
 int security_upgrade_firmware(security_info_t * info, char *file);
 int security_main(security_info_t * info);
 int inline security_reset_radio(int fd);

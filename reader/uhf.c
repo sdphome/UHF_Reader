@@ -231,10 +231,12 @@ int main(int argc, char **argv)
 		goto start_failed;
 
 	ret = uhf_init_security(p_uhf);
+/*  TODO: check the return
 	if (ret != NO_ERROR)
 		goto start_failed;
+*/
 
-	security_main(p_uhf->security);
+	//security_main(p_uhf->security);
 
 	uhf_init_upper(p_uhf);
 
@@ -304,12 +306,12 @@ int main(int argc, char **argv)
 
 	uhf_init_radio(p_uhf);
 */
-
+/*
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
+*/
 
-/*
 	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
 	sleep(30);
 
@@ -322,8 +324,7 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 
-	security_main(p_uhf->security);
-*/
+//	security_main(p_uhf->security);
 
 	printf("Will return.\n");
 
