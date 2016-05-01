@@ -704,10 +704,116 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	return ret;
 }
 
-int upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
+// 620
+static int upper_process_UploadTagLog(upper_info_t * info, LLRP_tSUploadTagLog * pThis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSUploadTagLogAck * pUTL_Ack = NULL;
+	LLRP_tSStatus * pStatus = NULL;
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+
+	/* TODO: upload tag log */
+
+	pUTL_Ack = LLRP_UploadTagLogAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pUTL_Ack == NULL || pStatus == NULL)
+		goto out;
+
+	LLRP_UploadTagLogAck_setStatus(pUTL_Ack, pStatus);
+
+out:
+	if (pThis != NULL)
+		LLRP_UploadTagLog_destruct(pThis);
+	if (pUTL_Ack == NULL)
+		LLRP_UploadTagLogAck_destruct(pUTL_Ack);
+	return ret;
+}
+
+// 622
+static int upper_process_ClearTagLog(upper_info_t * info, LLRP_tSClearTagLog * pThis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSClearTagLogAck *pCTL_Ack = NULL;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+
+	/* TODO: clear tag log */
+
+	pCTL_Ack = LLRP_ClearTagLogAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pCTL_Ack == NULL || pStatus == NULL)
+		goto out;
+
+	LLRP_ClearTagLogAck_setStatus(pCTL_Ack, pStatus);
+
+out:
+	if (pThis != NULL)
+		LLRP_ClearTagLog_destruct(pThis);
+	if (pCTL_Ack != NULL)
+		LLRP_ClearTagLogAck_destruct(pCTL_Ack);
+
+	return ret;
+
+}
+
+// 640
+static int upper_process_UploadDeviceLog(upper_info_t * info, LLRP_tSUploadDeviceLog * pThis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSUploadDeviceLogAck * pUDL_Ack = NULL;
+	LLRP_tSStatus * pStatus = NULL;
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+
+	/* TODO: upload device log */
+
+	pUDL_Ack = LLRP_UploadDeviceLogAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pUDL_Ack == NULL || pStatus == NULL)
+		goto out;
+
+	LLRP_UploadDeviceLogAck_setStatus(pUDL_Ack, pStatus);
+
+out:
+	if (pThis != NULL)
+		LLRP_UploadDeviceLog_destruct(pThis);
+	if (pUDL_Ack == NULL)
+		LLRP_UploadDeviceLogAck_destruct(pUDL_Ack);
+
+	return ret;
+}
+
+// 642
+static int upper_process_ClearDeviceLog(upper_info_t * info, LLRP_tSClearDeviceLog * pThis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSClearDeviceLogAck *pCDL_Ack = NULL;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+
+	/* TODO: clear device log */
+
+	pCDL_Ack = LLRP_ClearDeviceLogAck_construct();
+	pStatus = upper_setup_status(status);
+	if (pCDL_Ack == NULL || pStatus == NULL)
+		goto out;
+
+	LLRP_ClearDeviceLogAck_setStatus(pCDL_Ack, pStatus);
+
+out:
+	if (pThis != NULL)
+		LLRP_ClearDeviceLog_destruct(pThis);
+	if (pCDL_Ack != NULL)
+		LLRP_ClearDeviceLogAck_destruct(pCDL_Ack);
+
+	return ret;
+}
+
+/*
+static int upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
 {
 	return 0;
 }
+*/
 
 // 662
 static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig * pThis)
@@ -837,6 +943,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	return ret;
 }
 
+// 702
 static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pThis)
 {
 	char cmd[128];
@@ -907,6 +1014,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	LLRP_SetVersion_destruct(pThis);
 }
 
+// 760
 static void upper_process_ResetDevice(upper_info_t * info)
 {
 	upper_request_Disconnect(info);
@@ -959,12 +1067,16 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_DeviceCertificateConfig(info, (LLRP_tSDeviceCertificateConfig *) pRequest);
 		  break;
 	  case 620:				//UploadTagLog
+		  upper_process_UploadTagLog(info, (LLRP_tSUploadTagLog *) pRequest);
 		  break;
-	  case 622:				//ClearLog
+	  case 622:				//ClearTagLog
+		  upper_process_ClearTagLog(info, (LLRP_tSClearTagLog *) pRequest);
 		  break;
 	  case 640:				//UploadDeviceLog
+		  upper_process_UploadDeviceLog(info, (LLRP_tSUploadDeviceLog *) pRequest);
 		  break;
 	  case 642:				//ClearDeviceLog
+		  upper_process_ClearDeviceLog(info, (LLRP_tSClearDeviceLog *) pRequest);
 		  break;
 	  case 660:				//GetDeviceConfig
 		  break;
