@@ -612,8 +612,11 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 #undef UPPER_TIMEOUT
 #define UPPER_TIMEOUT 60
 
-	if (ret == NO_ERROR)
+	if (ret == NO_ERROR) {
 		pAck = (LLRP_tSDeviceBindingAck *) upper_wait_response(info, &pDB->hdr);
+		ret = -FAILED;
+	}
+
 #undef UPPER_TIMEOUT
 #define UPPER_TIMEOUT 5
 
@@ -629,13 +632,38 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
 									binding_result.pValue, binding_result.nValue);
 		}
+	} else {
+		unsigned long size = 0;
+		uint8_t * data = NULL;
+
+		ret = file_get_size(BIND_ACCEPT_FILE, &size);
+		if (ret != NO_ERROR) {
+			printf("%s: can't get %s size.\n", __func__, BIND_ACCEPT_FILE);
+			goto out;
+		}
+
+		data = (uint8_t *)malloc(size);
+		if (data != NULL) {
+			FILE * fp = NULL;
+			fp = fopen(BIND_ACCEPT_FILE, "r");
+			if (fp == NULL) {
+				ret = -FAILED;
+				goto out;
+			}
+			file_read_data(data, fp, size);
+
+			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
+										data, (uint16_t)size);
+		} else {
+			ret = -FAILED;
+		}
 	}
 
+out:
 	printf("###############################################\n");
 	printf("%s: the active result is %s.\n", __func__, ret ? "FAIL" : "SUCC");
 	printf("###############################################\n");
 
-out:
 	if (pDB != NULL) {
 		LLRP_DeviceBinding_destruct(pDB);
 	}

@@ -28,6 +28,7 @@
 
 #define ACTIVE_CER_PATH     "/uhf/cert/active.cer"
 #define USER_INFO_PATH      "/uhf/cert/user_info.bin"
+#define BIND_ACCEPT_FILE	"/uhf/cert/BindAcceptFile.bin"
 
 #define UUID_PATH			"/uhf/uuid"
 #define UHF_SIGSEGV_PATH	"/uhf/uhf_backtrace"
