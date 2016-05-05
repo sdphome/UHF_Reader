@@ -491,4 +491,5 @@ int inline security_reset_radio(int fd);
 int inline security_reset(int fd);
 int inline security_get_status(int fd);
 int inline security_get_radio_status(int fd);
+uint16_t security_pack_sign_data(uint64_t serial, uint64_t sec_rand, char * cert_path, uint8_t ** data);
 #endif

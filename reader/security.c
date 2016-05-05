@@ -783,38 +783,6 @@ uint64_t security_request_rand_num(security_info_t * info)
 		return NO_ERROR;
 }
 
-static void security_reverse_32(uint8_t * buf)
-{
-	int i;
-	uint8_t temp;
-
-	for (i = 0; i < 16; i ++) {
-		temp = buf[i];
-		buf[i] = buf[31 - i];
-		buf[31 - i] = temp;
-	}
-}
-
-static int security_digi_sign(security_info_t * info, auth_data_param * param)
-{
-	int ret = NO_ERROR;
-	uint8_t message[32] = { 0 };
-	int rlen, slen;
-
-	memcpy(message, (uint8_t *) & param->host_rand, 8);
-	memcpy(message + 8, (uint8_t *) & param->sec_rand, 8);
-	memcpy(message + 16, (uint8_t *) & param->serial, 8);
-	memcpy(message + 24, (uint8_t *) & param->reserve, 8);
-
-	security_reverse_32(message);
-	sm2_sign(message, 32, param->sign, &rlen, param->sign + 32, &slen);
-
-	security_reverse_32(param->sign);
-	security_reverse_32(param->sign + 32);
-
-	return ret;
-}
-
 /**
  * ret
  * 0 : auth pass
@@ -827,61 +795,24 @@ static int security_digi_sign(security_info_t * info, auth_data_param * param)
 int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 {
 	int ret = NO_ERROR;
-	unsigned long size = -1;
-	auth_data_param *param = NULL;
+	uint8_t *data = NULL;
+	uint16_t len = 0;
 	security_package_t result;
-	FILE *fp = NULL;
 
 	memset(&result, 0, sizeof(security_package_t));
 
-	ret = file_get_size(SECURITY_AUTH_X509_PATH, &size);
-	if (ret < 0 || size > SECURITY_MTU - AUTH_DATA_PARAM_SIZE - SECURITY_PACK_HDR_SIZE) {
-		printf("%s: x509 size error, size = %ld.\n", __func__, size);
+	len = security_pack_sign_data(info->serial, sec_rand, SECURITY_AUTH_X509_PATH, &data);
+	if (len == 0) {
+		printf("%s: generate auth data failed.\n", __func__);
 		return -FAILED;
-	}
-
-	param = (auth_data_param *) malloc(AUTH_DATA_PARAM_SIZE + size);
-
-	/* 1. generate random number */
-	srand((unsigned)time(NULL));
-	*(uint64_t *) param->host_rand = (uint64_t) rand() << 32 | (uint64_t) rand();
-
-	/* 2. fill data */
-	memcpy(param->sec_rand, &sec_rand, RAND_NUM_PARAM_SIZE);
-	param->serial = info->serial;
-	param->reserve = 0;
-
-	fp = fopen(SECURITY_AUTH_X509_PATH, "r");
-	if (fp == NULL) {
-		printf("read data. fp is null.\n");
-		return -FAILED;
-	}
-	ret = file_read_data(param->x509, fp, size);
-	if (ret != NO_ERROR) {
-		printf("%s: read x509 failed.\n", __func__);
-		fclose(fp);
-		free(param);
-		return ret;
-	}
-	fclose(fp);
-
-	/* 3. digital signature */
-	/* CARE: May need use big endian data */
-	ret = security_digi_sign(info, param);
-	if (ret != NO_ERROR) {
-		free(param);
-		printf("%s: sign failed\n", __func__);
-		return ret;
 	}
 
 	lock_security(&info->lock);
 
-	ret =
-		security_write(info, AUTH_TYPE, IDEN_AUTH, AUTH_DATA_PARAM_SIZE + size + 1,
-					   (uint8_t *) param);
+	ret = security_write(info, AUTH_TYPE, IDEN_AUTH, len + 1, data);
 	if (ret != NO_ERROR) {
 		unlock_security(&info->lock);
-		free(param);
+		free(data);
 		printf("%s: write failed, ret = %d\n", __func__, ret);
 		return ret;
 	}
@@ -890,9 +821,11 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 
 	unlock_security(&info->lock);
 
+	free(data);
+	data = NULL;
+
 	if (ret != NO_ERROR) {
 		printf("%s: wait result failed, ret = %d.\n", __func__, ret);
-		free(param);
 		return ret;
 	}
 
