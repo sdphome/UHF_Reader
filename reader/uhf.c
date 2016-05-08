@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
 	uhf_create_heartbeat_thread(p_uhf);
 
-	printf("Let's start the upper loop\n");
+	printf("Let's start the upper loop............\n");
 
 	ret = start_upper(p_uhf->upper);
 	if (ret != NO_ERROR)

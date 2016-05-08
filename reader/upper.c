@@ -129,11 +129,11 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 	LLRP_tResultCode lrc;
 	LLRP_tSMessage *pResponse;
 	LLRP_tSMessage *pPrev;
-	const LLRP_tSTypeDescriptor *pResponseType;
 	LLRP_tSConnection *pConn = info->pConn;
 	const LLRP_tSTypeDescriptor *pErrorMsgType;
 	LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
-	llrp_u32_t ResponseMessageID = pSendMessage->MessageID + 1;
+	//llrp_u32_t ResponseMessageID = pSendMessage->MessageID;
+	const LLRP_tSTypeDescriptor * pResponseType = pSendMessage->elementHdr.pType->pResponseType;
 
 	if (0 > pConn->fd) {
 		LLRP_Error_resultCodeAndWhatStr(pError, LLRP_RC_MiscError, "not connected");
@@ -165,7 +165,13 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 				}
 			}
 
+/*
 			if (pResponse->MessageID != ResponseMessageID) {
+				pPrev = pResponse;
+				continue;
+			}
+*/
+			if (pResponseType != pResponse->elementHdr.pType) {
 				pPrev = pResponse;
 				continue;
 			}
@@ -595,6 +601,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 	if (pDB == NULL)
 		goto out;
 
+	pDB->hdr.MessageID = info->next_msg_id++;
 	LLRP_DeviceBinding_setBindingType(pDB, *binding - 8);
 
 	binding_data.nValue = len;
@@ -609,16 +616,11 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pDB->hdr);
 	printf("%s: ret = %d.\n", __func__, ret);
-#undef UPPER_TIMEOUT
-#define UPPER_TIMEOUT 60
 
 	if (ret == NO_ERROR) {
 		pAck = (LLRP_tSDeviceBindingAck *) upper_wait_response(info, &pDB->hdr);
 		ret = -FAILED;
 	}
-
-#undef UPPER_TIMEOUT
-#define UPPER_TIMEOUT 5
 
 	unlock_upper(&info->lock);
 
@@ -628,11 +630,14 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 		binding_result = LLRP_DeviceBindingAck_getBindingResultData(pAck);
 		pStatus = LLRP_DeviceBindingAck_getStatus(pAck);
 
+		printf("%s: get status = %d.\n", __func__, LLRP_Status_getStatusCode(pStatus));
 		if (LLRP_Status_getStatusCode(pStatus) == LLRP_StatusCode_M_Success) {
 			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
 									binding_result.pValue, binding_result.nValue);
 		}
-	} else {
+	}
+#if 0
+else {
 		unsigned long size = 0;
 		uint8_t * data = NULL;
 
@@ -658,7 +663,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 			ret = -FAILED;
 		}
 	}
-
+#endif
 out:
 	printf("###############################################\n");
 	printf("%s: the active result is %s.\n", __func__, ret ? "FAIL" : "SUCC");
@@ -1456,6 +1461,8 @@ int start_upper(upper_info_t * info)
 		if (info->sock > 0) {
 			close(info->sock);
 			info->sock = -1;
+			close(info->pConn->fd);
+			info->pConn->fd = -1;
 		}
 		pthread_join(info->read_thread, &status);
 		pthread_join(info->request_thread, &status);
