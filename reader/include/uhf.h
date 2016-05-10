@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -41,6 +42,7 @@
 
 typedef struct uhf_info {
 	int status;
+	int sec_auth_status;
 
 	pthread_t heartbeat_thread;
 

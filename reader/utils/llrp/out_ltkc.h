@@ -172,6 +172,10 @@ struct LLRP_SDeviceCertificateConfigAck;
 typedef struct LLRP_SDeviceCertificateConfigAck
  LLRP_tSDeviceCertificateConfigAck;
 
+struct LLRP_SDeviceBindingResultNotification;
+typedef struct LLRP_SDeviceBindingResultNotification
+ LLRP_tSDeviceBindingResultNotification;
+
 struct LLRP_SUploadTagLog;
 typedef struct LLRP_SUploadTagLog
  LLRP_tSUploadTagLog;
@@ -2536,6 +2540,41 @@ extern LLRP_tSStatus *LLRP_DeviceCertificateConfigAck_getStatus(LLRP_tSDeviceCer
 extern LLRP_tResultCode
 LLRP_DeviceCertificateConfigAck_setStatus(LLRP_tSDeviceCertificateConfigAck * pThis,
 										  LLRP_tSStatus * pValue);
+
+struct LLRP_SDeviceBindingResultNotification {
+	LLRP_tSMessage hdr;
+
+	LLRP_tSStatus *pStatus;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdDeviceBindingResultNotification;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdDeviceBindingResultNotification[];
+
+extern LLRP_tSDeviceBindingResultNotification *LLRP_DeviceBindingResultNotification_construct(void);
+
+extern void
+LLRP_DeviceBindingResultNotification_destruct(LLRP_tSDeviceBindingResultNotification * pThis);
+
+extern void
+LLRP_DeviceBindingResultNotification_decodeFields(LLRP_tSDeviceBindingResultNotification * pThis,
+												  LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_DeviceBindingResultNotification_assimilateSubParameters(LLRP_tSDeviceBindingResultNotification
+															 * pThis, LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_DeviceBindingResultNotification_encode(const LLRP_tSDeviceBindingResultNotification * pThis,
+											LLRP_tSEncoderStream * pEncoderStream);
+
+extern LLRP_tSStatus
+	*LLRP_DeviceBindingResultNotification_getStatus(LLRP_tSDeviceBindingResultNotification * pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceBindingResultNotification_setStatus(LLRP_tSDeviceBindingResultNotification * pThis,
+											   LLRP_tSStatus * pValue);
 
 struct LLRP_SUploadTagLog {
 	LLRP_tSMessage hdr;

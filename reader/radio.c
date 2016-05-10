@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -393,6 +394,7 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 			radio_print_result(*rsp);
 
 			rsp->end.crc16 = conv_type16(rsp->end.crc16);
+
 /*
 			if (rsp->end.crc16 != calc_crc16_1(data, nrd)) {
 				printf("%s: crc by read:%x, crc by calc:%x\n", __func__,
@@ -612,7 +614,7 @@ int radio_update_firmware(radio_info_t * info)
 
 	printf("%s: file size = %ld.\n", __func__, file_size);
 
-	buf = (uint8_t *)malloc(file_size);
+	buf = (uint8_t *) malloc(file_size);
 	if (buf == NULL)
 		return -ENOMEM;
 
@@ -627,11 +629,12 @@ int radio_update_firmware(radio_info_t * info)
 	}
 	fclose(fp);
 
-	file_size_read = *(uint32_t *)(buf + 1);
-	block_size = *(uint16_t *)(buf + 9);
+	file_size_read = *(uint32_t *) (buf + 1);
+	block_size = *(uint16_t *) (buf + 9);
 
-	if (file_size_read != (uint32_t)file_size) {
-		printf("%s: size not match, read: %x, size:%x.\n", __func__, file_size_read, (uint32_t)file_size);
+	if (file_size_read != (uint32_t) file_size) {
+		printf("%s: size not match, read: %x, size:%x.\n", __func__, file_size_read,
+			   (uint32_t) file_size);
 		free(buf);
 		return -FAILED;
 	}
@@ -645,9 +648,9 @@ int radio_update_firmware(radio_info_t * info)
 		flag = block_size;
 	}
 
-	security_reset_radio(((uhf_info_t *)(info->uhf))->radio->fd);
+	security_reset_radio(((uhf_info_t *) (info->uhf))->radio->fd);
 	//sleep(1);
-	while (security_get_radio_status(((uhf_info_t *)(info->uhf))->radio->fd));
+	while (security_get_radio_status(((uhf_info_t *) (info->uhf))->radio->fd)) ;
 
 	lock_radio(&info->c_lock);
 
@@ -671,10 +674,9 @@ int radio_update_firmware(radio_info_t * info)
 		//goto out;
 	}
 
-
 	if (status != NO_ERROR) {
 		printf("REQ_RADIO_UPGRADE result is %x.\n", status);
-//		goto out;
+//      goto out;
 	}
 
 	temp = buf;
@@ -900,8 +902,6 @@ int radio_get_status(radio_info_t * radio_info)
 	radio_result_t result;
 	uint8_t dummy = 0;
 
-	printf("%s +\n", __func__);
-
 	memset(&result, 0, sizeof(radio_result_t));
 
 	lock_radio(&radio_info->c_lock);
@@ -923,7 +923,6 @@ int radio_get_status(radio_info_t * radio_info)
 		result.payload = NULL;
 	}
 
-	printf("%s, status=%d, -\n", __func__, ret);
 	return ret;
 }
 

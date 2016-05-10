@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -49,7 +50,7 @@ static void upper_print_XML_message(LLRP_tSMessage * pMessage)
 	printf("%s", aBuf);
 }
 
-static void upper_show_report_speed(upper_info_t *info)
+static void upper_show_report_speed(upper_info_t * info)
 {
 	double speed;
 	int64_t diff = 0;
@@ -63,13 +64,13 @@ static void upper_show_report_speed(upper_info_t *info)
 	if (diff <= 0)
 		printf("%s: timestamp disorder.\n", __func__);
 
-	info->tid_count ++;
+	info->tid_count++;
 
 	if (diff > 1000) {
 		speed = (((double)(info->tid_count - info->last_tid_count)) *
-				(double)(1000)) / (double)diff;
+				 (double)(1000)) / (double)diff;
 		printf("%s:tid_diff=%lld, time_fidd=%lld, speed is %.4f TIDs/sec.\n",
-				__func__, info->tid_count - info->last_tid_count, diff, speed);
+			   __func__, info->tid_count - info->last_tid_count, diff, speed);
 		info->last_tid_count = info->tid_count;
 		info->last_report_time = curr;
 	}
@@ -133,7 +134,7 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 	const LLRP_tSTypeDescriptor *pErrorMsgType;
 	LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
 	//llrp_u32_t ResponseMessageID = pSendMessage->MessageID;
-	const LLRP_tSTypeDescriptor * pResponseType = pSendMessage->elementHdr.pType->pResponseType;
+	const LLRP_tSTypeDescriptor *pResponseType = pSendMessage->elementHdr.pType->pResponseType;
 
 	if (0 > pConn->fd) {
 		LLRP_Error_resultCodeAndWhatStr(pError, LLRP_RC_MiscError, "not connected");
@@ -348,7 +349,7 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 	return ret;
 }
 
-static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status)
+static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status, char *str)
 {
 	LLRP_tSStatus *pStatus;
 	llrp_utf8v_t description;
@@ -356,6 +357,12 @@ static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status)
 	memset(&description, 0, sizeof(llrp_utf8v_t));
 	pStatus = LLRP_Status_construct();
 
+	if (str != NULL) {
+		description.nValue = strlen(str);
+		description.pValue = malloc(description.nValue);
+		if (description.pValue != NULL)
+			memcpy(description.pValue, str, description.nValue);
+	}
 	LLRP_Status_setStatusCode(pStatus, status);
 	LLRP_Status_setErrorDescription(pStatus, description);
 
@@ -395,6 +402,7 @@ void upper_trans_ip(uint8_t * ip_s, uint32_t ip_i)
 
 	ip_s[j - 1] = '\0';
 }
+
 /*
 static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status)
 {
@@ -526,7 +534,8 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	upper_show_report_speed(info);
 
 	if (info->status < UPPER_CONNECTED) {
-		printf("%s: upper hasn't ready, status = %d, store tag info into db.\n", __func__, info->status);
+		printf("%s: upper hasn't ready, status = %d, store tag info into db.\n", __func__,
+			   info->status);
 		tag_info_t tag;
 		tag.TID = tid;
 		tag.SelectSpecID = 1;
@@ -590,8 +599,9 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, uint16_t len)
 {
 	int ret = NO_ERROR;
-	LLRP_tSDeviceBinding * pDB = NULL;
-	LLRP_tSDeviceBindingAck * pAck = NULL;
+	LLRP_tSDeviceBinding *pDB = NULL;
+	LLRP_tSDeviceBindingAck *pAck = NULL;
+	LLRP_tSDeviceBindingResultNotification *pDBRN = NULL;
 	llrp_u8v_t binding_data;
 
 	if (info->status != UPPER_READY)
@@ -605,7 +615,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 	LLRP_DeviceBinding_setBindingType(pDB, *binding - 8);
 
 	binding_data.nValue = len;
-	binding_data.pValue = (llrp_u8_t *)malloc(len);
+	binding_data.pValue = (llrp_u8_t *) malloc(len);
 	if (binding_data.pValue == NULL)
 		goto out;
 
@@ -627,44 +637,34 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 	if (pAck != NULL) {
 		llrp_u8v_t binding_result;
 		LLRP_tSStatus *pStatus;
+
 		binding_result = LLRP_DeviceBindingAck_getBindingResultData(pAck);
 		pStatus = LLRP_DeviceBindingAck_getStatus(pAck);
 
-		printf("%s: get status = %d.\n", __func__, LLRP_Status_getStatusCode(pStatus));
 		if (LLRP_Status_getStatusCode(pStatus) == LLRP_StatusCode_M_Success) {
-			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
-									binding_result.pValue, binding_result.nValue);
-		}
-	}
-#if 0
-else {
-		unsigned long size = 0;
-		uint8_t * data = NULL;
-
-		ret = file_get_size(BIND_ACCEPT_FILE, &size);
-		if (ret != NO_ERROR) {
-			printf("%s: can't get %s size.\n", __func__, BIND_ACCEPT_FILE);
-			goto out;
-		}
-
-		data = (uint8_t *)malloc(size);
-		if (data != NULL) {
-			FILE * fp = NULL;
-			fp = fopen(BIND_ACCEPT_FILE, "r");
-			if (fp == NULL) {
-				ret = -FAILED;
-				goto out;
-			}
-			file_read_data(data, fp, size);
-
-			ret = security_send_active_auth(((uhf_info_t *)(info->uhf))->security,
-										data, (uint16_t)size);
+			ret = security_send_active_auth(((uhf_info_t *) (info->uhf))->security,
+											binding_result.pValue, binding_result.nValue);
 		} else {
-			ret = -FAILED;
+			ret = FAILED;
 		}
+
+		pDBRN = LLRP_DeviceBindingResultNotification_construct();
+		if (pDBRN == NULL)
+			goto out;
+
+		if (ret == NO_ERROR)
+			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, "BINDING SUCCESS!");
+		else
+			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, "BINDING FAILED!");
+
+		LLRP_DeviceBindingResultNotification_setStatus(pDBRN, pStatus);
+
+		lock_upper(&info->lock);
+		ret = upper_send_message(info, &pDBRN->hdr);
+		unlock_upper(&info->lock);
 	}
-#endif
-out:
+
+  out:
 	printf("###############################################\n");
 	printf("%s: the active result is %s.\n", __func__, ret ? "FAIL" : "SUCC");
 	printf("###############################################\n");
@@ -675,6 +675,9 @@ out:
 
 	if (pAck != NULL)
 		LLRP_DeviceBindingAck_destruct(pAck);
+
+	if (pDBRN != NULL)
+		LLRP_DeviceBindingResultNotification_destruct(pDBRN);
 
 	return ret;
 }
@@ -713,15 +716,15 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 
 	if (ret == NO_ERROR) {
 		security_package_t result;
-		active_req_param * active_req;
+		active_req_param *active_req;
 
-		ret = security_send_cert(((uhf_info_t *)(info->uhf))->security, pCer.pValue, pCer.nValue);
+		ret = security_send_cert(((uhf_info_t *) (info->uhf))->security, pCer.pValue, pCer.nValue);
 
-		ret = security_send_user_info(((uhf_info_t *)(info->uhf))->security, &result);
+		ret = security_send_user_info(((uhf_info_t *) (info->uhf))->security, &result);
 		if (ret == NO_ERROR && result.payload != NULL) {
-			active_req = (active_req_param *)result.payload;
-			printf("active flag=%d, len=%x, mode=%d, serial=%llx.\n", active_req->active_flag, active_req->len,
-								active_req->mode, active_req->serial);
+			active_req = (active_req_param *) result.payload;
+			printf("active flag=%d, len=%x, mode=%d, serial=%llx.\n", active_req->active_flag,
+				   active_req->len, active_req->mode, active_req->serial);
 			upper_request_DeviceBinding(info, result.payload, result.hdr.len - 2);
 			free(result.payload);
 			result.payload = NULL;
@@ -741,20 +744,20 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 static int upper_process_UploadTagLog(upper_info_t * info, LLRP_tSUploadTagLog * pThis)
 {
 	int ret = NO_ERROR;
-	LLRP_tSUploadTagLogAck * pUTL_Ack = NULL;
-	LLRP_tSStatus * pStatus = NULL;
+	LLRP_tSUploadTagLogAck *pUTL_Ack = NULL;
+	LLRP_tSStatus *pStatus = NULL;
 	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
 
 	/* TODO: upload tag log */
 
 	pUTL_Ack = LLRP_UploadTagLogAck_construct();
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	if (pUTL_Ack == NULL || pStatus == NULL)
 		goto out;
 
 	LLRP_UploadTagLogAck_setStatus(pUTL_Ack, pStatus);
 
-out:
+  out:
 	if (pThis != NULL)
 		LLRP_UploadTagLog_destruct(pThis);
 	if (pUTL_Ack == NULL)
@@ -773,13 +776,13 @@ static int upper_process_ClearTagLog(upper_info_t * info, LLRP_tSClearTagLog * p
 	/* TODO: clear tag log */
 
 	pCTL_Ack = LLRP_ClearTagLogAck_construct();
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	if (pCTL_Ack == NULL || pStatus == NULL)
 		goto out;
 
 	LLRP_ClearTagLogAck_setStatus(pCTL_Ack, pStatus);
 
-out:
+  out:
 	if (pThis != NULL)
 		LLRP_ClearTagLog_destruct(pThis);
 	if (pCTL_Ack != NULL)
@@ -793,20 +796,20 @@ out:
 static int upper_process_UploadDeviceLog(upper_info_t * info, LLRP_tSUploadDeviceLog * pThis)
 {
 	int ret = NO_ERROR;
-	LLRP_tSUploadDeviceLogAck * pUDL_Ack = NULL;
-	LLRP_tSStatus * pStatus = NULL;
+	LLRP_tSUploadDeviceLogAck *pUDL_Ack = NULL;
+	LLRP_tSStatus *pStatus = NULL;
 	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
 
 	/* TODO: upload device log */
 
 	pUDL_Ack = LLRP_UploadDeviceLogAck_construct();
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	if (pUDL_Ack == NULL || pStatus == NULL)
 		goto out;
 
 	LLRP_UploadDeviceLogAck_setStatus(pUDL_Ack, pStatus);
 
-out:
+  out:
 	if (pThis != NULL)
 		LLRP_UploadDeviceLog_destruct(pThis);
 	if (pUDL_Ack == NULL)
@@ -826,13 +829,13 @@ static int upper_process_ClearDeviceLog(upper_info_t * info, LLRP_tSClearDeviceL
 	/* TODO: clear device log */
 
 	pCDL_Ack = LLRP_ClearDeviceLogAck_construct();
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	if (pCDL_Ack == NULL || pStatus == NULL)
 		goto out;
 
 	LLRP_ClearDeviceLogAck_setStatus(pCDL_Ack, pStatus);
 
-out:
+  out:
 	if (pThis != NULL)
 		LLRP_ClearDeviceLog_destruct(pThis);
 	if (pCDL_Ack != NULL)
@@ -963,7 +966,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	}
 
 	pSDC_Ack = LLRP_SetDeviceConfigAck_construct();
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	if (pSDC_Ack == NULL || pStatus == NULL)
 		goto out;
 
@@ -1035,7 +1038,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		status = LLRP_StatusCode_M_Success;
 
   out:
-	pStatus = upper_setup_status(status);
+	pStatus = upper_setup_status(status, NULL);
 	pAck = LLRP_SetVersionAck_construct();
 	LLRP_SetVersionAck_setStatus(pAck, pStatus);
 
@@ -1195,7 +1198,6 @@ void *upper_upload_loop(void *data)
 
 					LLRP_TagReportData_setTID(pTRD, Tid);
 
-
 					if (info->tag_spec.mask | ENABLE_SELECT_SPEC_ID) {
 						LLRP_tSSelectSpecID *pSSID = NULL;
 						pSSID = LLRP_SelectSpecID_construct();
@@ -1228,7 +1230,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
-												tag_info->FirstSeenTimestampUTC);
+																   tag_info->FirstSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
@@ -1236,7 +1238,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
 						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
-												tag_info->LastSeenTimestampUTC);
+																  tag_info->LastSeenTimestampUTC);
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
@@ -1249,9 +1251,8 @@ void *upper_upload_loop(void *data)
 
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}
-
 				//printf("curr_timestamp=%lld, LastSeenTimestampUTC=%lld., count=%u\n", curr_timestamp,
-				//									tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
+				//                                  tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
 				/* FIXME: maybe other time */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000) {
 					if (info->tag_list == tag_list) {
@@ -1340,10 +1341,10 @@ void *upper_read_loop(void *data)
 			}
 		}
 
-	/*
-	 * Print the XML text for the outbound message if
-	 * verbosity is 1 or higher.
-	 */
+		/*
+		 * Print the XML text for the outbound message if
+		 * verbosity is 1 or higher.
+		 */
 		if (info->verbose > 0) {
 			printf("\n===================================\n");
 			printf("INFO: Recving:\n");
@@ -1479,9 +1480,9 @@ int start_upper(upper_info_t * info)
 int alloc_upper(upper_info_t ** info)
 {
 	int ret = NO_ERROR;
-	FILE * fp = NULL;
+	FILE *fp = NULL;
 	unsigned long size = -1;
-	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31}; // "03000001"
+	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
 
 	*info = (upper_info_t *) malloc(sizeof(upper_info_t));
 	if (*info == NULL) {
@@ -1517,7 +1518,7 @@ int alloc_upper(upper_info_t ** info)
 		fp = fopen(UUID_PATH, "r");
 		if (fp != NULL) {
 			file_read_data(userid, fp, 8);
-			printf("%s: userid = %llx.\n", __func__, *(uint64_t *)userid);
+			printf("%s: userid = %llx.\n", __func__, *(uint64_t *) userid);
 			fclose(fp);
 		}
 	}

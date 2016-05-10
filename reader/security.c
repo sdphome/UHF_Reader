@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -306,7 +307,7 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	int i = 0;
 	printf("before security_write:");
 	for (i = 0; i < SECURITY_PACK_HDR_SIZE + len; i++) {
-		if (!(i%16))
+		if (!(i % 16))
 			printf("\n");
 		printf("%4x", *(info->wbuf + i));
 	}
@@ -328,7 +329,7 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	}
 */
 
-//	printf("%s: ret = %d.\n", __func__, ret);
+//  printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
 }
 
@@ -834,6 +835,19 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 		ret = *result.payload;
 		free(result.payload);
 		result.payload = NULL;
+		if (ret == AUTH_PASS) {
+			info->status = SECURITY_ACTIVED;
+		} else if (ret == SIGN_FAILED) {
+			info->status = SECURITY_VERIFY_CERT_FAIL;
+		} else if (ret == RAND_NUM_FAILED) {
+			info->status = SECURITY_VERIFY_RAND_FAIL;
+		} else if (ret == SECU_HASNT_ACTIVE) {
+			info->status = SECURITY_NOT_ACTIVE;
+		} else if (ret == SECU_HAS_ACTIVE_OTHER) {
+			info->status = SECURITY_ACTIVE_BY_OTHER;
+		} else if (ret == SERIAL_FAILED) {
+			info->status = SECURITY_WRONG_SERIAL;
+		}
 	} else
 		ret = -FAILED;
 
@@ -844,7 +858,7 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 {
 	int ret = NO_ERROR;
 	unsigned long size = -1;
-	FILE * fp = NULL;
+	FILE *fp = NULL;
 	user_info_param user_info;
 
 	printf("Enter %s.\n", __func__);
@@ -864,7 +878,7 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 		printf("open %s fp is null.\n", USER_INFO_PATH);
 		return -FAILED;
 	}
-	ret = file_read_data((uint8_t *) &user_info, fp, size);
+	ret = file_read_data((uint8_t *) & user_info, fp, size);
 	if (ret != NO_ERROR) {
 		printf("%s: read x509 failed.\n", __func__);
 		fclose(fp);
@@ -914,6 +928,11 @@ int security_send_active_auth(security_info_t * info, uint8_t * active, uint16_t
 		return -FAILED;
 	}
 
+	if (info->status != SECURITY_NOT_ACTIVE) {
+		printf("%s: security status is %d, not support this function.\n", __func__, info->status);
+		return -FAILED;
+	}
+
 	memset(&result, 0, sizeof(security_package_t));
 
 	lock_security(&info->lock);
@@ -936,6 +955,12 @@ int security_send_active_auth(security_info_t * info, uint8_t * active, uint16_t
 
 	ret = *result.payload;
 	free(result.payload);
+
+	if (ret == ACTIVE_SUCC) {
+		info->status = SECURITY_ACTIVED;
+	} else {
+		info->status = SECURITY_ACTIVE_FAIL;
+	}
 
 	return ret;
 }
@@ -996,7 +1021,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 	security_reset(info->fd);
 	//sleep(1);
-	while (security_get_status(info->fd));
+	while (security_get_status(info->fd)) ;
 
 	memset(&result, 0, sizeof(security_package_t));
 
@@ -1109,9 +1134,9 @@ static void security_upload_part(security_info_t * info, security_package_t * up
 /*
 			}
 */
-			free(upload->payload);
-			upload->payload = NULL;
-			break;
+			  free(upload->payload);
+			  upload->payload = NULL;
+			  break;
 		  }
 	  case TID_DECIP_FAILED:
 		  break;
@@ -1129,7 +1154,7 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 
 	err_type = *upload->payload;
 
-//	printf("%s: error_type = 0x%x.\n", __func__, err_type);
+//  printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 	  case NO_ERROR:{
 
@@ -1141,18 +1166,18 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 							param->tid, param->ante_no, param->time);
 			} else {
 */
-			tid_upload_v2_param *param;
-			param = (tid_upload_v2_param *) upload->payload;
-			if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
-				upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
-											  param->tid, param->ante_no, param->time);
+			  tid_upload_v2_param *param;
+			  param = (tid_upload_v2_param *) upload->payload;
+			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
+				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
+													  param->tid, param->ante_no, param->time);
 
 /*
 			}
 */
-			free(upload->payload);
-			upload->payload = NULL;
-			break;
+			  free(upload->payload);
+			  upload->payload = NULL;
+			  break;
 		  }
 	  case TID_DECIP_FAILED:
 		  break;
@@ -1231,14 +1256,14 @@ void *security_read_loop(void *data)
 			continue;
 		}
 #ifdef DEBUG
-	{
-		int i = 0;
-		printf("%s: nrd = %d\n", __func__, nrd);
-		for (i = 0; i < nrd; i ++) {
-			printf("%4x", *(buf + i));
+		{
+			int i = 0;
+			printf("%s: nrd = %d\n", __func__, nrd);
+			for (i = 0; i < nrd; i++) {
+				printf("%4x", *(buf + i));
+			}
+			printf("\n");
 		}
-		printf("\n");
-	}
 #endif
 
 		memcpy(&result.hdr, buf, SECURITY_PACK_HDR_SIZE);
@@ -1335,6 +1360,9 @@ int start_security(security_info_t * info)
 	}
 #endif
 #endif
+
+	info->status = SECURITY_START;
+
 	printf("Start security successfully...\n");
 
 	return NO_ERROR;
@@ -1353,12 +1381,13 @@ void stop_security(security_info_t * info)
 	pthread_cancel(info->read_thread);
 	pthread_join(info->read_thread, &ret);
 	close(info->fd);
+	info->status = SECURITY_STOP;
 }
 
 int alloc_security(security_info_t ** security_info)
 {
-	uint8_t userid[8] = {0x30, 0x33, 0x30,  0x30,  0x30,  0x30,  0x30,  0x31}; // "03000001"
-	FILE * fp = NULL;
+	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
+	FILE *fp = NULL;
 	int ret = NO_ERROR;
 	unsigned long size = -1;
 
@@ -1377,14 +1406,15 @@ int alloc_security(security_info_t ** security_info)
 		fp = fopen(UUID_PATH, "r");
 		if (fp != NULL) {
 			file_read_data(userid, fp, 8);
-			printf("%s: userid = %llx.\n", __func__, *(uint64_t *)userid);
+			printf("%s: userid = %llx.\n", __func__, *(uint64_t *) userid);
 			fclose(fp);
 		}
 	}
 
 	memcpy(&(*security_info)->serial, userid, 8);
 
-	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH, sizeof(SECURITY_AUTH_X509_PATH));
+	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH,
+		   sizeof(SECURITY_AUTH_X509_PATH));
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
 	pthread_cond_init(&(*security_info)->cond, NULL);

@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -39,6 +40,18 @@
 /* security module status */
 #define OK 							0
 #define BUSY							1
+
+enum security_status {
+	SECURITY_STOP = 0,
+	SECURITY_START,
+	SECURITY_VERIFY_CERT_FAIL,
+	SECURITY_VERIFY_RAND_FAIL,
+	SECURITY_NOT_ACTIVE,
+	SECURITY_ACTIVE_BY_OTHER,
+	SECURITY_WRONG_SERIAL,
+	SECURITY_ACTIVED,
+	SECURITY_ACTIVE_FAIL
+};
 
 #define PACK_SEND_HDR					0xAA
 #define PACK_RECV_HDR					0xAB
@@ -461,7 +474,8 @@ typedef struct security_info {
 	void *uhf;
 } security_info_t;
 
-void sm2_sign(unsigned char *data, int datalen, unsigned char *sA, int *Alen, unsigned char *sB, int *Blen);
+void sm2_sign(unsigned char *data, int datalen, unsigned char *sA, int *Alen, unsigned char *sB,
+			  int *Blen);
 
 int start_security(security_info_t * info);
 void stop_security(security_info_t * info);
@@ -491,5 +505,6 @@ int inline security_reset_radio(int fd);
 int inline security_reset(int fd);
 int inline security_get_status(int fd);
 int inline security_get_radio_status(int fd);
-uint16_t security_pack_sign_data(uint64_t serial, uint64_t sec_rand, char * cert_path, uint8_t ** data);
+uint16_t security_pack_sign_data(uint64_t serial, uint64_t sec_rand, char *cert_path,
+								 uint8_t ** data);
 #endif

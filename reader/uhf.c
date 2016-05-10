@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -45,11 +46,12 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 
 	security->uhf = (void *)p_uhf;
 
-	//ret = security_set_rtc(security);
+	ret = security_set_rtc(security);
 
 	sec_rand = security_request_rand_num(security);
 
 	ret = security_send_auth_data(security, sec_rand);
+	p_uhf->sec_auth_status = ret;
 	printf("%s: security_send_auth_data ret = %d.\n", __func__, ret);
 
 	return ret;
@@ -97,6 +99,7 @@ void *uhf_heartbeat_loop(void *data)
 	uint32_t radio_per_seconds, upper_per_seconds, base;
 
 	while (true) {
+
 /*
 		printf("%s: radio_per_seconds=%d, upper_per_seconds=%d.\n",
 			   __func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
@@ -180,19 +183,19 @@ static void uhf_print_trace(int signum)
 	FILE *fp;
 
 	signal(signum, SIG_DFL);
-	size = backtrace (array, 10);
-	strings = (char **)backtrace_symbols (array, size);
+	size = backtrace(array, 10);
+	strings = (char **)backtrace_symbols(array, size);
 
 	fp = fopen(UHF_SIGSEGV_PATH, "w");
 
 	fprintf(stderr, "uhf received SIGSEGV! Stack trace:\n");
 	for (i = 0; i < size; i++) {
 		fprintf(stderr, "%d %s \n", i, strings[i]);
-		file_write_data((uint8_t *)strings[i], fp, strlen(strings[i]));
-		file_write_data((uint8_t *)"\n", fp, 1);
+		file_write_data((uint8_t *) strings[i], fp, strlen(strings[i]));
+		file_write_data((uint8_t *) "\n", fp, 1);
 	}
 
-	free (strings);
+	free(strings);
 	fclose(fp);
 	//system("reboot");
 	exit(1);
@@ -231,6 +234,7 @@ int main(int argc, char **argv)
 		goto start_failed;
 
 	ret = uhf_init_security(p_uhf);
+
 /*  TODO: check the return
 	if (ret != NO_ERROR)
 		goto start_failed;
@@ -268,7 +272,7 @@ int main(int argc, char **argv)
 	/* TODO: reboot */
 	return ret;
 }
-#else // TEST
+#else							// TEST
 int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
@@ -299,6 +303,7 @@ int main(int argc, char **argv)
 		goto start_failed;
 
 	security_main(p_uhf->security);
+
 /*
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
@@ -306,6 +311,7 @@ int main(int argc, char **argv)
 
 	uhf_init_radio(p_uhf);
 */
+
 /*
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
@@ -324,7 +330,7 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 
-//	security_main(p_uhf->security);
+//  security_main(p_uhf->security);
 
 	printf("Will return.\n");
 

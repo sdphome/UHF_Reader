@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD
@@ -25,10 +26,9 @@
 
 #include <sqlite3.h>
 
-static int sql_isspace(int x )
+static int sql_isspace(int x)
 {
-	if (x == ' ' || x == '\n' || x == '\f'
-		|| x == '\b' || x == '\r')
+	if (x == ' ' || x == '\n' || x == '\f' || x == '\b' || x == '\r')
 		return 1;
 	else
 		return 0;
@@ -44,10 +44,10 @@ static int sql_isdigit(int x)
 
 static uint8_t sql_atou8(const char *nptr)
 {
-	while (sql_isspace((int)(uint8_t)*nptr))
+	while (sql_isspace((int)(uint8_t) * nptr))
 		++nptr;
 
-	return (uint8_t)*nptr;
+	return (uint8_t) * nptr;
 }
 
 static uint16_t sql_atou16(const char *nptr)
@@ -55,14 +55,14 @@ static uint16_t sql_atou16(const char *nptr)
 	int c;
 	uint16_t total = 0;
 
-	while (sql_isspace((int)(uint8_t)*nptr))
+	while (sql_isspace((int)(uint8_t) * nptr))
 		++nptr;
 
-	c = (int)(uint8_t)*nptr++;
+	c = (int)(uint8_t) * nptr++;
 
 	while (sql_isdigit(c)) {
 		total = 10 * total + (c - '0');
-		c = (uint8_t)*nptr++;
+		c = (uint8_t) * nptr++;
 	}
 
 	return total;
@@ -73,14 +73,14 @@ static uint32_t sql_atou32(const char *nptr)
 	int c;
 	uint32_t total = 0;
 
-	while (sql_isspace((int)(uint8_t)*nptr))
+	while (sql_isspace((int)(uint8_t) * nptr))
 		++nptr;
 
-	c = (int)(uint8_t)*nptr++;
+	c = (int)(uint8_t) * nptr++;
 
 	while (sql_isdigit(c)) {
 		total = 10 * total + (c - '0');
-		c = (uint8_t)*nptr++;
+		c = (uint8_t) * nptr++;
 	}
 
 	return total;
@@ -95,19 +95,20 @@ static uint64_t sql_atou64(const char *nptr)
 	while (sql_isspace((int)(uint8_t)*nptr))
 		++nptr;
 */
-	while (!sql_isdigit((int)(uint8_t)*nptr))
+	while (!sql_isdigit((int)(uint8_t) * nptr))
 		++nptr;
 
-	c = (int)(uint8_t)*nptr++;
+	c = (int)(uint8_t) * nptr++;
 
 	while (sql_isdigit(c)) {
 		total = 10 * total + (c - '0');
-		c = (uint8_t)*nptr++;
+		c = (uint8_t) * nptr++;
 	}
 
 	return total;
 }
-#if 0 /* unused */
+
+#if 0							/* unused */
 static char *sql_u64toa(uint64_t n, char *nptr)
 {
 	char string[] = "0123456789";
@@ -123,12 +124,12 @@ static char *sql_u64toa(uint64_t n, char *nptr)
 		n = n / radix;
 
 		*ptr++ = string[denom];
-		count ++;
+		count++;
 	}
 
 	if (n) {
 		*ptr++ = string[n];
-		count ++;
+		count++;
 	}
 
 	*ptr = '\0';
@@ -144,6 +145,7 @@ static char *sql_u64toa(uint64_t n, char *nptr)
 	return nptr;
 }
 #endif
+
 /* tag info */
 int sql_create_tag_table(char *path)
 {
@@ -207,7 +209,8 @@ int sql_insert_tag_info(char *path, tag_info_t * tag)
 		sprintf(sql, "INSERT INTO TAG (TID, SSID, SI, RFSID, AID, FSTU, LSTU, TSC, ASID) "
 				"VALUES (%lld, %u, %u, %u, %u, %llu, %llu, 1, %u);",
 				tag->TID, tag->SelectSpecID, tag->SpecIndex, tag->RfSpecID,
-				tag->AntennalID, tag->FirstSeenTimestampUTC, tag->LastSeenTimestampUTC, tag->AccessSpecID);
+				tag->AntennalID, tag->FirstSeenTimestampUTC, tag->LastSeenTimestampUTC,
+				tag->AccessSpecID);
 		ret = sqlite3_exec(db, sql, NULL, NULL, &zErrMsg);
 		if (ret != SQLITE_OK) {
 			printf("SQL error: %s.\n", zErrMsg);
@@ -279,7 +282,8 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 
 	index = nColumn;
 	for (i = 0; i < nRow; i++) {
-		printf("%s: i = %d, nRow = %d., dbResult[%d]=%s\n", __func__, i, nRow, index, dbResult[index]);
+		printf("%s: i = %d, nRow = %d., dbResult[%d]=%s\n", __func__, i, nRow, index,
+			   dbResult[index]);
 		curr->tag.TID = sql_atou64(dbResult[index++]);
 		curr->tag.SelectSpecID = sql_atou32(dbResult[index++]);
 		curr->tag.SpecIndex = sql_atou16(dbResult[index++]);
