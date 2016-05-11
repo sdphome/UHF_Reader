@@ -102,7 +102,7 @@ int inline security_get_status(int fd)
 	int status = OK;
 
 	status = ioctl(fd, US_IOC_GET_STATUS, NULL);
-
+	printf("%s: status is %s.\n", __func__, status ? "BUSY" : "READY");
 	return status;
 }
 
@@ -176,10 +176,14 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 #ifdef DEBUG
 	printf("%s: +\n", __func__);
 #endif
+
+	info->wait_ref ++;
+
 	while (!resultReceived) {
 		ret = pthread_cond_timedwait(&info->cond, &info->lock, &outtime);
 		if (ret == ETIMEDOUT) {
 			printf("%s: timeout for type=%d, cmd %d\n", __func__, type, cmd);
+			info->wait_ref --;
 			return ret;
 		}
 
@@ -194,6 +198,7 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 				if (result_list->result.hdr.type == ERROR_TYPE) {
 					printf("%s: Got a error frame, errno=%d.\n", __func__,
 						   result_list->result.hdr.cmd);
+					info->wait_ref --;
 					return result_list->result.hdr.cmd;
 				}
 
@@ -219,6 +224,7 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 #ifdef DEBUG
 	printf("%s: -\n", __func__);
 #endif
+	info->wait_ref --;
 	return ret;
 }
 
@@ -1020,6 +1026,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	}
 
 	security_reset(info->fd);
+	security_reset(info->fd);
 	//sleep(1);
 	while (security_get_status(info->fd)) ;
 
@@ -1296,6 +1303,8 @@ void *security_read_loop(void *data)
 
 		if (result.hdr.type == ERROR_TYPE) {
 			printf("%s: Occur a error, errno = %x\n", __func__, result.hdr.cmd);
+			if (info->wait_ref == 0)
+				continue;
 		}
 
 		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list
@@ -1398,6 +1407,7 @@ int alloc_security(security_info_t ** security_info)
 	}
 
 	(*security_info)->fd = -1;
+	(*security_info)->wait_ref = 0;
 	(*security_info)->result_list = NULL;
 	(*security_info)->upload_list = NULL;
 

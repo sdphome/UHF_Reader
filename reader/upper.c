@@ -612,7 +612,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 		goto out;
 
 	pDB->hdr.MessageID = info->next_msg_id++;
-	LLRP_DeviceBinding_setBindingType(pDB, *binding - 8);
+	LLRP_DeviceBinding_setBindingType(pDB, *binding - 7);
 
 	binding_data.nValue = len;
 	binding_data.pValue = (llrp_u8_t *) malloc(len);

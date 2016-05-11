@@ -450,6 +450,7 @@ typedef struct security_result_list {
 typedef struct security_info {
 	int fd;
 	int status;
+	int wait_ref;
 
 	pthread_t read_thread;
 	pthread_mutex_t lock;

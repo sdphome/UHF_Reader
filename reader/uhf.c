@@ -46,7 +46,7 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 
 	security->uhf = (void *)p_uhf;
 
-	ret = security_set_rtc(security);
+//	ret = security_set_rtc(security);
 
 	sec_rand = security_request_rand_num(security);
 
@@ -301,8 +301,6 @@ int main(int argc, char **argv)
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-	security_main(p_uhf->security);
 
 /*
 	ret = start_radio(p_uhf->radio);
