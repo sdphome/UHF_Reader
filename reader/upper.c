@@ -352,7 +352,7 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status, char *str)
 {
 	LLRP_tSStatus *pStatus;
-	llrp_utf8v_t description;
+	llrp_u8v_t description;
 
 	memset(&description, 0, sizeof(llrp_utf8v_t));
 	pStatus = LLRP_Status_construct();
@@ -689,7 +689,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	int ret = NO_ERROR;
 	LLRP_tSDeviceCertificateConfigAck *pDCC_Ack;
 	LLRP_tSStatus *pStatus;
-	llrp_utf8v_t Error;
+	llrp_u8v_t Error;
 	llrp_u8v_t pCer;
 	llrp_u8v_t pUser;
 

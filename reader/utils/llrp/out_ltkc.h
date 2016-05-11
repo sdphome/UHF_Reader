@@ -156,6 +156,18 @@ struct LLRP_SClientRequestOpAck;
 typedef struct LLRP_SClientRequestOpAck
  LLRP_tSClientRequestOpAck;
 
+struct LLRP_SEnableCachedEventsAndReport;
+typedef struct LLRP_SEnableCachedEventsAndReport
+ LLRP_tSEnableCachedEventsAndReport;
+
+struct LLRP_SCachedSelectAccessReport;
+typedef struct LLRP_SCachedSelectAccessReport
+ LLRP_tSCachedSelectAccessReport;
+
+struct LLRP_SEnableCachedEventsAndReportAck;
+typedef struct LLRP_SEnableCachedEventsAndReportAck
+ LLRP_tSEnableCachedEventsAndReportAck;
+
 struct LLRP_SDeviceBinding;
 typedef struct LLRP_SDeviceBinding
  LLRP_tSDeviceBinding;
@@ -184,6 +196,10 @@ struct LLRP_SUploadTagLogAck;
 typedef struct LLRP_SUploadTagLogAck
  LLRP_tSUploadTagLogAck;
 
+struct LLRP_SUploadTagLogConfirm;
+typedef struct LLRP_SUploadTagLogConfirm
+ LLRP_tSUploadTagLogConfirm;
+
 struct LLRP_SClearTagLog;
 typedef struct LLRP_SClearTagLog
  LLRP_tSClearTagLog;
@@ -191,6 +207,14 @@ typedef struct LLRP_SClearTagLog
 struct LLRP_SClearTagLogAck;
 typedef struct LLRP_SClearTagLogAck
  LLRP_tSClearTagLogAck;
+
+struct LLRP_STagLogCount;
+typedef struct LLRP_STagLogCount
+ LLRP_tSTagLogCount;
+
+struct LLRP_STagLogCountAck;
+typedef struct LLRP_STagLogCountAck
+ LLRP_tSTagLogCountAck;
 
 struct LLRP_SUploadDeviceLog;
 typedef struct LLRP_SUploadDeviceLog
@@ -200,6 +224,10 @@ struct LLRP_SUploadDeviceLogAck;
 typedef struct LLRP_SUploadDeviceLogAck
  LLRP_tSUploadDeviceLogAck;
 
+struct LLRP_SUploadDeviceLogConfirm;
+typedef struct LLRP_SUploadDeviceLogConfirm
+ LLRP_tSUploadDeviceLogConfirm;
+
 struct LLRP_SClearDeviceLog;
 typedef struct LLRP_SClearDeviceLog
  LLRP_tSClearDeviceLog;
@@ -207,6 +235,14 @@ typedef struct LLRP_SClearDeviceLog
 struct LLRP_SClearDeviceLogAck;
 typedef struct LLRP_SClearDeviceLogAck
  LLRP_tSClearDeviceLogAck;
+
+struct LLRP_SDeviceLogCount;
+typedef struct LLRP_SDeviceLogCount
+ LLRP_tSDeviceLogCount;
+
+struct LLRP_SDeviceLogCountAck;
+typedef struct LLRP_SDeviceLogCountAck
+ LLRP_tSDeviceLogCountAck;
 
 struct LLRP_SGetDeviceConfig;
 typedef struct LLRP_SGetDeviceConfig
@@ -478,17 +514,17 @@ struct LLRP_SClientRequestSpec;
 typedef struct LLRP_SClientRequestSpec
  LLRP_tSClientRequestSpec;
 
-struct LLRP_SAccessReportSpec;
-typedef struct LLRP_SAccessReportSpec
- LLRP_tSAccessReportSpec;
-
 struct LLRP_SHbWriteSpec;
 typedef struct LLRP_SHbWriteSpec
  LLRP_tSHbWriteSpec;
 
-struct LLRP_SHbPrivateWriteSpec;
-typedef struct LLRP_SHbPrivateWriteSpec
- LLRP_tSHbPrivateWriteSpec;
+struct LLRP_SSecurityModuleSpec;
+typedef struct LLRP_SSecurityModuleSpec
+ LLRP_tSSecurityModuleSpec;
+
+struct LLRP_SAccessReportSpec;
+typedef struct LLRP_SAccessReportSpec
+ LLRP_tSAccessReportSpec;
 
 struct LLRP_STagReportData;
 typedef struct LLRP_STagReportData
@@ -530,9 +566,13 @@ struct LLRP_SAccessSpecID;
 typedef struct LLRP_SAccessSpecID
  LLRP_tSAccessSpecID;
 
-struct LLRP_SSelectSpecResult;
-typedef struct LLRP_SSelectSpecResult
- LLRP_tSSelectSpecResult;
+struct LLRP_SGeneralSelectSpecResult;
+typedef struct LLRP_SGeneralSelectSpecResult
+ LLRP_tSGeneralSelectSpecResult;
+
+struct LLRP_SCustomizedSelectSpecResult;
+typedef struct LLRP_SCustomizedSelectSpecResult
+ LLRP_tSCustomizedSelectSpecResult;
 
 struct LLRP_SHbReadSpecResult;
 typedef struct LLRP_SHbReadSpecResult
@@ -546,9 +586,65 @@ struct LLRP_SHbWriteSpecResult;
 typedef struct LLRP_SHbWriteSpecResult
  LLRP_tSHbWriteSpecResult;
 
-struct LLRP_SHbPrivateWriteSpecResult;
-typedef struct LLRP_SHbPrivateWriteSpecResult
- LLRP_tSHbPrivateWriteSpecResult;
+struct LLRP_SHbCustomizedReadSpecResult;
+typedef struct LLRP_SHbCustomizedReadSpecResult
+ LLRP_tSHbCustomizedReadSpecResult;
+
+struct LLRP_SReadDataInfo;
+typedef struct LLRP_SReadDataInfo
+ LLRP_tSReadDataInfo;
+
+struct LLRP_SCID;
+typedef struct LLRP_SCID
+ LLRP_tSCID;
+
+struct LLRP_SFPDH;
+typedef struct LLRP_SFPDH
+ LLRP_tSFPDH;
+
+struct LLRP_SSYXZ;
+typedef struct LLRP_SSYXZ
+ LLRP_tSSYXZ;
+
+struct LLRP_SCCRQ;
+typedef struct LLRP_SCCRQ
+ LLRP_tSCCRQ;
+
+struct LLRP_SCLLX;
+typedef struct LLRP_SCLLX
+ LLRP_tSCLLX;
+
+struct LLRP_SGL;
+typedef struct LLRP_SGL
+ LLRP_tSGL;
+
+struct LLRP_SPL;
+typedef struct LLRP_SPL
+ LLRP_tSPL;
+
+struct LLRP_SHPZL;
+typedef struct LLRP_SHPZL
+ LLRP_tSHPZL;
+
+struct LLRP_SHPHMXH;
+typedef struct LLRP_SHPHMXH
+ LLRP_tSHPHMXH;
+
+struct LLRP_SJYYXQ;
+typedef struct LLRP_SJYYXQ
+ LLRP_tSJYYXQ;
+
+struct LLRP_SQZBFQ;
+typedef struct LLRP_SQZBFQ
+ LLRP_tSQZBFQ;
+
+struct LLRP_SZKZL;
+typedef struct LLRP_SZKZL
+ LLRP_tSZKZL;
+
+struct LLRP_SCSYS;
+typedef struct LLRP_SCSYS
+ LLRP_tSCSYS;
 
 struct LLRP_SClientRequestAck;
 typedef struct LLRP_SClientRequestAck
@@ -669,6 +765,26 @@ typedef struct LLRP_SBdsLocation
 struct LLRP_SSecurityModuleConfiguration;
 typedef struct LLRP_SSecurityModuleConfiguration
  LLRP_tSSecurityModuleConfiguration;
+
+struct LLRP_SGeneralConfigData;
+typedef struct LLRP_SGeneralConfigData
+ LLRP_tSGeneralConfigData;
+
+struct LLRP_SRTCTime;
+typedef struct LLRP_SRTCTime
+ LLRP_tSRTCTime;
+
+struct LLRP_SSecurityModuleSN;
+typedef struct LLRP_SSecurityModuleSN
+ LLRP_tSSecurityModuleSN;
+
+struct LLRP_SReadMode;
+typedef struct LLRP_SReadMode
+ LLRP_tSReadMode;
+
+struct LLRP_SPasswordVersion;
+typedef struct LLRP_SPasswordVersion
+ LLRP_tSPasswordVersion;
 
 struct LLRP_SVersionInfo;
 typedef struct LLRP_SVersionInfo
@@ -921,7 +1037,7 @@ extern const LLRP_tSEnumTableEntry LLRP_estAccessReportTriggerType[];
 enum LLRP_ELogType {
 
 	LLRP_LogType_Device_Fault = 0,
-	LLRP_LogType_Recorvery_Fault = 1,
+	LLRP_LogType_Fault_Recorvery = 1,
 	LLRP_LogType_Run_Log = 2,
 };
 
@@ -2378,6 +2494,142 @@ extern LLRP_tResultCode
 LLRP_ClientRequestOpAck_setClientRequestAck(LLRP_tSClientRequestOpAck * pThis,
 											LLRP_tSClientRequestAck * pValue);
 
+struct LLRP_SEnableCachedEventsAndReport {
+	LLRP_tSMessage hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdEnableCachedEventsAndReport;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdEnableCachedEventsAndReport[];
+
+extern LLRP_tSEnableCachedEventsAndReport *LLRP_EnableCachedEventsAndReport_construct(void);
+
+extern void LLRP_EnableCachedEventsAndReport_destruct(LLRP_tSEnableCachedEventsAndReport * pThis);
+
+extern void
+LLRP_EnableCachedEventsAndReport_decodeFields(LLRP_tSEnableCachedEventsAndReport * pThis,
+											  LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_EnableCachedEventsAndReport_assimilateSubParameters(LLRP_tSEnableCachedEventsAndReport * pThis,
+														 LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_EnableCachedEventsAndReport_encode(const LLRP_tSEnableCachedEventsAndReport * pThis,
+										LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SCachedSelectAccessReport {
+	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+	llrp_u8_t IsLastedFrame;
+
+	LLRP_tSStatus *pStatus;
+
+	LLRP_tSTagReportData *listTagReportData;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCachedSelectAccessReport;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCachedSelectAccessReport[];
+
+extern LLRP_tSCachedSelectAccessReport *LLRP_CachedSelectAccessReport_construct(void);
+
+extern void LLRP_CachedSelectAccessReport_destruct(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern void
+LLRP_CachedSelectAccessReport_decodeFields(LLRP_tSCachedSelectAccessReport * pThis,
+										   LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_CachedSelectAccessReport_assimilateSubParameters(LLRP_tSCachedSelectAccessReport * pThis,
+													  LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_CachedSelectAccessReport_encode(const LLRP_tSCachedSelectAccessReport * pThis,
+									 LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdCachedSelectAccessReport_SequenceID;
+
+extern llrp_u16_t
+LLRP_CachedSelectAccessReport_getSequenceID(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern LLRP_tResultCode
+LLRP_CachedSelectAccessReport_setSequenceID(LLRP_tSCachedSelectAccessReport * pThis,
+											llrp_u16_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdCachedSelectAccessReport_IsLastedFrame;
+
+extern llrp_u8_t
+LLRP_CachedSelectAccessReport_getIsLastedFrame(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern LLRP_tResultCode
+LLRP_CachedSelectAccessReport_setIsLastedFrame(LLRP_tSCachedSelectAccessReport * pThis,
+											   llrp_u8_t Value);
+
+extern LLRP_tSStatus *LLRP_CachedSelectAccessReport_getStatus(LLRP_tSCachedSelectAccessReport *
+															  pThis);
+
+extern LLRP_tResultCode
+LLRP_CachedSelectAccessReport_setStatus(LLRP_tSCachedSelectAccessReport * pThis,
+										LLRP_tSStatus * pValue);
+
+extern LLRP_tSTagReportData
+	*LLRP_CachedSelectAccessReport_beginTagReportData(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern LLRP_tSTagReportData *LLRP_CachedSelectAccessReport_nextTagReportData(LLRP_tSTagReportData *
+																			 pCurrent);
+
+extern void
+LLRP_CachedSelectAccessReport_clearTagReportData(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern int
+LLRP_CachedSelectAccessReport_countTagReportData(LLRP_tSCachedSelectAccessReport * pThis);
+
+extern LLRP_tResultCode
+LLRP_CachedSelectAccessReport_addTagReportData(LLRP_tSCachedSelectAccessReport * pThis,
+											   LLRP_tSTagReportData * pValue);
+
+struct LLRP_SEnableCachedEventsAndReportAck {
+	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdEnableCachedEventsAndReportAck;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdEnableCachedEventsAndReportAck[];
+
+extern LLRP_tSEnableCachedEventsAndReportAck *LLRP_EnableCachedEventsAndReportAck_construct(void);
+
+extern void
+LLRP_EnableCachedEventsAndReportAck_destruct(LLRP_tSEnableCachedEventsAndReportAck * pThis);
+
+extern void
+LLRP_EnableCachedEventsAndReportAck_decodeFields(LLRP_tSEnableCachedEventsAndReportAck * pThis,
+												 LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_EnableCachedEventsAndReportAck_assimilateSubParameters(LLRP_tSEnableCachedEventsAndReportAck *
+															pThis, LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_EnableCachedEventsAndReportAck_encode(const LLRP_tSEnableCachedEventsAndReportAck * pThis,
+										   LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdEnableCachedEventsAndReportAck_SequenceID;
+
+extern llrp_u16_t
+LLRP_EnableCachedEventsAndReportAck_getSequenceID(LLRP_tSEnableCachedEventsAndReportAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_EnableCachedEventsAndReportAck_setSequenceID(LLRP_tSEnableCachedEventsAndReportAck * pThis,
+												  llrp_u16_t Value);
+
 struct LLRP_SDeviceBinding {
 	LLRP_tSMessage hdr;
 
@@ -2583,7 +2835,7 @@ struct LLRP_SUploadTagLog {
 
 	llrp_u32_t UploadCount;
 
-	llrp_u64_t StartLogSequence;
+	llrp_u32_t Milliseconds;
 
 	LLRP_tSStartLogTimestamp *pStartLogTimestamp;
 
@@ -2623,12 +2875,12 @@ extern llrp_u32_t LLRP_UploadTagLog_getUploadCount(LLRP_tSUploadTagLog * pThis);
 extern LLRP_tResultCode
 LLRP_UploadTagLog_setUploadCount(LLRP_tSUploadTagLog * pThis, llrp_u32_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdUploadTagLog_StartLogSequence;
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadTagLog_Milliseconds;
 
-extern llrp_u64_t LLRP_UploadTagLog_getStartLogSequence(LLRP_tSUploadTagLog * pThis);
+extern llrp_u32_t LLRP_UploadTagLog_getMilliseconds(LLRP_tSUploadTagLog * pThis);
 
 extern LLRP_tResultCode
-LLRP_UploadTagLog_setStartLogSequence(LLRP_tSUploadTagLog * pThis, llrp_u64_t Value);
+LLRP_UploadTagLog_setMilliseconds(LLRP_tSUploadTagLog * pThis, llrp_u32_t Value);
 
 extern LLRP_tSStartLogTimestamp *LLRP_UploadTagLog_getStartLogTimestamp(LLRP_tSUploadTagLog *
 																		pThis);
@@ -2644,6 +2896,10 @@ LLRP_UploadTagLog_setEndLogTimestamp(LLRP_tSUploadTagLog * pThis, LLRP_tSEndLogT
 
 struct LLRP_SUploadTagLogAck {
 	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+	llrp_u8_t IsLastedFrame;
 
 	LLRP_tSStatus *pStatus;
 
@@ -2671,6 +2927,20 @@ extern void
 LLRP_UploadTagLogAck_encode(const LLRP_tSUploadTagLogAck * pThis,
 							LLRP_tSEncoderStream * pEncoderStream);
 
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadTagLogAck_SequenceID;
+
+extern llrp_u16_t LLRP_UploadTagLogAck_getSequenceID(LLRP_tSUploadTagLogAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadTagLogAck_setSequenceID(LLRP_tSUploadTagLogAck * pThis, llrp_u16_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadTagLogAck_IsLastedFrame;
+
+extern llrp_u8_t LLRP_UploadTagLogAck_getIsLastedFrame(LLRP_tSUploadTagLogAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadTagLogAck_setIsLastedFrame(LLRP_tSUploadTagLogAck * pThis, llrp_u8_t Value);
+
 extern LLRP_tSStatus *LLRP_UploadTagLogAck_getStatus(LLRP_tSUploadTagLogAck * pThis);
 
 extern LLRP_tResultCode
@@ -2686,6 +2956,40 @@ extern int LLRP_UploadTagLogAck_countTagLog(LLRP_tSUploadTagLogAck * pThis);
 
 extern LLRP_tResultCode
 LLRP_UploadTagLogAck_addTagLog(LLRP_tSUploadTagLogAck * pThis, LLRP_tSTagLog * pValue);
+
+struct LLRP_SUploadTagLogConfirm {
+	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdUploadTagLogConfirm;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdUploadTagLogConfirm[];
+
+extern LLRP_tSUploadTagLogConfirm *LLRP_UploadTagLogConfirm_construct(void);
+
+extern void LLRP_UploadTagLogConfirm_destruct(LLRP_tSUploadTagLogConfirm * pThis);
+
+extern void
+LLRP_UploadTagLogConfirm_decodeFields(LLRP_tSUploadTagLogConfirm * pThis,
+									  LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_UploadTagLogConfirm_assimilateSubParameters(LLRP_tSUploadTagLogConfirm * pThis,
+												 LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_UploadTagLogConfirm_encode(const LLRP_tSUploadTagLogConfirm * pThis,
+								LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadTagLogConfirm_SequenceID;
+
+extern llrp_u16_t LLRP_UploadTagLogConfirm_getSequenceID(LLRP_tSUploadTagLogConfirm * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadTagLogConfirm_setSequenceID(LLRP_tSUploadTagLogConfirm * pThis, llrp_u16_t Value);
 
 struct LLRP_SClearTagLog {
 	LLRP_tSMessage hdr;
@@ -2741,6 +3045,69 @@ extern LLRP_tSStatus *LLRP_ClearTagLogAck_getStatus(LLRP_tSClearTagLogAck * pThi
 extern LLRP_tResultCode
 LLRP_ClearTagLogAck_setStatus(LLRP_tSClearTagLogAck * pThis, LLRP_tSStatus * pValue);
 
+struct LLRP_STagLogCount {
+	LLRP_tSMessage hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdTagLogCount;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdTagLogCount[];
+
+extern LLRP_tSTagLogCount *LLRP_TagLogCount_construct(void);
+
+extern void LLRP_TagLogCount_destruct(LLRP_tSTagLogCount * pThis);
+
+extern void
+LLRP_TagLogCount_decodeFields(LLRP_tSTagLogCount * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_TagLogCount_assimilateSubParameters(LLRP_tSTagLogCount * pThis, LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_TagLogCount_encode(const LLRP_tSTagLogCount * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_STagLogCountAck {
+	LLRP_tSMessage hdr;
+
+	llrp_u32_t LogCount;
+
+	LLRP_tSStatus *pStatus;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdTagLogCountAck;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdTagLogCountAck[];
+
+extern LLRP_tSTagLogCountAck *LLRP_TagLogCountAck_construct(void);
+
+extern void LLRP_TagLogCountAck_destruct(LLRP_tSTagLogCountAck * pThis);
+
+extern void
+LLRP_TagLogCountAck_decodeFields(LLRP_tSTagLogCountAck * pThis,
+								 LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_TagLogCountAck_assimilateSubParameters(LLRP_tSTagLogCountAck * pThis,
+											LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_TagLogCountAck_encode(const LLRP_tSTagLogCountAck * pThis,
+						   LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdTagLogCountAck_LogCount;
+
+extern llrp_u32_t LLRP_TagLogCountAck_getLogCount(LLRP_tSTagLogCountAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_TagLogCountAck_setLogCount(LLRP_tSTagLogCountAck * pThis, llrp_u32_t Value);
+
+extern LLRP_tSStatus *LLRP_TagLogCountAck_getStatus(LLRP_tSTagLogCountAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_TagLogCountAck_setStatus(LLRP_tSTagLogCountAck * pThis, LLRP_tSStatus * pValue);
+
 struct LLRP_SUploadDeviceLog {
 	LLRP_tSMessage hdr;
 
@@ -2748,7 +3115,7 @@ struct LLRP_SUploadDeviceLog {
 
 	llrp_u32_t UploadCount;
 
-	llrp_u64_t StartLogSequence;
+	llrp_u32_t Milliseconds;
 
 	LLRP_tSStartLogTimestamp *pStartLogTimestamp;
 
@@ -2790,12 +3157,12 @@ extern llrp_u32_t LLRP_UploadDeviceLog_getUploadCount(LLRP_tSUploadDeviceLog * p
 extern LLRP_tResultCode
 LLRP_UploadDeviceLog_setUploadCount(LLRP_tSUploadDeviceLog * pThis, llrp_u32_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdUploadDeviceLog_StartLogSequence;
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadDeviceLog_Milliseconds;
 
-extern llrp_u64_t LLRP_UploadDeviceLog_getStartLogSequence(LLRP_tSUploadDeviceLog * pThis);
+extern llrp_u32_t LLRP_UploadDeviceLog_getMilliseconds(LLRP_tSUploadDeviceLog * pThis);
 
 extern LLRP_tResultCode
-LLRP_UploadDeviceLog_setStartLogSequence(LLRP_tSUploadDeviceLog * pThis, llrp_u64_t Value);
+LLRP_UploadDeviceLog_setMilliseconds(LLRP_tSUploadDeviceLog * pThis, llrp_u32_t Value);
 
 extern LLRP_tSStartLogTimestamp *LLRP_UploadDeviceLog_getStartLogTimestamp(LLRP_tSUploadDeviceLog *
 																		   pThis);
@@ -2813,6 +3180,10 @@ LLRP_UploadDeviceLog_setEndLogTimestamp(LLRP_tSUploadDeviceLog * pThis,
 
 struct LLRP_SUploadDeviceLogAck {
 	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+	llrp_u8_t IsLastedFrame;
 
 	LLRP_tSStatus *pStatus;
 
@@ -2840,6 +3211,20 @@ extern void
 LLRP_UploadDeviceLogAck_encode(const LLRP_tSUploadDeviceLogAck * pThis,
 							   LLRP_tSEncoderStream * pEncoderStream);
 
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadDeviceLogAck_SequenceID;
+
+extern llrp_u16_t LLRP_UploadDeviceLogAck_getSequenceID(LLRP_tSUploadDeviceLogAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadDeviceLogAck_setSequenceID(LLRP_tSUploadDeviceLogAck * pThis, llrp_u16_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadDeviceLogAck_IsLastedFrame;
+
+extern llrp_u8_t LLRP_UploadDeviceLogAck_getIsLastedFrame(LLRP_tSUploadDeviceLogAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadDeviceLogAck_setIsLastedFrame(LLRP_tSUploadDeviceLogAck * pThis, llrp_u8_t Value);
+
 extern LLRP_tSStatus *LLRP_UploadDeviceLogAck_getStatus(LLRP_tSUploadDeviceLogAck * pThis);
 
 extern LLRP_tResultCode
@@ -2855,6 +3240,40 @@ extern int LLRP_UploadDeviceLogAck_countDeviceLog(LLRP_tSUploadDeviceLogAck * pT
 
 extern LLRP_tResultCode
 LLRP_UploadDeviceLogAck_addDeviceLog(LLRP_tSUploadDeviceLogAck * pThis, LLRP_tSDeviceLog * pValue);
+
+struct LLRP_SUploadDeviceLogConfirm {
+	LLRP_tSMessage hdr;
+
+	llrp_u16_t SequenceID;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdUploadDeviceLogConfirm;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdUploadDeviceLogConfirm[];
+
+extern LLRP_tSUploadDeviceLogConfirm *LLRP_UploadDeviceLogConfirm_construct(void);
+
+extern void LLRP_UploadDeviceLogConfirm_destruct(LLRP_tSUploadDeviceLogConfirm * pThis);
+
+extern void
+LLRP_UploadDeviceLogConfirm_decodeFields(LLRP_tSUploadDeviceLogConfirm * pThis,
+										 LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_UploadDeviceLogConfirm_assimilateSubParameters(LLRP_tSUploadDeviceLogConfirm * pThis,
+													LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_UploadDeviceLogConfirm_encode(const LLRP_tSUploadDeviceLogConfirm * pThis,
+								   LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdUploadDeviceLogConfirm_SequenceID;
+
+extern llrp_u16_t LLRP_UploadDeviceLogConfirm_getSequenceID(LLRP_tSUploadDeviceLogConfirm * pThis);
+
+extern LLRP_tResultCode
+LLRP_UploadDeviceLogConfirm_setSequenceID(LLRP_tSUploadDeviceLogConfirm * pThis, llrp_u16_t Value);
 
 struct LLRP_SClearDeviceLog {
 	LLRP_tSMessage hdr;
@@ -2913,14 +3332,78 @@ extern LLRP_tSStatus *LLRP_ClearDeviceLogAck_getStatus(LLRP_tSClearDeviceLogAck 
 extern LLRP_tResultCode
 LLRP_ClearDeviceLogAck_setStatus(LLRP_tSClearDeviceLogAck * pThis, LLRP_tSStatus * pValue);
 
+struct LLRP_SDeviceLogCount {
+	LLRP_tSMessage hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdDeviceLogCount;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdDeviceLogCount[];
+
+extern LLRP_tSDeviceLogCount *LLRP_DeviceLogCount_construct(void);
+
+extern void LLRP_DeviceLogCount_destruct(LLRP_tSDeviceLogCount * pThis);
+
+extern void
+LLRP_DeviceLogCount_decodeFields(LLRP_tSDeviceLogCount * pThis,
+								 LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_DeviceLogCount_assimilateSubParameters(LLRP_tSDeviceLogCount * pThis,
+											LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_DeviceLogCount_encode(const LLRP_tSDeviceLogCount * pThis,
+						   LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SDeviceLogCountAck {
+	LLRP_tSMessage hdr;
+
+	llrp_u32_t LogCount;
+
+	LLRP_tSStatus *pStatus;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdDeviceLogCountAck;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdDeviceLogCountAck[];
+
+extern LLRP_tSDeviceLogCountAck *LLRP_DeviceLogCountAck_construct(void);
+
+extern void LLRP_DeviceLogCountAck_destruct(LLRP_tSDeviceLogCountAck * pThis);
+
+extern void
+LLRP_DeviceLogCountAck_decodeFields(LLRP_tSDeviceLogCountAck * pThis,
+									LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_DeviceLogCountAck_assimilateSubParameters(LLRP_tSDeviceLogCountAck * pThis,
+											   LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_DeviceLogCountAck_encode(const LLRP_tSDeviceLogCountAck * pThis,
+							  LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdDeviceLogCountAck_LogCount;
+
+extern llrp_u32_t LLRP_DeviceLogCountAck_getLogCount(LLRP_tSDeviceLogCountAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceLogCountAck_setLogCount(LLRP_tSDeviceLogCountAck * pThis, llrp_u32_t Value);
+
+extern LLRP_tSStatus *LLRP_DeviceLogCountAck_getStatus(LLRP_tSDeviceLogCountAck * pThis);
+
+extern LLRP_tResultCode
+LLRP_DeviceLogCountAck_setStatus(LLRP_tSDeviceLogCountAck * pThis, LLRP_tSStatus * pValue);
+
 struct LLRP_SGetDeviceConfig {
 	LLRP_tSMessage hdr;
 
 	LLRP_tEConfigRequestedData eRequestedData;
 
 	llrp_u8_t AntennalID;
-
-	LLRP_tSSecurityModuleConfiguration *pSecurityModuleConfiguration;
 
 };
 
@@ -2959,13 +3442,6 @@ extern llrp_u8_t LLRP_GetDeviceConfig_getAntennalID(LLRP_tSGetDeviceConfig * pTh
 
 extern LLRP_tResultCode
 LLRP_GetDeviceConfig_setAntennalID(LLRP_tSGetDeviceConfig * pThis, llrp_u8_t Value);
-
-extern LLRP_tSSecurityModuleConfiguration
-	*LLRP_GetDeviceConfig_getSecurityModuleConfiguration(LLRP_tSGetDeviceConfig * pThis);
-
-extern LLRP_tResultCode
-LLRP_GetDeviceConfig_setSecurityModuleConfiguration(LLRP_tSGetDeviceConfig * pThis,
-													LLRP_tSSecurityModuleConfiguration * pValue);
 
 struct LLRP_SGetDeviceConfigAck {
 	LLRP_tSMessage hdr;
@@ -3877,7 +4353,7 @@ struct LLRP_SStatus {
 
 	LLRP_tEStatusCode eStatusCode;
 
-	llrp_utf8v_t ErrorDescription;
+	llrp_u8v_t ErrorDescription;
 
 };
 
@@ -3904,9 +4380,9 @@ extern LLRP_tResultCode LLRP_Status_setStatusCode(LLRP_tSStatus * pThis, LLRP_tE
 
 extern const LLRP_tSFieldDescriptor LLRP_fdStatus_ErrorDescription;
 
-extern llrp_utf8v_t LLRP_Status_getErrorDescription(LLRP_tSStatus * pThis);
+extern llrp_u8v_t LLRP_Status_getErrorDescription(LLRP_tSStatus * pThis);
 
-extern LLRP_tResultCode LLRP_Status_setErrorDescription(LLRP_tSStatus * pThis, llrp_utf8v_t Value);
+extern LLRP_tResultCode LLRP_Status_setErrorDescription(LLRP_tSStatus * pThis, llrp_u8v_t Value);
 
 struct LLRP_SUTCTimestamp {
 	LLRP_tSParameter hdr;
@@ -4164,7 +4640,7 @@ LLRP_ConnectionAttemptEvent_setConnectionStatus(LLRP_tSConnectionAttemptEvent * 
 struct LLRP_SGeneralCapabilities {
 	LLRP_tSParameter hdr;
 
-	llrp_utf8v_t DeviceManufacturerName;
+	llrp_u8v_t DeviceManufacturerName;
 
 	llrp_u8v_t DeviceSN;
 
@@ -4177,6 +4653,8 @@ struct LLRP_SGeneralCapabilities {
 	llrp_u1_t HasUTCClockCapability;
 
 	llrp_u1_t HasLocationCapability;
+
+	llrp_u1_t IsDeviceBinded;
 
 	LLRP_tSGPIOCapabilities *pGPIOCapabilities;
 
@@ -4204,12 +4682,12 @@ LLRP_GeneralCapabilities_encode(const LLRP_tSGeneralCapabilities * pThis,
 
 extern const LLRP_tSFieldDescriptor LLRP_fdGeneralCapabilities_DeviceManufacturerName;
 
-extern llrp_utf8v_t
+extern llrp_u8v_t
 LLRP_GeneralCapabilities_getDeviceManufacturerName(LLRP_tSGeneralCapabilities * pThis);
 
 extern LLRP_tResultCode
 LLRP_GeneralCapabilities_setDeviceManufacturerName(LLRP_tSGeneralCapabilities * pThis,
-												   llrp_utf8v_t Value);
+												   llrp_u8v_t Value);
 
 extern const LLRP_tSFieldDescriptor LLRP_fdGeneralCapabilities_DeviceSN;
 
@@ -4260,6 +4738,13 @@ LLRP_GeneralCapabilities_getHasLocationCapability(LLRP_tSGeneralCapabilities * p
 extern LLRP_tResultCode
 LLRP_GeneralCapabilities_setHasLocationCapability(LLRP_tSGeneralCapabilities * pThis,
 												  llrp_u1_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdGeneralCapabilities_IsDeviceBinded;
+
+extern llrp_u1_t LLRP_GeneralCapabilities_getIsDeviceBinded(LLRP_tSGeneralCapabilities * pThis);
+
+extern LLRP_tResultCode
+LLRP_GeneralCapabilities_setIsDeviceBinded(LLRP_tSGeneralCapabilities * pThis, llrp_u1_t Value);
 
 extern LLRP_tSGPIOCapabilities
 	*LLRP_GeneralCapabilities_getGPIOCapabilities(LLRP_tSGeneralCapabilities * pThis);
@@ -4979,7 +5464,7 @@ struct LLRP_SFrequencyTable {
 
 	llrp_u16_t Index;
 
-	llrp_u64_t Frequency;
+	llrp_u32_t Frequency;
 
 };
 
@@ -5012,10 +5497,10 @@ LLRP_FrequencyTable_setIndex(LLRP_tSFrequencyTable * pThis, llrp_u16_t Value);
 
 extern const LLRP_tSFieldDescriptor LLRP_fdFrequencyTable_Frequency;
 
-extern llrp_u64_t LLRP_FrequencyTable_getFrequency(LLRP_tSFrequencyTable * pThis);
+extern llrp_u32_t LLRP_FrequencyTable_getFrequency(LLRP_tSFrequencyTable * pThis);
 
 extern LLRP_tResultCode
-LLRP_FrequencyTable_setFrequency(LLRP_tSFrequencyTable * pThis, llrp_u64_t Value);
+LLRP_FrequencyTable_setFrequency(LLRP_tSFrequencyTable * pThis, llrp_u32_t Value);
 
 struct LLRP_SForDataRateTable {
 	LLRP_tSParameter hdr;
@@ -5972,9 +6457,13 @@ struct LLRP_SMemoryBank {
 
 	LLRP_tEMemoryBankID eMemoryBankID;
 
+	llrp_u8_t ReadType;
+
 	llrp_u16_t Pointer;
 
 	llrp_u16_t Count;
+
+	llrp_u8_t BankType;
 
 };
 
@@ -6002,6 +6491,12 @@ extern LLRP_tEMemoryBankID LLRP_MemoryBank_getMemoryBankID(LLRP_tSMemoryBank * p
 extern LLRP_tResultCode
 LLRP_MemoryBank_setMemoryBankID(LLRP_tSMemoryBank * pThis, LLRP_tEMemoryBankID Value);
 
+extern const LLRP_tSFieldDescriptor LLRP_fdMemoryBank_ReadType;
+
+extern llrp_u8_t LLRP_MemoryBank_getReadType(LLRP_tSMemoryBank * pThis);
+
+extern LLRP_tResultCode LLRP_MemoryBank_setReadType(LLRP_tSMemoryBank * pThis, llrp_u8_t Value);
+
 extern const LLRP_tSFieldDescriptor LLRP_fdMemoryBank_Pointer;
 
 extern llrp_u16_t LLRP_MemoryBank_getPointer(LLRP_tSMemoryBank * pThis);
@@ -6013,6 +6508,12 @@ extern const LLRP_tSFieldDescriptor LLRP_fdMemoryBank_Count;
 extern llrp_u16_t LLRP_MemoryBank_getCount(LLRP_tSMemoryBank * pThis);
 
 extern LLRP_tResultCode LLRP_MemoryBank_setCount(LLRP_tSMemoryBank * pThis, llrp_u16_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdMemoryBank_BankType;
+
+extern llrp_u8_t LLRP_MemoryBank_getBankType(LLRP_tSMemoryBank * pThis);
+
+extern LLRP_tResultCode LLRP_MemoryBank_setBankType(LLRP_tSMemoryBank * pThis, llrp_u8_t Value);
 
 struct LLRP_SSelectReportSpec {
 	LLRP_tSParameter hdr;
@@ -6340,6 +6841,8 @@ struct LLRP_SAccessCommand {
 
 	LLRP_tSParameter *listOpSpec;
 
+	LLRP_tSSecurityModuleSpec *pSecurityModuleSpec;
+
 };
 
 extern const LLRP_tSTypeDescriptor LLRP_tdAccessCommand;
@@ -6377,6 +6880,13 @@ extern int LLRP_AccessCommand_countOpSpec(LLRP_tSAccessCommand * pThis);
 
 extern LLRP_tResultCode
 LLRP_AccessCommand_addOpSpec(LLRP_tSAccessCommand * pThis, LLRP_tSParameter * pValue);
+
+extern LLRP_tSSecurityModuleSpec *LLRP_AccessCommand_getSecurityModuleSpec(LLRP_tSAccessCommand *
+																		   pThis);
+
+extern LLRP_tResultCode
+LLRP_AccessCommand_setSecurityModuleSpec(LLRP_tSAccessCommand * pThis,
+										 LLRP_tSSecurityModuleSpec * pValue);
 
 struct LLRP_SHbMatchSpec {
 	LLRP_tSParameter hdr;
@@ -6480,11 +6990,7 @@ struct LLRP_SHbReadSpec {
 
 	llrp_u16_t OpSpecID;
 
-	LLRP_tEMemoryBankID eMemoryBankID;
-
-	llrp_u16_t Pointer;
-
-	llrp_u16_t Count;
+	LLRP_tSMemoryBank *pMemoryBank;
 
 };
 
@@ -6511,24 +7017,10 @@ extern llrp_u16_t LLRP_HbReadSpec_getOpSpecID(LLRP_tSHbReadSpec * pThis);
 
 extern LLRP_tResultCode LLRP_HbReadSpec_setOpSpecID(LLRP_tSHbReadSpec * pThis, llrp_u16_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbReadSpec_MemoryBankID;
-
-extern LLRP_tEMemoryBankID LLRP_HbReadSpec_getMemoryBankID(LLRP_tSHbReadSpec * pThis);
+extern LLRP_tSMemoryBank *LLRP_HbReadSpec_getMemoryBank(LLRP_tSHbReadSpec * pThis);
 
 extern LLRP_tResultCode
-LLRP_HbReadSpec_setMemoryBankID(LLRP_tSHbReadSpec * pThis, LLRP_tEMemoryBankID Value);
-
-extern const LLRP_tSFieldDescriptor LLRP_fdHbReadSpec_Pointer;
-
-extern llrp_u16_t LLRP_HbReadSpec_getPointer(LLRP_tSHbReadSpec * pThis);
-
-extern LLRP_tResultCode LLRP_HbReadSpec_setPointer(LLRP_tSHbReadSpec * pThis, llrp_u16_t Value);
-
-extern const LLRP_tSFieldDescriptor LLRP_fdHbReadSpec_Count;
-
-extern llrp_u16_t LLRP_HbReadSpec_getCount(LLRP_tSHbReadSpec * pThis);
-
-extern LLRP_tResultCode LLRP_HbReadSpec_setCount(LLRP_tSHbReadSpec * pThis, llrp_u16_t Value);
+LLRP_HbReadSpec_setMemoryBank(LLRP_tSHbReadSpec * pThis, LLRP_tSMemoryBank * pValue);
 
 struct LLRP_SClientRequestSpec {
 	LLRP_tSParameter hdr;
@@ -6563,51 +7055,6 @@ extern llrp_u16_t LLRP_ClientRequestSpec_getOpSpecID(LLRP_tSClientRequestSpec * 
 
 extern LLRP_tResultCode
 LLRP_ClientRequestSpec_setOpSpecID(LLRP_tSClientRequestSpec * pThis, llrp_u16_t Value);
-
-struct LLRP_SAccessReportSpec {
-	LLRP_tSParameter hdr;
-
-	LLRP_tEAccessReportTriggerType eAccessReportTrigger;
-
-	LLRP_tSReportDestination *pReportDestination;
-
-};
-
-extern const LLRP_tSTypeDescriptor LLRP_tdAccessReportSpec;
-
-extern const LLRP_tSFieldDescriptor *LLRP_apfdAccessReportSpec[];
-
-extern LLRP_tSAccessReportSpec *LLRP_AccessReportSpec_construct(void);
-
-extern void LLRP_AccessReportSpec_destruct(LLRP_tSAccessReportSpec * pThis);
-
-extern void
-LLRP_AccessReportSpec_decodeFields(LLRP_tSAccessReportSpec * pThis,
-								   LLRP_tSDecoderStream * pDecoderStream);
-
-extern void
-LLRP_AccessReportSpec_assimilateSubParameters(LLRP_tSAccessReportSpec * pThis,
-											  LLRP_tSErrorDetails * pError);
-
-extern void
-LLRP_AccessReportSpec_encode(const LLRP_tSAccessReportSpec * pThis,
-							 LLRP_tSEncoderStream * pEncoderStream);
-
-extern const LLRP_tSFieldDescriptor LLRP_fdAccessReportSpec_AccessReportTrigger;
-
-extern LLRP_tEAccessReportTriggerType
-LLRP_AccessReportSpec_getAccessReportTrigger(LLRP_tSAccessReportSpec * pThis);
-
-extern LLRP_tResultCode
-LLRP_AccessReportSpec_setAccessReportTrigger(LLRP_tSAccessReportSpec * pThis,
-											 LLRP_tEAccessReportTriggerType Value);
-
-extern LLRP_tSReportDestination *LLRP_AccessReportSpec_getReportDestination(LLRP_tSAccessReportSpec
-																			* pThis);
-
-extern LLRP_tResultCode
-LLRP_AccessReportSpec_setReportDestination(LLRP_tSAccessReportSpec * pThis,
-										   LLRP_tSReportDestination * pValue);
 
 struct LLRP_SHbWriteSpec {
 	LLRP_tSParameter hdr;
@@ -6664,57 +7111,82 @@ extern llrp_u16v_t LLRP_HbWriteSpec_getData(LLRP_tSHbWriteSpec * pThis);
 
 extern LLRP_tResultCode LLRP_HbWriteSpec_setData(LLRP_tSHbWriteSpec * pThis, llrp_u16v_t Value);
 
-struct LLRP_SHbPrivateWriteSpec {
+struct LLRP_SSecurityModuleSpec {
 	LLRP_tSParameter hdr;
 
-	llrp_u16_t OpSpecID;
-
-	llrp_u8_t WriteType;
-
-	llrp_u16v_t Data;
+	LLRP_tSReadMode *pReadMode;
 
 };
 
-extern const LLRP_tSTypeDescriptor LLRP_tdHbPrivateWriteSpec;
+extern const LLRP_tSTypeDescriptor LLRP_tdSecurityModuleSpec;
 
-extern const LLRP_tSFieldDescriptor *LLRP_apfdHbPrivateWriteSpec[];
+extern const LLRP_tSFieldDescriptor *LLRP_apfdSecurityModuleSpec[];
 
-extern LLRP_tSHbPrivateWriteSpec *LLRP_HbPrivateWriteSpec_construct(void);
+extern LLRP_tSSecurityModuleSpec *LLRP_SecurityModuleSpec_construct(void);
 
-extern void LLRP_HbPrivateWriteSpec_destruct(LLRP_tSHbPrivateWriteSpec * pThis);
+extern void LLRP_SecurityModuleSpec_destruct(LLRP_tSSecurityModuleSpec * pThis);
 
 extern void
-LLRP_HbPrivateWriteSpec_decodeFields(LLRP_tSHbPrivateWriteSpec * pThis,
+LLRP_SecurityModuleSpec_decodeFields(LLRP_tSSecurityModuleSpec * pThis,
 									 LLRP_tSDecoderStream * pDecoderStream);
 
 extern void
-LLRP_HbPrivateWriteSpec_assimilateSubParameters(LLRP_tSHbPrivateWriteSpec * pThis,
+LLRP_SecurityModuleSpec_assimilateSubParameters(LLRP_tSSecurityModuleSpec * pThis,
 												LLRP_tSErrorDetails * pError);
 
 extern void
-LLRP_HbPrivateWriteSpec_encode(const LLRP_tSHbPrivateWriteSpec * pThis,
+LLRP_SecurityModuleSpec_encode(const LLRP_tSSecurityModuleSpec * pThis,
 							   LLRP_tSEncoderStream * pEncoderStream);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpec_OpSpecID;
-
-extern llrp_u16_t LLRP_HbPrivateWriteSpec_getOpSpecID(LLRP_tSHbPrivateWriteSpec * pThis);
+extern LLRP_tSReadMode *LLRP_SecurityModuleSpec_getReadMode(LLRP_tSSecurityModuleSpec * pThis);
 
 extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpec_setOpSpecID(LLRP_tSHbPrivateWriteSpec * pThis, llrp_u16_t Value);
+LLRP_SecurityModuleSpec_setReadMode(LLRP_tSSecurityModuleSpec * pThis, LLRP_tSReadMode * pValue);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpec_WriteType;
+struct LLRP_SAccessReportSpec {
+	LLRP_tSParameter hdr;
 
-extern llrp_u8_t LLRP_HbPrivateWriteSpec_getWriteType(LLRP_tSHbPrivateWriteSpec * pThis);
+	LLRP_tEAccessReportTriggerType eAccessReportTrigger;
+
+	LLRP_tSReportDestination *pReportDestination;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdAccessReportSpec;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdAccessReportSpec[];
+
+extern LLRP_tSAccessReportSpec *LLRP_AccessReportSpec_construct(void);
+
+extern void LLRP_AccessReportSpec_destruct(LLRP_tSAccessReportSpec * pThis);
+
+extern void
+LLRP_AccessReportSpec_decodeFields(LLRP_tSAccessReportSpec * pThis,
+								   LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_AccessReportSpec_assimilateSubParameters(LLRP_tSAccessReportSpec * pThis,
+											  LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_AccessReportSpec_encode(const LLRP_tSAccessReportSpec * pThis,
+							 LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdAccessReportSpec_AccessReportTrigger;
+
+extern LLRP_tEAccessReportTriggerType
+LLRP_AccessReportSpec_getAccessReportTrigger(LLRP_tSAccessReportSpec * pThis);
 
 extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpec_setWriteType(LLRP_tSHbPrivateWriteSpec * pThis, llrp_u8_t Value);
+LLRP_AccessReportSpec_setAccessReportTrigger(LLRP_tSAccessReportSpec * pThis,
+											 LLRP_tEAccessReportTriggerType Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpec_Data;
-
-extern llrp_u16v_t LLRP_HbPrivateWriteSpec_getData(LLRP_tSHbPrivateWriteSpec * pThis);
+extern LLRP_tSReportDestination *LLRP_AccessReportSpec_getReportDestination(LLRP_tSAccessReportSpec
+																			* pThis);
 
 extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpec_setData(LLRP_tSHbPrivateWriteSpec * pThis, llrp_u16v_t Value);
+LLRP_AccessReportSpec_setReportDestination(LLRP_tSAccessReportSpec * pThis,
+										   LLRP_tSReportDestination * pValue);
 
 struct LLRP_STagReportData {
 	LLRP_tSParameter hdr;
@@ -6739,7 +7211,7 @@ struct LLRP_STagReportData {
 
 	LLRP_tSAccessSpecID *pAccessSpecID;
 
-	LLRP_tSSelectSpecResult *pSelectSpecResult;
+	LLRP_tSParameter *pSelectSpecResult;
 
 	LLRP_tSParameter *listAccessSpecResult;
 
@@ -6820,12 +7292,10 @@ extern LLRP_tSAccessSpecID *LLRP_TagReportData_getAccessSpecID(LLRP_tSTagReportD
 extern LLRP_tResultCode
 LLRP_TagReportData_setAccessSpecID(LLRP_tSTagReportData * pThis, LLRP_tSAccessSpecID * pValue);
 
-extern LLRP_tSSelectSpecResult *LLRP_TagReportData_getSelectSpecResult(LLRP_tSTagReportData *
-																	   pThis);
+extern LLRP_tSParameter *LLRP_TagReportData_getSelectSpecResult(LLRP_tSTagReportData * pThis);
 
 extern LLRP_tResultCode
-LLRP_TagReportData_setSelectSpecResult(LLRP_tSTagReportData * pThis,
-									   LLRP_tSSelectSpecResult * pValue);
+LLRP_TagReportData_setSelectSpecResult(LLRP_tSTagReportData * pThis, LLRP_tSParameter * pValue);
 
 extern LLRP_tSParameter *LLRP_TagReportData_beginAccessSpecResult(LLRP_tSTagReportData * pThis);
 
@@ -7122,7 +7592,7 @@ extern llrp_u32_t LLRP_AccessSpecID_getAccessSpecID(LLRP_tSAccessSpecID * pThis)
 extern LLRP_tResultCode
 LLRP_AccessSpecID_setAccessSpecID(LLRP_tSAccessSpecID * pThis, llrp_u32_t Value);
 
-struct LLRP_SSelectSpecResult {
+struct LLRP_SGeneralSelectSpecResult {
 	LLRP_tSParameter hdr;
 
 	llrp_u8_t Result;
@@ -7131,39 +7601,84 @@ struct LLRP_SSelectSpecResult {
 
 };
 
-extern const LLRP_tSTypeDescriptor LLRP_tdSelectSpecResult;
+extern const LLRP_tSTypeDescriptor LLRP_tdGeneralSelectSpecResult;
 
-extern const LLRP_tSFieldDescriptor *LLRP_apfdSelectSpecResult[];
+extern const LLRP_tSFieldDescriptor *LLRP_apfdGeneralSelectSpecResult[];
 
-extern LLRP_tSSelectSpecResult *LLRP_SelectSpecResult_construct(void);
+extern LLRP_tSGeneralSelectSpecResult *LLRP_GeneralSelectSpecResult_construct(void);
 
-extern void LLRP_SelectSpecResult_destruct(LLRP_tSSelectSpecResult * pThis);
-
-extern void
-LLRP_SelectSpecResult_decodeFields(LLRP_tSSelectSpecResult * pThis,
-								   LLRP_tSDecoderStream * pDecoderStream);
+extern void LLRP_GeneralSelectSpecResult_destruct(LLRP_tSGeneralSelectSpecResult * pThis);
 
 extern void
-LLRP_SelectSpecResult_assimilateSubParameters(LLRP_tSSelectSpecResult * pThis,
-											  LLRP_tSErrorDetails * pError);
+LLRP_GeneralSelectSpecResult_decodeFields(LLRP_tSGeneralSelectSpecResult * pThis,
+										  LLRP_tSDecoderStream * pDecoderStream);
 
 extern void
-LLRP_SelectSpecResult_encode(const LLRP_tSSelectSpecResult * pThis,
-							 LLRP_tSEncoderStream * pEncoderStream);
+LLRP_GeneralSelectSpecResult_assimilateSubParameters(LLRP_tSGeneralSelectSpecResult * pThis,
+													 LLRP_tSErrorDetails * pError);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdSelectSpecResult_Result;
+extern void
+LLRP_GeneralSelectSpecResult_encode(const LLRP_tSGeneralSelectSpecResult * pThis,
+									LLRP_tSEncoderStream * pEncoderStream);
 
-extern llrp_u8_t LLRP_SelectSpecResult_getResult(LLRP_tSSelectSpecResult * pThis);
+extern const LLRP_tSFieldDescriptor LLRP_fdGeneralSelectSpecResult_Result;
+
+extern llrp_u8_t LLRP_GeneralSelectSpecResult_getResult(LLRP_tSGeneralSelectSpecResult * pThis);
 
 extern LLRP_tResultCode
-LLRP_SelectSpecResult_setResult(LLRP_tSSelectSpecResult * pThis, llrp_u8_t Value);
+LLRP_GeneralSelectSpecResult_setResult(LLRP_tSGeneralSelectSpecResult * pThis, llrp_u8_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdSelectSpecResult_TagData;
+extern const LLRP_tSFieldDescriptor LLRP_fdGeneralSelectSpecResult_TagData;
 
-extern llrp_u16v_t LLRP_SelectSpecResult_getTagData(LLRP_tSSelectSpecResult * pThis);
+extern llrp_u16v_t LLRP_GeneralSelectSpecResult_getTagData(LLRP_tSGeneralSelectSpecResult * pThis);
 
 extern LLRP_tResultCode
-LLRP_SelectSpecResult_setTagData(LLRP_tSSelectSpecResult * pThis, llrp_u16v_t Value);
+LLRP_GeneralSelectSpecResult_setTagData(LLRP_tSGeneralSelectSpecResult * pThis, llrp_u16v_t Value);
+
+struct LLRP_SCustomizedSelectSpecResult {
+	LLRP_tSParameter hdr;
+
+	llrp_u8_t Result;
+
+	LLRP_tSReadDataInfo *pReadDataInfo;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCustomizedSelectSpecResult;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCustomizedSelectSpecResult[];
+
+extern LLRP_tSCustomizedSelectSpecResult *LLRP_CustomizedSelectSpecResult_construct(void);
+
+extern void LLRP_CustomizedSelectSpecResult_destruct(LLRP_tSCustomizedSelectSpecResult * pThis);
+
+extern void
+LLRP_CustomizedSelectSpecResult_decodeFields(LLRP_tSCustomizedSelectSpecResult * pThis,
+											 LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_CustomizedSelectSpecResult_assimilateSubParameters(LLRP_tSCustomizedSelectSpecResult * pThis,
+														LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_CustomizedSelectSpecResult_encode(const LLRP_tSCustomizedSelectSpecResult * pThis,
+									   LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdCustomizedSelectSpecResult_Result;
+
+extern llrp_u8_t
+LLRP_CustomizedSelectSpecResult_getResult(LLRP_tSCustomizedSelectSpecResult * pThis);
+
+extern LLRP_tResultCode
+LLRP_CustomizedSelectSpecResult_setResult(LLRP_tSCustomizedSelectSpecResult * pThis,
+										  llrp_u8_t Value);
+
+extern LLRP_tSReadDataInfo
+	*LLRP_CustomizedSelectSpecResult_getReadDataInfo(LLRP_tSCustomizedSelectSpecResult * pThis);
+
+extern LLRP_tResultCode
+LLRP_CustomizedSelectSpecResult_setReadDataInfo(LLRP_tSCustomizedSelectSpecResult * pThis,
+												LLRP_tSReadDataInfo * pValue);
 
 struct LLRP_SHbReadSpecResult {
 	LLRP_tSParameter hdr;
@@ -7303,61 +7818,420 @@ extern llrp_u16_t LLRP_HbWriteSpecResult_getOpSpecID(LLRP_tSHbWriteSpecResult * 
 extern LLRP_tResultCode
 LLRP_HbWriteSpecResult_setOpSpecID(LLRP_tSHbWriteSpecResult * pThis, llrp_u16_t Value);
 
-struct LLRP_SHbPrivateWriteSpecResult {
+struct LLRP_SHbCustomizedReadSpecResult {
 	LLRP_tSParameter hdr;
 
 	llrp_u8_t Result;
 
-	llrp_u8v_t ResultDescription;
-
 	llrp_u16_t OpSpecID;
+
+	LLRP_tSReadDataInfo *pReadDataInfo;
 
 };
 
-extern const LLRP_tSTypeDescriptor LLRP_tdHbPrivateWriteSpecResult;
+extern const LLRP_tSTypeDescriptor LLRP_tdHbCustomizedReadSpecResult;
 
-extern const LLRP_tSFieldDescriptor *LLRP_apfdHbPrivateWriteSpecResult[];
+extern const LLRP_tSFieldDescriptor *LLRP_apfdHbCustomizedReadSpecResult[];
 
-extern LLRP_tSHbPrivateWriteSpecResult *LLRP_HbPrivateWriteSpecResult_construct(void);
+extern LLRP_tSHbCustomizedReadSpecResult *LLRP_HbCustomizedReadSpecResult_construct(void);
 
-extern void LLRP_HbPrivateWriteSpecResult_destruct(LLRP_tSHbPrivateWriteSpecResult * pThis);
-
-extern void
-LLRP_HbPrivateWriteSpecResult_decodeFields(LLRP_tSHbPrivateWriteSpecResult * pThis,
-										   LLRP_tSDecoderStream * pDecoderStream);
+extern void LLRP_HbCustomizedReadSpecResult_destruct(LLRP_tSHbCustomizedReadSpecResult * pThis);
 
 extern void
-LLRP_HbPrivateWriteSpecResult_assimilateSubParameters(LLRP_tSHbPrivateWriteSpecResult * pThis,
-													  LLRP_tSErrorDetails * pError);
+LLRP_HbCustomizedReadSpecResult_decodeFields(LLRP_tSHbCustomizedReadSpecResult * pThis,
+											 LLRP_tSDecoderStream * pDecoderStream);
 
 extern void
-LLRP_HbPrivateWriteSpecResult_encode(const LLRP_tSHbPrivateWriteSpecResult * pThis,
-									 LLRP_tSEncoderStream * pEncoderStream);
+LLRP_HbCustomizedReadSpecResult_assimilateSubParameters(LLRP_tSHbCustomizedReadSpecResult * pThis,
+														LLRP_tSErrorDetails * pError);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpecResult_Result;
+extern void
+LLRP_HbCustomizedReadSpecResult_encode(const LLRP_tSHbCustomizedReadSpecResult * pThis,
+									   LLRP_tSEncoderStream * pEncoderStream);
 
-extern llrp_u8_t LLRP_HbPrivateWriteSpecResult_getResult(LLRP_tSHbPrivateWriteSpecResult * pThis);
+extern const LLRP_tSFieldDescriptor LLRP_fdHbCustomizedReadSpecResult_Result;
+
+extern llrp_u8_t
+LLRP_HbCustomizedReadSpecResult_getResult(LLRP_tSHbCustomizedReadSpecResult * pThis);
 
 extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpecResult_setResult(LLRP_tSHbPrivateWriteSpecResult * pThis, llrp_u8_t Value);
+LLRP_HbCustomizedReadSpecResult_setResult(LLRP_tSHbCustomizedReadSpecResult * pThis,
+										  llrp_u8_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpecResult_ResultDescription;
-
-extern llrp_u8v_t
-LLRP_HbPrivateWriteSpecResult_getResultDescription(LLRP_tSHbPrivateWriteSpecResult * pThis);
-
-extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpecResult_setResultDescription(LLRP_tSHbPrivateWriteSpecResult * pThis,
-												   llrp_u8v_t Value);
-
-extern const LLRP_tSFieldDescriptor LLRP_fdHbPrivateWriteSpecResult_OpSpecID;
+extern const LLRP_tSFieldDescriptor LLRP_fdHbCustomizedReadSpecResult_OpSpecID;
 
 extern llrp_u16_t
-LLRP_HbPrivateWriteSpecResult_getOpSpecID(LLRP_tSHbPrivateWriteSpecResult * pThis);
+LLRP_HbCustomizedReadSpecResult_getOpSpecID(LLRP_tSHbCustomizedReadSpecResult * pThis);
 
 extern LLRP_tResultCode
-LLRP_HbPrivateWriteSpecResult_setOpSpecID(LLRP_tSHbPrivateWriteSpecResult * pThis,
-										  llrp_u16_t Value);
+LLRP_HbCustomizedReadSpecResult_setOpSpecID(LLRP_tSHbCustomizedReadSpecResult * pThis,
+											llrp_u16_t Value);
+
+extern LLRP_tSReadDataInfo
+	*LLRP_HbCustomizedReadSpecResult_getReadDataInfo(LLRP_tSHbCustomizedReadSpecResult * pThis);
+
+extern LLRP_tResultCode
+LLRP_HbCustomizedReadSpecResult_setReadDataInfo(LLRP_tSHbCustomizedReadSpecResult * pThis,
+												LLRP_tSReadDataInfo * pValue);
+
+struct LLRP_SReadDataInfo {
+	LLRP_tSParameter hdr;
+
+	LLRP_tSCID *pCID;
+
+	LLRP_tSFPDH *pFPDH;
+
+	LLRP_tSSYXZ *pSYXZ;
+
+	LLRP_tSCCRQ *pCCRQ;
+
+	LLRP_tSCLLX *pCLLX;
+
+	LLRP_tSPL *pPL;
+
+	LLRP_tSGL *pGL;
+
+	LLRP_tSHPZL *pHPZL;
+
+	LLRP_tSHPHMXH *pHPHMXH;
+
+	LLRP_tSJYYXQ *pJYYXQ;
+
+	LLRP_tSQZBFQ *pQZBFQ;
+
+	LLRP_tSCSYS *pCSYS;
+
+	LLRP_tSZKZL *pZKZL;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdReadDataInfo;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdReadDataInfo[];
+
+extern LLRP_tSReadDataInfo *LLRP_ReadDataInfo_construct(void);
+
+extern void LLRP_ReadDataInfo_destruct(LLRP_tSReadDataInfo * pThis);
+
+extern void
+LLRP_ReadDataInfo_decodeFields(LLRP_tSReadDataInfo * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_ReadDataInfo_assimilateSubParameters(LLRP_tSReadDataInfo * pThis,
+										  LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_ReadDataInfo_encode(const LLRP_tSReadDataInfo * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+extern LLRP_tSCID *LLRP_ReadDataInfo_getCID(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode LLRP_ReadDataInfo_setCID(LLRP_tSReadDataInfo * pThis, LLRP_tSCID * pValue);
+
+extern LLRP_tSFPDH *LLRP_ReadDataInfo_getFPDH(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setFPDH(LLRP_tSReadDataInfo * pThis, LLRP_tSFPDH * pValue);
+
+extern LLRP_tSSYXZ *LLRP_ReadDataInfo_getSYXZ(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setSYXZ(LLRP_tSReadDataInfo * pThis, LLRP_tSSYXZ * pValue);
+
+extern LLRP_tSCCRQ *LLRP_ReadDataInfo_getCCRQ(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setCCRQ(LLRP_tSReadDataInfo * pThis, LLRP_tSCCRQ * pValue);
+
+extern LLRP_tSCLLX *LLRP_ReadDataInfo_getCLLX(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setCLLX(LLRP_tSReadDataInfo * pThis, LLRP_tSCLLX * pValue);
+
+extern LLRP_tSPL *LLRP_ReadDataInfo_getPL(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode LLRP_ReadDataInfo_setPL(LLRP_tSReadDataInfo * pThis, LLRP_tSPL * pValue);
+
+extern LLRP_tSGL *LLRP_ReadDataInfo_getGL(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode LLRP_ReadDataInfo_setGL(LLRP_tSReadDataInfo * pThis, LLRP_tSGL * pValue);
+
+extern LLRP_tSHPZL *LLRP_ReadDataInfo_getHPZL(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setHPZL(LLRP_tSReadDataInfo * pThis, LLRP_tSHPZL * pValue);
+
+extern LLRP_tSHPHMXH *LLRP_ReadDataInfo_getHPHMXH(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setHPHMXH(LLRP_tSReadDataInfo * pThis, LLRP_tSHPHMXH * pValue);
+
+extern LLRP_tSJYYXQ *LLRP_ReadDataInfo_getJYYXQ(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setJYYXQ(LLRP_tSReadDataInfo * pThis, LLRP_tSJYYXQ * pValue);
+
+extern LLRP_tSQZBFQ *LLRP_ReadDataInfo_getQZBFQ(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setQZBFQ(LLRP_tSReadDataInfo * pThis, LLRP_tSQZBFQ * pValue);
+
+extern LLRP_tSCSYS *LLRP_ReadDataInfo_getCSYS(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setCSYS(LLRP_tSReadDataInfo * pThis, LLRP_tSCSYS * pValue);
+
+extern LLRP_tSZKZL *LLRP_ReadDataInfo_getZKZL(LLRP_tSReadDataInfo * pThis);
+
+extern LLRP_tResultCode
+LLRP_ReadDataInfo_setZKZL(LLRP_tSReadDataInfo * pThis, LLRP_tSZKZL * pValue);
+
+struct LLRP_SCID {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCID;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCID[];
+
+extern LLRP_tSCID *LLRP_CID_construct(void);
+
+extern void LLRP_CID_destruct(LLRP_tSCID * pThis);
+
+extern void LLRP_CID_decodeFields(LLRP_tSCID * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_CID_assimilateSubParameters(LLRP_tSCID * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_CID_encode(const LLRP_tSCID * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SFPDH {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdFPDH;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdFPDH[];
+
+extern LLRP_tSFPDH *LLRP_FPDH_construct(void);
+
+extern void LLRP_FPDH_destruct(LLRP_tSFPDH * pThis);
+
+extern void LLRP_FPDH_decodeFields(LLRP_tSFPDH * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_FPDH_assimilateSubParameters(LLRP_tSFPDH * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_FPDH_encode(const LLRP_tSFPDH * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SSYXZ {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdSYXZ;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdSYXZ[];
+
+extern LLRP_tSSYXZ *LLRP_SYXZ_construct(void);
+
+extern void LLRP_SYXZ_destruct(LLRP_tSSYXZ * pThis);
+
+extern void LLRP_SYXZ_decodeFields(LLRP_tSSYXZ * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_SYXZ_assimilateSubParameters(LLRP_tSSYXZ * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_SYXZ_encode(const LLRP_tSSYXZ * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SCCRQ {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCCRQ;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCCRQ[];
+
+extern LLRP_tSCCRQ *LLRP_CCRQ_construct(void);
+
+extern void LLRP_CCRQ_destruct(LLRP_tSCCRQ * pThis);
+
+extern void LLRP_CCRQ_decodeFields(LLRP_tSCCRQ * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_CCRQ_assimilateSubParameters(LLRP_tSCCRQ * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_CCRQ_encode(const LLRP_tSCCRQ * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SCLLX {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCLLX;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCLLX[];
+
+extern LLRP_tSCLLX *LLRP_CLLX_construct(void);
+
+extern void LLRP_CLLX_destruct(LLRP_tSCLLX * pThis);
+
+extern void LLRP_CLLX_decodeFields(LLRP_tSCLLX * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_CLLX_assimilateSubParameters(LLRP_tSCLLX * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_CLLX_encode(const LLRP_tSCLLX * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SGL {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdGL;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdGL[];
+
+extern LLRP_tSGL *LLRP_GL_construct(void);
+
+extern void LLRP_GL_destruct(LLRP_tSGL * pThis);
+
+extern void LLRP_GL_decodeFields(LLRP_tSGL * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_GL_assimilateSubParameters(LLRP_tSGL * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_GL_encode(const LLRP_tSGL * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SPL {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdPL;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdPL[];
+
+extern LLRP_tSPL *LLRP_PL_construct(void);
+
+extern void LLRP_PL_destruct(LLRP_tSPL * pThis);
+
+extern void LLRP_PL_decodeFields(LLRP_tSPL * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_PL_assimilateSubParameters(LLRP_tSPL * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_PL_encode(const LLRP_tSPL * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SHPZL {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdHPZL;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdHPZL[];
+
+extern LLRP_tSHPZL *LLRP_HPZL_construct(void);
+
+extern void LLRP_HPZL_destruct(LLRP_tSHPZL * pThis);
+
+extern void LLRP_HPZL_decodeFields(LLRP_tSHPZL * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_HPZL_assimilateSubParameters(LLRP_tSHPZL * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_HPZL_encode(const LLRP_tSHPZL * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SHPHMXH {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdHPHMXH;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdHPHMXH[];
+
+extern LLRP_tSHPHMXH *LLRP_HPHMXH_construct(void);
+
+extern void LLRP_HPHMXH_destruct(LLRP_tSHPHMXH * pThis);
+
+extern void LLRP_HPHMXH_decodeFields(LLRP_tSHPHMXH * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_HPHMXH_assimilateSubParameters(LLRP_tSHPHMXH * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_HPHMXH_encode(const LLRP_tSHPHMXH * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SJYYXQ {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdJYYXQ;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdJYYXQ[];
+
+extern LLRP_tSJYYXQ *LLRP_JYYXQ_construct(void);
+
+extern void LLRP_JYYXQ_destruct(LLRP_tSJYYXQ * pThis);
+
+extern void LLRP_JYYXQ_decodeFields(LLRP_tSJYYXQ * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_JYYXQ_assimilateSubParameters(LLRP_tSJYYXQ * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_JYYXQ_encode(const LLRP_tSJYYXQ * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SQZBFQ {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdQZBFQ;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdQZBFQ[];
+
+extern LLRP_tSQZBFQ *LLRP_QZBFQ_construct(void);
+
+extern void LLRP_QZBFQ_destruct(LLRP_tSQZBFQ * pThis);
+
+extern void LLRP_QZBFQ_decodeFields(LLRP_tSQZBFQ * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_QZBFQ_assimilateSubParameters(LLRP_tSQZBFQ * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_QZBFQ_encode(const LLRP_tSQZBFQ * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SZKZL {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdZKZL;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdZKZL[];
+
+extern LLRP_tSZKZL *LLRP_ZKZL_construct(void);
+
+extern void LLRP_ZKZL_destruct(LLRP_tSZKZL * pThis);
+
+extern void LLRP_ZKZL_decodeFields(LLRP_tSZKZL * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_ZKZL_assimilateSubParameters(LLRP_tSZKZL * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_ZKZL_encode(const LLRP_tSZKZL * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+struct LLRP_SCSYS {
+	LLRP_tSParameter hdr;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdCSYS;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdCSYS[];
+
+extern LLRP_tSCSYS *LLRP_CSYS_construct(void);
+
+extern void LLRP_CSYS_destruct(LLRP_tSCSYS * pThis);
+
+extern void LLRP_CSYS_decodeFields(LLRP_tSCSYS * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void LLRP_CSYS_assimilateSubParameters(LLRP_tSCSYS * pThis, LLRP_tSErrorDetails * pError);
+
+extern void LLRP_CSYS_encode(const LLRP_tSCSYS * pThis, LLRP_tSEncoderStream * pEncoderStream);
 
 struct LLRP_SClientRequestAck {
 	LLRP_tSParameter hdr;
@@ -7551,7 +8425,7 @@ struct LLRP_SDeviceLog {
 
 	llrp_u32_t LogCode;
 
-	llrp_utf8v_t LogDescInfo;
+	llrp_u8v_t LogDescInfo;
 
 	LLRP_tSUTCTimestamp *pUTCTimestamp;
 
@@ -7594,9 +8468,9 @@ extern LLRP_tResultCode LLRP_DeviceLog_setLogCode(LLRP_tSDeviceLog * pThis, llrp
 
 extern const LLRP_tSFieldDescriptor LLRP_fdDeviceLog_LogDescInfo;
 
-extern llrp_utf8v_t LLRP_DeviceLog_getLogDescInfo(LLRP_tSDeviceLog * pThis);
+extern llrp_u8v_t LLRP_DeviceLog_getLogDescInfo(LLRP_tSDeviceLog * pThis);
 
-extern LLRP_tResultCode LLRP_DeviceLog_setLogDescInfo(LLRP_tSDeviceLog * pThis, llrp_utf8v_t Value);
+extern LLRP_tResultCode LLRP_DeviceLog_setLogDescInfo(LLRP_tSDeviceLog * pThis, llrp_u8v_t Value);
 
 extern LLRP_tSUTCTimestamp *LLRP_DeviceLog_getUTCTimestamp(LLRP_tSDeviceLog * pThis);
 
@@ -7606,7 +8480,7 @@ LLRP_DeviceLog_setUTCTimestamp(LLRP_tSDeviceLog * pThis, LLRP_tSUTCTimestamp * p
 struct LLRP_SDeviceEventNotificationSpec {
 	LLRP_tSParameter hdr;
 
-	LLRP_tSEventNotificationState *pEventNotificationState;
+	LLRP_tSEventNotificationState *listEventNotificationState;
 
 };
 
@@ -7631,11 +8505,23 @@ LLRP_DeviceEventNotificationSpec_encode(const LLRP_tSDeviceEventNotificationSpec
 										LLRP_tSEncoderStream * pEncoderStream);
 
 extern LLRP_tSEventNotificationState
-	*LLRP_DeviceEventNotificationSpec_getEventNotificationState(LLRP_tSDeviceEventNotificationSpec *
-																pThis);
+	*LLRP_DeviceEventNotificationSpec_beginEventNotificationState(LLRP_tSDeviceEventNotificationSpec
+																  * pThis);
+
+extern LLRP_tSEventNotificationState
+	*LLRP_DeviceEventNotificationSpec_nextEventNotificationState(LLRP_tSEventNotificationState *
+																 pCurrent);
+
+extern void
+LLRP_DeviceEventNotificationSpec_clearEventNotificationState(LLRP_tSDeviceEventNotificationSpec *
+															 pThis);
+
+extern int
+LLRP_DeviceEventNotificationSpec_countEventNotificationState(LLRP_tSDeviceEventNotificationSpec *
+															 pThis);
 
 extern LLRP_tResultCode
-LLRP_DeviceEventNotificationSpec_setEventNotificationState(LLRP_tSDeviceEventNotificationSpec *
+LLRP_DeviceEventNotificationSpec_addEventNotificationState(LLRP_tSDeviceEventNotificationSpec *
 														   pThis,
 														   LLRP_tSEventNotificationState * pValue);
 
@@ -7871,7 +8757,7 @@ extern LLRP_tResultCode LLRP_ModuleDepth_setIndex(LLRP_tSModuleDepth * pThis, ll
 struct LLRP_SIdentification {
 	LLRP_tSParameter hdr;
 
-	llrp_utf8v_t DeviceName;
+	llrp_u8v_t DeviceName;
 
 };
 
@@ -7897,10 +8783,10 @@ LLRP_Identification_encode(const LLRP_tSIdentification * pThis,
 
 extern const LLRP_tSFieldDescriptor LLRP_fdIdentification_DeviceName;
 
-extern llrp_utf8v_t LLRP_Identification_getDeviceName(LLRP_tSIdentification * pThis);
+extern llrp_u8v_t LLRP_Identification_getDeviceName(LLRP_tSIdentification * pThis);
 
 extern LLRP_tResultCode
-LLRP_Identification_setDeviceName(LLRP_tSIdentification * pThis, llrp_utf8v_t Value);
+LLRP_Identification_setDeviceName(LLRP_tSIdentification * pThis, llrp_u8v_t Value);
 
 struct LLRP_SAlarmConfiguration {
 	LLRP_tSParameter hdr;
@@ -8348,8 +9234,6 @@ struct LLRP_SServerModeConfiguration {
 
 	llrp_u16_t Port;
 
-	LLRP_tSIPAddress *pIPAddress;
-
 };
 
 extern const LLRP_tSTypeDescriptor LLRP_tdServerModeConfiguration;
@@ -8379,21 +9263,14 @@ extern llrp_u16_t LLRP_ServerModeConfiguration_getPort(LLRP_tSServerModeConfigur
 extern LLRP_tResultCode
 LLRP_ServerModeConfiguration_setPort(LLRP_tSServerModeConfiguration * pThis, llrp_u16_t Value);
 
-extern LLRP_tSIPAddress *LLRP_ServerModeConfiguration_getIPAddress(LLRP_tSServerModeConfiguration *
-																   pThis);
-
-extern LLRP_tResultCode
-LLRP_ServerModeConfiguration_setIPAddress(LLRP_tSServerModeConfiguration * pThis,
-										  LLRP_tSIPAddress * pValue);
-
 struct LLRP_SSerialLinkConfiguration {
 	LLRP_tSParameter hdr;
 
 	llrp_u8_t IfIndex;
 
-	llrp_u8_t SrcAddress;
+	llrp_u8_t SrcAddr;
 
-	llrp_u8_t DstAddress;
+	llrp_u8_t DstAddr;
 
 };
 
@@ -8424,24 +9301,24 @@ extern llrp_u8_t LLRP_SerialLinkConfiguration_getIfIndex(LLRP_tSSerialLinkConfig
 extern LLRP_tResultCode
 LLRP_SerialLinkConfiguration_setIfIndex(LLRP_tSSerialLinkConfiguration * pThis, llrp_u8_t Value);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdSerialLinkConfiguration_SrcAddress;
+extern const LLRP_tSFieldDescriptor LLRP_fdSerialLinkConfiguration_SrcAddr;
 
-extern llrp_u8_t LLRP_SerialLinkConfiguration_getSrcAddress(LLRP_tSSerialLinkConfiguration * pThis);
-
-extern LLRP_tResultCode
-LLRP_SerialLinkConfiguration_setSrcAddress(LLRP_tSSerialLinkConfiguration * pThis, llrp_u8_t Value);
-
-extern const LLRP_tSFieldDescriptor LLRP_fdSerialLinkConfiguration_DstAddress;
-
-extern llrp_u8_t LLRP_SerialLinkConfiguration_getDstAddress(LLRP_tSSerialLinkConfiguration * pThis);
+extern llrp_u8_t LLRP_SerialLinkConfiguration_getSrcAddr(LLRP_tSSerialLinkConfiguration * pThis);
 
 extern LLRP_tResultCode
-LLRP_SerialLinkConfiguration_setDstAddress(LLRP_tSSerialLinkConfiguration * pThis, llrp_u8_t Value);
+LLRP_SerialLinkConfiguration_setSrcAddr(LLRP_tSSerialLinkConfiguration * pThis, llrp_u8_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdSerialLinkConfiguration_DstAddr;
+
+extern llrp_u8_t LLRP_SerialLinkConfiguration_getDstAddr(LLRP_tSSerialLinkConfiguration * pThis);
+
+extern LLRP_tResultCode
+LLRP_SerialLinkConfiguration_setDstAddr(LLRP_tSSerialLinkConfiguration * pThis, llrp_u8_t Value);
 
 struct LLRP_SHttpLinkConfiguration {
 	LLRP_tSParameter hdr;
 
-	llrp_utf8v_t ServerUrl;
+	llrp_u8v_t ServerUrl;
 
 };
 
@@ -8467,10 +9344,10 @@ LLRP_HttpLinkConfiguration_encode(const LLRP_tSHttpLinkConfiguration * pThis,
 
 extern const LLRP_tSFieldDescriptor LLRP_fdHttpLinkConfiguration_ServerUrl;
 
-extern llrp_utf8v_t LLRP_HttpLinkConfiguration_getServerUrl(LLRP_tSHttpLinkConfiguration * pThis);
+extern llrp_u8v_t LLRP_HttpLinkConfiguration_getServerUrl(LLRP_tSHttpLinkConfiguration * pThis);
 
 extern LLRP_tResultCode
-LLRP_HttpLinkConfiguration_setServerUrl(LLRP_tSHttpLinkConfiguration * pThis, llrp_utf8v_t Value);
+LLRP_HttpLinkConfiguration_setServerUrl(LLRP_tSHttpLinkConfiguration * pThis, llrp_u8v_t Value);
 
 struct LLRP_SEthernetIpv4Configuration {
 	LLRP_tSParameter hdr;
@@ -8880,7 +9757,7 @@ extern LLRP_tResultCode LLRP_BdsLocation_setAltitude(LLRP_tSBdsLocation * pThis,
 struct LLRP_SSecurityModuleConfiguration {
 	LLRP_tSParameter hdr;
 
-	llrp_u8v_t ConfigData;
+	LLRP_tSGeneralConfigData *pGeneralConfigData;
 
 };
 
@@ -8904,14 +9781,206 @@ extern void
 LLRP_SecurityModuleConfiguration_encode(const LLRP_tSSecurityModuleConfiguration * pThis,
 										LLRP_tSEncoderStream * pEncoderStream);
 
-extern const LLRP_tSFieldDescriptor LLRP_fdSecurityModuleConfiguration_ConfigData;
-
-extern llrp_u8v_t
-LLRP_SecurityModuleConfiguration_getConfigData(LLRP_tSSecurityModuleConfiguration * pThis);
+extern LLRP_tSGeneralConfigData
+	*LLRP_SecurityModuleConfiguration_getGeneralConfigData(LLRP_tSSecurityModuleConfiguration *
+														   pThis);
 
 extern LLRP_tResultCode
-LLRP_SecurityModuleConfiguration_setConfigData(LLRP_tSSecurityModuleConfiguration * pThis,
-											   llrp_u8v_t Value);
+LLRP_SecurityModuleConfiguration_setGeneralConfigData(LLRP_tSSecurityModuleConfiguration * pThis,
+													  LLRP_tSGeneralConfigData * pValue);
+
+struct LLRP_SGeneralConfigData {
+	LLRP_tSParameter hdr;
+
+	LLRP_tSRTCTime *pRTCTime;
+
+	LLRP_tSSecurityModuleSN *pSecurityModuleSN;
+
+	LLRP_tSReadMode *pReadMode;
+
+	LLRP_tSPasswordVersion *pPasswordVersion;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdGeneralConfigData;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdGeneralConfigData[];
+
+extern LLRP_tSGeneralConfigData *LLRP_GeneralConfigData_construct(void);
+
+extern void LLRP_GeneralConfigData_destruct(LLRP_tSGeneralConfigData * pThis);
+
+extern void
+LLRP_GeneralConfigData_decodeFields(LLRP_tSGeneralConfigData * pThis,
+									LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_GeneralConfigData_assimilateSubParameters(LLRP_tSGeneralConfigData * pThis,
+											   LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_GeneralConfigData_encode(const LLRP_tSGeneralConfigData * pThis,
+							  LLRP_tSEncoderStream * pEncoderStream);
+
+extern LLRP_tSRTCTime *LLRP_GeneralConfigData_getRTCTime(LLRP_tSGeneralConfigData * pThis);
+
+extern LLRP_tResultCode
+LLRP_GeneralConfigData_setRTCTime(LLRP_tSGeneralConfigData * pThis, LLRP_tSRTCTime * pValue);
+
+extern LLRP_tSSecurityModuleSN *LLRP_GeneralConfigData_getSecurityModuleSN(LLRP_tSGeneralConfigData
+																		   * pThis);
+
+extern LLRP_tResultCode
+LLRP_GeneralConfigData_setSecurityModuleSN(LLRP_tSGeneralConfigData * pThis,
+										   LLRP_tSSecurityModuleSN * pValue);
+
+extern LLRP_tSReadMode *LLRP_GeneralConfigData_getReadMode(LLRP_tSGeneralConfigData * pThis);
+
+extern LLRP_tResultCode
+LLRP_GeneralConfigData_setReadMode(LLRP_tSGeneralConfigData * pThis, LLRP_tSReadMode * pValue);
+
+extern LLRP_tSPasswordVersion *LLRP_GeneralConfigData_getPasswordVersion(LLRP_tSGeneralConfigData *
+																		 pThis);
+
+extern LLRP_tResultCode
+LLRP_GeneralConfigData_setPasswordVersion(LLRP_tSGeneralConfigData * pThis,
+										  LLRP_tSPasswordVersion * pValue);
+
+struct LLRP_SRTCTime {
+	LLRP_tSParameter hdr;
+
+	llrp_u64_t Seconds;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdRTCTime;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdRTCTime[];
+
+extern LLRP_tSRTCTime *LLRP_RTCTime_construct(void);
+
+extern void LLRP_RTCTime_destruct(LLRP_tSRTCTime * pThis);
+
+extern void
+LLRP_RTCTime_decodeFields(LLRP_tSRTCTime * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_RTCTime_assimilateSubParameters(LLRP_tSRTCTime * pThis, LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_RTCTime_encode(const LLRP_tSRTCTime * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdRTCTime_Seconds;
+
+extern llrp_u64_t LLRP_RTCTime_getSeconds(LLRP_tSRTCTime * pThis);
+
+extern LLRP_tResultCode LLRP_RTCTime_setSeconds(LLRP_tSRTCTime * pThis, llrp_u64_t Value);
+
+struct LLRP_SSecurityModuleSN {
+	LLRP_tSParameter hdr;
+
+	llrp_u8v_t SerialNumber;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdSecurityModuleSN;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdSecurityModuleSN[];
+
+extern LLRP_tSSecurityModuleSN *LLRP_SecurityModuleSN_construct(void);
+
+extern void LLRP_SecurityModuleSN_destruct(LLRP_tSSecurityModuleSN * pThis);
+
+extern void
+LLRP_SecurityModuleSN_decodeFields(LLRP_tSSecurityModuleSN * pThis,
+								   LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_SecurityModuleSN_assimilateSubParameters(LLRP_tSSecurityModuleSN * pThis,
+											  LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_SecurityModuleSN_encode(const LLRP_tSSecurityModuleSN * pThis,
+							 LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdSecurityModuleSN_SerialNumber;
+
+extern llrp_u8v_t LLRP_SecurityModuleSN_getSerialNumber(LLRP_tSSecurityModuleSN * pThis);
+
+extern LLRP_tResultCode
+LLRP_SecurityModuleSN_setSerialNumber(LLRP_tSSecurityModuleSN * pThis, llrp_u8v_t Value);
+
+struct LLRP_SReadMode {
+	LLRP_tSParameter hdr;
+
+	llrp_u1_t RepeatReadFlag;
+
+	llrp_u32_t Timer;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdReadMode;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdReadMode[];
+
+extern LLRP_tSReadMode *LLRP_ReadMode_construct(void);
+
+extern void LLRP_ReadMode_destruct(LLRP_tSReadMode * pThis);
+
+extern void
+LLRP_ReadMode_decodeFields(LLRP_tSReadMode * pThis, LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_ReadMode_assimilateSubParameters(LLRP_tSReadMode * pThis, LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_ReadMode_encode(const LLRP_tSReadMode * pThis, LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdReadMode_RepeatReadFlag;
+
+extern llrp_u1_t LLRP_ReadMode_getRepeatReadFlag(LLRP_tSReadMode * pThis);
+
+extern LLRP_tResultCode LLRP_ReadMode_setRepeatReadFlag(LLRP_tSReadMode * pThis, llrp_u1_t Value);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdReadMode_Timer;
+
+extern llrp_u32_t LLRP_ReadMode_getTimer(LLRP_tSReadMode * pThis);
+
+extern LLRP_tResultCode LLRP_ReadMode_setTimer(LLRP_tSReadMode * pThis, llrp_u32_t Value);
+
+struct LLRP_SPasswordVersion {
+	LLRP_tSParameter hdr;
+
+	llrp_u8v_t VersionData;
+
+};
+
+extern const LLRP_tSTypeDescriptor LLRP_tdPasswordVersion;
+
+extern const LLRP_tSFieldDescriptor *LLRP_apfdPasswordVersion[];
+
+extern LLRP_tSPasswordVersion *LLRP_PasswordVersion_construct(void);
+
+extern void LLRP_PasswordVersion_destruct(LLRP_tSPasswordVersion * pThis);
+
+extern void
+LLRP_PasswordVersion_decodeFields(LLRP_tSPasswordVersion * pThis,
+								  LLRP_tSDecoderStream * pDecoderStream);
+
+extern void
+LLRP_PasswordVersion_assimilateSubParameters(LLRP_tSPasswordVersion * pThis,
+											 LLRP_tSErrorDetails * pError);
+
+extern void
+LLRP_PasswordVersion_encode(const LLRP_tSPasswordVersion * pThis,
+							LLRP_tSEncoderStream * pEncoderStream);
+
+extern const LLRP_tSFieldDescriptor LLRP_fdPasswordVersion_VersionData;
+
+extern llrp_u8v_t LLRP_PasswordVersion_getVersionData(LLRP_tSPasswordVersion * pThis);
+
+extern LLRP_tResultCode
+LLRP_PasswordVersion_setVersionData(LLRP_tSPasswordVersion * pThis, llrp_u8v_t Value);
 
 struct LLRP_SVersionInfo {
 	LLRP_tSParameter hdr;
@@ -8932,7 +10001,7 @@ struct LLRP_SVersionInfo {
 
 	LLRP_tECanRun eCanRun;
 
-	llrp_utf8v_t VerDescInfo;
+	llrp_u8v_t VerDescInfo;
 
 };
 
@@ -9005,10 +10074,10 @@ extern LLRP_tResultCode LLRP_VersionInfo_setCanRun(LLRP_tSVersionInfo * pThis, L
 
 extern const LLRP_tSFieldDescriptor LLRP_fdVersionInfo_VerDescInfo;
 
-extern llrp_utf8v_t LLRP_VersionInfo_getVerDescInfo(LLRP_tSVersionInfo * pThis);
+extern llrp_u8v_t LLRP_VersionInfo_getVerDescInfo(LLRP_tSVersionInfo * pThis);
 
 extern LLRP_tResultCode
-LLRP_VersionInfo_setVerDescInfo(LLRP_tSVersionInfo * pThis, llrp_utf8v_t Value);
+LLRP_VersionInfo_setVerDescInfo(LLRP_tSVersionInfo * pThis, llrp_u8v_t Value);
 
 struct LLRP_SVersionDownload {
 	LLRP_tSParameter hdr;
@@ -9098,7 +10167,7 @@ struct LLRP_SAlarmReportInfo {
 
 	llrp_u32_t AlarmReportSeconds;
 
-	llrp_utf8v_t AlarmReportDescription;
+	llrp_u8v_t AlarmReportDescription;
 
 };
 
@@ -9154,10 +10223,10 @@ LLRP_AlarmReportInfo_setAlarmReportSeconds(LLRP_tSAlarmReportInfo * pThis, llrp_
 
 extern const LLRP_tSFieldDescriptor LLRP_fdAlarmReportInfo_AlarmReportDescription;
 
-extern llrp_utf8v_t LLRP_AlarmReportInfo_getAlarmReportDescription(LLRP_tSAlarmReportInfo * pThis);
+extern llrp_u8v_t LLRP_AlarmReportInfo_getAlarmReportDescription(LLRP_tSAlarmReportInfo * pThis);
 
 extern LLRP_tResultCode
-LLRP_AlarmReportInfo_setAlarmReportDescription(LLRP_tSAlarmReportInfo * pThis, llrp_utf8v_t Value);
+LLRP_AlarmReportInfo_setAlarmReportDescription(LLRP_tSAlarmReportInfo * pThis, llrp_u8v_t Value);
 
 struct LLRP_SAlarmRestoreInfo {
 	LLRP_tSParameter hdr;
@@ -9479,6 +10548,10 @@ extern const LLRP_tSTypeDescriptor LLRP_tdMatchSpec;
 extern llrp_bool_t LLRP_OpSpec_isMember(LLRP_tSParameter * pParameter);
 
 extern const LLRP_tSTypeDescriptor LLRP_tdOpSpec;
+
+extern llrp_bool_t LLRP_SelectSpecResult_isMember(LLRP_tSParameter * pParameter);
+
+extern const LLRP_tSTypeDescriptor LLRP_tdSelectSpecResult;
 
 extern llrp_bool_t LLRP_AccessSpecResult_isMember(LLRP_tSParameter * pParameter);
 

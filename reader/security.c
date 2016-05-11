@@ -177,13 +177,13 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 	printf("%s: +\n", __func__);
 #endif
 
-	info->wait_ref ++;
+	info->wait_ref++;
 
 	while (!resultReceived) {
 		ret = pthread_cond_timedwait(&info->cond, &info->lock, &outtime);
 		if (ret == ETIMEDOUT) {
 			printf("%s: timeout for type=%d, cmd %d\n", __func__, type, cmd);
-			info->wait_ref --;
+			info->wait_ref--;
 			return ret;
 		}
 
@@ -198,7 +198,7 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 				if (result_list->result.hdr.type == ERROR_TYPE) {
 					printf("%s: Got a error frame, errno=%d.\n", __func__,
 						   result_list->result.hdr.cmd);
-					info->wait_ref --;
+					info->wait_ref--;
 					return result_list->result.hdr.cmd;
 				}
 
@@ -224,7 +224,7 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 #ifdef DEBUG
 	printf("%s: -\n", __func__);
 #endif
-	info->wait_ref --;
+	info->wait_ref--;
 	return ret;
 }
 

@@ -46,12 +46,13 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 
 	security->uhf = (void *)p_uhf;
 
-//	ret = security_set_rtc(security);
-
 	sec_rand = security_request_rand_num(security);
 
 	ret = security_send_auth_data(security, sec_rand);
 	p_uhf->sec_auth_status = ret;
+
+//  ret = security_set_rtc(security);
+
 	printf("%s: security_send_auth_data ret = %d.\n", __func__, ret);
 
 	return ret;
