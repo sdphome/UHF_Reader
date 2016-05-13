@@ -426,7 +426,7 @@ static void upper_request_ErrorAck(upper_info_t * info, LLRP_tEStatusCode status
 	if (pEA != NULL)
 		LLRP_ErrorAck_destruct(pEA);
 }
-*/
+
 static int upper_request_Disconnect(upper_info_t * info)
 {
 	int ret = NO_ERROR;
@@ -458,6 +458,7 @@ static int upper_request_Disconnect(upper_info_t * info)
 
 	return ret;
 }
+*/
 
 static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDis)
 {
@@ -515,7 +516,7 @@ static int upper_request_Keepalive(upper_info_t * info)
 }
 
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
-										llrp_u8_t anten_no, llrp_u64_t timestamp)
+										llrp_u8_t anten_no, llrp_u64_t timestamp, void * part_data)
 {
 	int ret = NO_ERROR;
 	tag_list_t *curr_list;
@@ -924,10 +925,14 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					upper_trans_ip(dns, LLRP_EthernetIpv4Configuration_getDNSAddr(pEIV4C));
 
 					memset(cmd, 0, 128);
-					sprintf(cmd, "setup_ip.sh %s %s %s %s", ip, mask, gate, dns);
+					sprintf(cmd, "setup_ip.sh static %s %s %s %s", ip, mask, gate, dns);
 					system(cmd);
 				} else {
-					/* TODO: dhcp */
+					char cmd[32];
+
+					memset(cmd, 0, sizeof(cmd));
+					sprintf(cmd, "setup_ip.sh auto");
+					system(cmd);
 				}
 			}
 		}
@@ -959,7 +964,6 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					file_write_data((uint8_t *) "\n", fp, 1);
 					fclose(fp);
 				}
-
 			}
 			system("ntpd");
 		}
@@ -973,8 +977,15 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	LLRP_SetDeviceConfigAck_setStatus(pSDC_Ack, pStatus);
 
   out:
-	LLRP_SetDeviceConfig_destruct(pThis);
-	LLRP_SetDeviceConfigAck_destruct(pSDC_Ack);
+	lock_upper(&info->upload_lock);
+	upper_send_message(info, &pSDC_Ack->hdr);
+	unlock_upper(&info->upload_lock);
+
+	if (pThis != NULL)
+		LLRP_SetDeviceConfig_destruct(pThis);
+
+	if (pSDC_Ack != NULL)
+		LLRP_SetDeviceConfigAck_destruct(pSDC_Ack);
 
 	return ret;
 }
@@ -1050,10 +1061,71 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	LLRP_SetVersion_destruct(pThis);
 }
 
+// 704
+static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersion * pThis)
+{
+	int ret;
+	LLRP_tEVerType type;
+	char *message = NULL;
+	LLRP_tSActiveVersionAck * pAck = NULL;
+	LLRP_tSStatus * pStatus = NULL;
+
+	type = LLRP_ActiveVersion_getVerType(pThis);
+
+	/* TODO: */
+	switch (type) {
+		case LLRP_VerType_ReadBoot:
+			break;
+		case LLRP_VerType_ReadSystem:
+			break;
+		case LLRP_VerType_SecurityModuleSystem:
+			break;
+		case LLRP_VerType_SecurityChipSystem:
+			ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
+										SECURITY_FW_DEFAULT_PATH);
+			if (ret == -ENOENT)
+				message = "No such file";
+			else if (ret == -FAILED)
+				message = "Upgrade failed";
+			else
+				message = "Unknow error";
+			break;
+		case LLRP_VerType_RadioModule:
+			ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
+			break;
+		default:
+			ret = -FAILED;
+			message = "No such version type";
+			printf("%s: error version type : %d.\n", __func__, type);
+	}
+
+	pAck = LLRP_ActiveVersionAck_construct();
+	if (pAck == NULL)
+		goto out;
+
+	pStatus = upper_setup_status(-ret, message);
+	if (pStatus == NULL)
+		goto out;
+
+	LLRP_ActiveVersionAck_setStatus(pAck, pStatus);
+
+	lock_upper(&info->upload_lock);
+	upper_send_message(info, &pAck->hdr);
+	unlock_upper(&info->upload_lock);
+
+out:
+	if (pThis != NULL)
+		LLRP_ActiveVersion_destruct(pThis);
+
+	if (pAck != NULL)
+		LLRP_ActiveVersionAck_destruct(pAck);
+}
+
 // 760
 static void upper_process_ResetDevice(upper_info_t * info)
 {
-	upper_request_Disconnect(info);
+	/* May need reconnect after reboot */
+	//upper_request_Disconnect(info);
 	sync();
 	system("reboot");
 }
@@ -1125,6 +1197,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_SetVersion(info, (LLRP_tSSetVersion *) pRequest);
 		  break;
 	  case 704:				//ActiveVersion
+		  upper_process_ActiveVersion(info, (LLRP_tSActiveVersion *) pRequest);
 		  break;
 	  case 706:				//UnAciveVersion
 		  break;

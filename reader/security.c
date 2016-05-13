@@ -1022,7 +1022,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 	if (file == NULL) {
 		printf("%s: file is null.\n", __func__);
-		return -FAILED;
+		return -ENOENT;
 	}
 
 	security_reset(info->fd);
@@ -1122,25 +1122,21 @@ static void security_upload_part(security_info_t * info, security_package_t * up
 
 	switch (err_type) {
 	  case NO_ERROR:{
-
-/*
-			if (upload->hdr.version == SECURITY_VERSION_1) {
-				tid_upload_v1_param *param;
-				param = (tid_upload_v1_param *)upload->payload;
-				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
-							param->tid, param->ante_no, param->time);
-			} else {
-*/
 			  part_data_upload_v2_param *param;
+			  sec_u8v_t part_data;
+			  memset(&part_data, 0, sizeof(part_data));
 			  param = (part_data_upload_v2_param *) upload->payload;
+
+			  part_data.nValue = upload->hdr.len - PART_DATA_UPLOAD_V2_PARAM_SIZE -1;
+			  part_data.pValue = (uint8_t *)malloc(part_data.nValue);
+			  if (part_data.pValue == NULL)
+				  part_data.nValue = 0;
+
 			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL) {
 				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
-													  param->tid, param->ante_no, param->time);
+													  param->tid, param->ante_no, param->time, (void *)&part_data);
 			  }
 
-/*
-			}
-*/
 			  free(upload->payload);
 			  upload->payload = NULL;
 			  break;
@@ -1161,27 +1157,14 @@ static void security_upload_tid(security_info_t * info, security_package_t * upl
 
 	err_type = *upload->payload;
 
-//  printf("%s: error_type = 0x%x.\n", __func__, err_type);
 	switch (err_type) {
 	  case NO_ERROR:{
-
-/*
-			if (upload->hdr.version == SECURITY_VERSION_1) {
-				tid_upload_v1_param *param;
-				param = (tid_upload_v1_param *)upload->payload;
-				upper_request_TagSelectAccessReport(((uhf_info_t *)(info->uhf))->upper,
-							param->tid, param->ante_no, param->time);
-			} else {
-*/
 			  tid_upload_v2_param *param;
 			  param = (tid_upload_v2_param *) upload->payload;
 			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL)
 				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
-													  param->tid, param->ante_no, param->time);
+													  param->tid, param->ante_no, param->time, (void *)NULL);
 
-/*
-			}
-*/
 			  free(upload->payload);
 			  upload->payload = NULL;
 			  break;

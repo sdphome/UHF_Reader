@@ -131,6 +131,13 @@ enum security_status {
 
 #define NO_PARAM_SIZE					1
 
+typedef struct
+{
+    uint16_t                  nValue;
+    uint8_t *                 pValue;
+} sec_u8v_t;
+
+
 typedef struct {
 	uint32_t time;
 } __attribute__ ((packed)) timestamp_v1_param;
