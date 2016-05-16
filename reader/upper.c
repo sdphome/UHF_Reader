@@ -560,6 +560,12 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			new_tag = false;
 			tag_list->tag.TagSeenCount += 1;
 			tag_list->tag.LastSeenTimestampUTC = timestamp;
+			if (tag_list->tag.PartData.nValue == 0 && part_data != NULL) {
+				tag_list->tag.PartData = *(llrp_u8v_t *)part_data;
+				tag_list->tag.FirstTime = true;
+			} else {
+				tag_list->tag.FirstTime = false;
+			}
 			break;
 		}
 		tag_list = tag_list->next;
@@ -567,6 +573,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 
 	if (new_tag) {
 		curr_list = (tag_list_t *) malloc(sizeof(tag_list_t));
+		memset(curr_list, 0, sizeof(tag_list_t));
 		if (curr_list == NULL)
 			goto out;
 		memset(curr_list, 0, sizeof(tag_list_t));
@@ -579,6 +586,11 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.LastSeenTimestampUTC = timestamp;
 		curr_list->tag.AccessSpecID = 1;
 		curr_list->tag.TagSeenCount = 1;
+		curr_list->tag.FirstTime = true;
+		if (part_data != NULL) {
+			curr_list->tag.PartData = *(llrp_u8v_t *)part_data;
+		}
+
 		if (tag_list_prev == NULL)
 			info->tag_list = curr_list;
 		else
@@ -1255,10 +1267,11 @@ void *upper_upload_loop(void *data)
 
 			while (tag_list != NULL) {
 				tag_info_t *tag_info = &tag_list->tag;
-				/* FIXME: maybe other time */
+				/* FIXME: maybe other condiction */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
 					(tag_info->TagSeenCount > info->tag_spec.NValue &&
-					 tag_info->TagSeenCount % info->tag_spec.NValue == 0)) {
+					 tag_info->TagSeenCount % info->tag_spec.NValue == 0) ||
+					tag_info->FirstTime == true) {
 					LLRP_tSTagReportData *pTRD = NULL;
 					llrp_u8v_t Tid;
 
@@ -1321,6 +1334,9 @@ void *upper_upload_loop(void *data)
 						LLRP_TagSeenCount_setTagCount(pTSC, tag_info->TagSeenCount);
 						LLRP_TagReportData_setTagSeenCount(pTRD, pTSC);
 					}
+
+					/* TODO: add tag part data info */
+					// free part data memory
 
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}

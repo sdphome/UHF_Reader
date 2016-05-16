@@ -59,6 +59,8 @@ typedef struct tag_info {
 	uint64_t LastSeenTimestampUTC;
 	uint16_t TagSeenCount;
 	uint32_t AccessSpecID;
+	llrp_u8v_t PartData;
+	uint8_t FirstTime;
 } tag_info_t;
 
 typedef struct tag_list {
