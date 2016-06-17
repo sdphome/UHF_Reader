@@ -305,7 +305,7 @@ int upper_notify_connected_event(upper_info_t * info)
 									   ((uint64_t) now.tv_usec) / 1000));
 	LLRP_DeviceEventNotification_setUTCTimestamp(pThis, pTimestamp);
 
-	LLRP_ConnectionAttemptEvent_setConnectionStatus(pCAE, LLRP_ConnectionStatus_Success);
+	LLRP_ConnectionAttemptEvent_setConnectionStatus(pCAE, LLRP_ConnectionAttemptEventStatusType_Success);
 	LLRP_DeviceEventNotification_setConnectionAttemptEvent(pThis, pCAE);
 
 	lock_upper(&info->lock);
@@ -352,7 +352,7 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status, char *str)
 {
 	LLRP_tSStatus *pStatus;
-	llrp_u8v_t description;
+	llrp_utf8v_t description;
 
 	memset(&description, 0, sizeof(llrp_utf8v_t));
 	pStatus = LLRP_Status_construct();
@@ -666,9 +666,9 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 			goto out;
 
 		if (ret == NO_ERROR)
-			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, "BINDING SUCCESS!");
+			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, NULL); //"BINDING SUCCESS!");
 		else
-			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, "BINDING FAILED!");
+			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, NULL); //"BINDING FAILED!");
 
 		LLRP_DeviceBindingResultNotification_setStatus(pDBRN, pStatus);
 
@@ -702,7 +702,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	int ret = NO_ERROR;
 	LLRP_tSDeviceCertificateConfigAck *pDCC_Ack;
 	LLRP_tSStatus *pStatus;
-	llrp_u8v_t Error;
+	llrp_utf8v_t Error;
 	llrp_u8v_t pCer;
 	llrp_u8v_t pUser;
 
@@ -892,11 +892,11 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 		for (pCLC = LLRP_CommunicationConfiguration_beginCommLinkConfiguration(pCC);
 			 pCLC != NULL; pCLC = LLRP_CommunicationConfiguration_nextCommLinkConfiguration(pCLC)) {
 			/* Just support TCP now */
-			if (LLRP_CommLinkConfiguration_getLinkType(pCLC) == LLRP_LinkType_TCP) {
+			if (LLRP_CommLinkConfiguration_getLinkType(pCLC) == LLRP_CommLinkType_Tcp) {
 				LLRP_tSKeepaliveSpec *pKS = NULL;
 				LLRP_tSTcpLinkConfiguration *pTLC = NULL;
 				pKS = LLRP_CommLinkConfiguration_getKeepaliveSpec(pCLC);
-				if (LLRP_KeepaliveSpec_getKeepaliveTrigger(pKS))
+				if (LLRP_KeepaliveSpec_getKeepaliveTriggerType(pKS))
 					info->heartbeats_periodic = LLRP_KeepaliveSpec_getPeriodicTriggerValue(pKS);
 				else
 					info->heartbeats_periodic = 0;
@@ -904,7 +904,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 				pTLC = LLRP_CommLinkConfiguration_getTcpLinkConfiguration(pCLC);
 				if (pTLC != NULL) {
 					/* Just support Server mode now */
-					if (LLRP_TcpLinkConfiguration_getCommMode(pTLC) == LLRP_CommMode_ServerMode) {
+					if (LLRP_TcpLinkConfiguration_getCommMode(pTLC) == LLRP_TcpLinkCommMode_Server) {
 						LLRP_tSServerModeConfiguration *pSMC = NULL;
 						pSMC = LLRP_TcpLinkConfiguration_getServerModeConfiguration(pTLC);
 						if (pSMC != NULL)
@@ -954,7 +954,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 			// upper_config_ntpd(info, pNTPC);
 			LLRP_tSIPAddress *pIPA = NULL;
 			/* TODO: setup ntp */
-			info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodic(pNTPC) * 3600;
+			info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodicTime(pNTPC) * 3600;
 			system("mv /etc/ntp.conf /etc/ntp.conf.bak");
 			for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
 				 pIPA != NULL; pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
@@ -1017,15 +1017,15 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 
 	memset(cmd, 0, 100);
 
-	if (pThis->eVerType == LLRP_VerType_ReadBoot) {
+	if (pThis->eVerType == LLRP_VersionType_Device_Boot) {
 		local_file = "boot.bin";
-	} else if (pThis->eVerType == LLRP_VerType_ReadSystem) {
+	} else if (pThis->eVerType == LLRP_VersionType_Device_Sys) {
 		local_file = "system.bin";
-	} else if (pThis->eVerType == LLRP_VerType_SecurityModuleSystem) {
+	} else if (pThis->eVerType == LLRP_VersionType_Device_Sys) {
 		local_file = "security.bin";
-	} else if (pThis->eVerType == LLRP_VerType_SecurityChipSystem) {
+	} else if (pThis->eVerType == LLRP_VersionType_Security_Chip_Sys) {
 		local_file = "sec_chip.bin";
-	} else if (pThis->eVerType == LLRP_VerType_RadioModule) {
+	} else if (pThis->eVerType == LLRP_VersionType_Security_Module_Pwd) {
 		local_file = "radio.bin";
 	} else {
 		goto out;
@@ -1037,7 +1037,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	}
 
 	server_type = LLRP_VersionDownload_getServerType(pVD);
-	if (server_type != LLRP_ServerType_Ftp || server_type != LLRP_ServerType_Tftp) {
+	if (server_type != LLRP_VersionDownloadServerType_Ftp || server_type != LLRP_VersionDownloadServerType_Tftp) {
 		goto out;
 	} else {
 		uint8_t ip[16];
@@ -1047,8 +1047,8 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 
 		upper_trans_ip(ip, *(pIP->Address.pValue));
 
-		if (server_type == LLRP_ServerType_Ftp)
-			sprintf(cmd, "ftpget -u %s -p %s %s %s %s", pVD->Username.pValue,
+		if (server_type == LLRP_VersionDownloadServerType_Ftp)
+			sprintf(cmd, "ftpget -u %s -p %s %s %s %s", pVD->UserName.pValue,
 					pVD->UserPass.pValue, ip, local_file, pVD->VersionPath.pValue);
 		else
 			sprintf(cmd, "tftp -l %s -r %s -g %s", local_file, pVD->VersionPath.pValue, ip);
@@ -1077,7 +1077,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersion * pThis)
 {
 	int ret;
-	LLRP_tEVerType type;
+	LLRP_tEVersionType type;
 	char *message = NULL;
 	LLRP_tSActiveVersionAck * pAck = NULL;
 	LLRP_tSStatus * pStatus = NULL;
@@ -1086,13 +1086,13 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 
 	/* TODO: */
 	switch (type) {
-		case LLRP_VerType_ReadBoot:
+		case LLRP_VersionType_Device_Boot:
 			break;
-		case LLRP_VerType_ReadSystem:
+		case LLRP_VersionType_Device_Sys:
 			break;
-		case LLRP_VerType_SecurityModuleSystem:
+		case LLRP_VersionType_Security_Module_Sys:
 			break;
-		case LLRP_VerType_SecurityChipSystem:
+		case LLRP_VersionType_Security_Chip_Sys:
 			ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
 										SECURITY_FW_DEFAULT_PATH);
 			if (ret == -ENOENT)
@@ -1102,7 +1102,7 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 			else
 				message = "Unknow error";
 			break;
-		case LLRP_VerType_RadioModule:
+		case LLRP_VersionType_Security_Module_Pwd:
 			ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
 			break;
 		default:
