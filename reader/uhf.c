@@ -67,7 +67,7 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 
 #ifndef TEST
 	printf("%s: start continue check.\n", __func__);
-	ret = radio_set_conti_check(radio);
+	//ret = radio_set_conti_check(radio);
 #endif
 
 	return ret;
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 	uhf_info_t *p_uhf;
 
 	/* TODO: setup rtc */
-	system("ntpd");
+	//system("ntpd");
 
 	signal(SIGSEGV, uhf_print_trace);
 	signal(SIGABRT, uhf_print_trace);
@@ -296,20 +296,22 @@ int main(int argc, char **argv)
 	signal(SIGSTOP, uhf_stop);
 
 	ret = alloc_radio(&p_uhf->radio);
+/*
 	ret += alloc_security(&p_uhf->security);
 	if (ret != NO_ERROR)
 		goto alloc_failed;
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
+*/
 
-/*
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)
 		goto start_failed;
 
 	uhf_init_radio(p_uhf);
-*/
+
+	radio_main(p_uhf->radio);
 
 /*
 	ret = uhf_init_security(p_uhf);
@@ -317,6 +319,7 @@ int main(int argc, char **argv)
 		goto start_failed;
 */
 
+/*
 	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
 	sleep(30);
 
@@ -328,6 +331,8 @@ int main(int argc, char **argv)
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
+
+*/
 
 //  security_main(p_uhf->security);
 

@@ -850,29 +850,6 @@ LLRP_nsdescuhf;
  */
 
 
-enum LLRP_EStatusCode
-{
-
-    LLRP_StatusCode_M_Success = 0,
-    LLRP_StatusCode_M_ReaderExcessTemperature = 1,
-    LLRP_StatusCode_M_ReaderLowTemperature = 2,
-    LLRP_StatusCode_M_TemperatureSensorBroken = 3,
-    LLRP_StatusCode_M_HighCPUUtility = 4,
-    LLRP_StatusCode_M_HighMemoryUtility = 5,
-    LLRP_StatusCode_M_NTPUpdateException = 6,
-    LLRP_StatusCode_M_PSAMBroken = 7,
-    LLRP_StatusCode_M_PLLBroken = 8,
-    LLRP_StatusCode_M_SecurityExcessTemperature = 16777217,
-    LLRP_StatusCode_M_SecurityLowPower = 16777218,
-};
-
-typedef enum LLRP_EStatusCode
-    LLRP_tEStatusCode;
-
-extern const LLRP_tSEnumTableEntry
-LLRP_estStatusCode[];
-
-
 enum LLRP_EGPIEventType
 {
 
@@ -6383,7 +6360,7 @@ struct LLRP_SStatus
 {
     LLRP_tSParameter hdr;
   
-    LLRP_tEStatusCode eStatusCode;
+    llrp_u32_t StatusCode;
 
     llrp_utf8v_t ErrorDescription;
 
@@ -6424,14 +6401,14 @@ LLRP_Status_encode (
 extern const LLRP_tSFieldDescriptor
 LLRP_fdStatus_StatusCode;
 
-extern LLRP_tEStatusCode
+extern llrp_u32_t
 LLRP_Status_getStatusCode (
   LLRP_tSStatus *pThis);
 
 extern LLRP_tResultCode
 LLRP_Status_setStatusCode (
   LLRP_tSStatus *pThis,
-  LLRP_tEStatusCode Value);
+  llrp_u32_t Value);
 
 extern const LLRP_tSFieldDescriptor
 LLRP_fdStatus_ErrorDescription;

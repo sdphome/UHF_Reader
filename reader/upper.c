@@ -273,7 +273,7 @@ static int upper_check_llrp_status(LLRP_tSStatus * pLLRPStatus, char *pWhatStr)
 		return -FAILED;
 	}
 
-	if (pLLRPStatus->eStatusCode != LLRP_StatusCode_M_Success) {
+	if (pLLRPStatus->eStatusCode != 0) {
 		if (pLLRPStatus->ErrorDescription.nValue == 0) {
 			printf("ERROR: %s failed, no error description given\n", pWhatStr);
 		} else {
@@ -349,7 +349,7 @@ static int upper_write_to_file(char *path, llrp_u8v_t * data)
 	return ret;
 }
 
-static LLRP_tSStatus *upper_setup_status(LLRP_tEStatusCode status, char *str)
+static LLRP_tSStatus *upper_setup_status(llrp_u32_t status, char *str)
 {
 	LLRP_tSStatus *pStatus;
 	llrp_utf8v_t description;
@@ -654,7 +654,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 		binding_result = LLRP_DeviceBindingAck_getBindingResultData(pAck);
 		pStatus = LLRP_DeviceBindingAck_getStatus(pAck);
 
-		if (LLRP_Status_getStatusCode(pStatus) == LLRP_StatusCode_M_Success) {
+		if (LLRP_Status_getStatusCode(pStatus) == 0) {
 			ret = security_send_active_auth(((uhf_info_t *) (info->uhf))->security,
 											binding_result.pValue, binding_result.nValue);
 		} else {
@@ -666,9 +666,9 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 			goto out;
 
 		if (ret == NO_ERROR)
-			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, NULL); //"BINDING SUCCESS!");
+			pStatus = upper_setup_status(0, NULL); //"BINDING SUCCESS!");
 		else
-			pStatus = upper_setup_status(LLRP_StatusCode_M_Success, NULL); //"BINDING FAILED!");
+			pStatus = upper_setup_status(0, NULL); //"BINDING FAILED!");
 
 		LLRP_DeviceBindingResultNotification_setStatus(pDBRN, pStatus);
 
@@ -709,7 +709,7 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	pDCC_Ack = LLRP_DeviceCertificateConfigAck_construct();
 	pStatus = LLRP_Status_construct();
 	memset(&Error, 0, sizeof(llrp_utf8v_t));
-	LLRP_Status_setStatusCode(pStatus, LLRP_StatusCode_M_Success);
+	LLRP_Status_setStatusCode(pStatus, 0);
 	LLRP_Status_setErrorDescription(pStatus, Error);
 	LLRP_DeviceCertificateConfigAck_setStatus(pDCC_Ack, pStatus);
 	pDCC_Ack->hdr.MessageID = pDCC->hdr.MessageID;
@@ -759,7 +759,7 @@ static int upper_process_UploadTagLog(upper_info_t * info, LLRP_tSUploadTagLog *
 	int ret = NO_ERROR;
 	LLRP_tSUploadTagLogAck *pUTL_Ack = NULL;
 	LLRP_tSStatus *pStatus = NULL;
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+	llrp_u32_t status = 0;
 
 	/* TODO: upload tag log */
 
@@ -784,7 +784,7 @@ static int upper_process_ClearTagLog(upper_info_t * info, LLRP_tSClearTagLog * p
 	int ret = NO_ERROR;
 	LLRP_tSClearTagLogAck *pCTL_Ack = NULL;
 	LLRP_tSStatus *pStatus = NULL;
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+	llrp_u32_t status = 0;
 
 	/* TODO: clear tag log */
 
@@ -811,7 +811,7 @@ static int upper_process_UploadDeviceLog(upper_info_t * info, LLRP_tSUploadDevic
 	int ret = NO_ERROR;
 	LLRP_tSUploadDeviceLogAck *pUDL_Ack = NULL;
 	LLRP_tSStatus *pStatus = NULL;
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+	llrp_u32_t status = 0;
 
 	/* TODO: upload device log */
 
@@ -837,7 +837,7 @@ static int upper_process_ClearDeviceLog(upper_info_t * info, LLRP_tSClearDeviceL
 	int ret = NO_ERROR;
 	LLRP_tSClearDeviceLogAck *pCDL_Ack = NULL;
 	LLRP_tSStatus *pStatus = NULL;
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+	llrp_u32_t status = 0;
 
 	/* TODO: clear device log */
 
@@ -870,7 +870,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	int ret = NO_ERROR;
 	LLRP_tSSetDeviceConfigAck *pSDC_Ack = NULL;
 	LLRP_tSStatus *pStatus;
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_Success;
+	llrp_u32_t status = 0;
 
 	// Identification Parameter
 	if (pThis->pIdentification != NULL) {
@@ -1013,7 +1013,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	LLRP_tSSetVersionAck *pAck = NULL;
 	LLRP_tSVersionDownload *pVD = NULL;
 	/* FIXME: it should be other status */
-	LLRP_tEStatusCode status = LLRP_StatusCode_M_ReaderExcessTemperature;
+	llrp_u32_t status = 5555;
 
 	memset(cmd, 0, 100);
 
@@ -1058,7 +1058,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	}
 
 	if (file_get_size(local_file, &filesize) == NO_ERROR && filesize > 0)
-		status = LLRP_StatusCode_M_Success;
+		status = 0;
 
   out:
 	pStatus = upper_setup_status(status, NULL);

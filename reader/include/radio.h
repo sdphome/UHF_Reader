@@ -27,7 +27,7 @@
 
 #define RADIO_PORT      "/dev/ttymxc1"
 
-#define RADIO_TIMEOUT					5
+#define RADIO_TIMEOUT					20
 #define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
 
 #define RADIO_FW_DEFAULT_PATH	"/uhf/fw/radio_fw.bin"

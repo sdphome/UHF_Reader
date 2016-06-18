@@ -391,11 +391,11 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 			}
 			memcpy(&rsp->end, temp, RADIO_PACK_END_SIZE);
 
-			radio_print_result(*rsp);
+			//radio_print_result(*rsp);
 
 			rsp->end.crc16 = conv_type16(rsp->end.crc16);
 
-/*
+
 			if (rsp->end.crc16 != calc_crc16_1(data, nrd)) {
 				printf("%s: crc by read:%x, crc by calc:%x\n", __func__,
 					   rsp->end.crc16, calc_crc16_1(data, nrd));
@@ -404,7 +404,6 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 					rsp->payload = NULL;
 				}
 			} else
-*/
 			{
 				rsp->hdr.len = len;
 				rsp->hdr.type = type;
@@ -425,6 +424,7 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 
 int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * payload)
 {
+	//int i;
 	int nwt;
 	int ret = NO_ERROR;
 	radio_pack_hdr hdr;
@@ -462,6 +462,12 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 		data = data + len;
 	}
 	memcpy(data, &end, RADIO_PACK_END_SIZE);
+/*
+	printf("Before send: ");
+	for (i = 0; i < total_len; i++)
+		printf("%4x", *(radio_info->data + i));
+	printf("\n");
+*/
 	nwt = write(radio_info->fd, radio_info->data, total_len);
 
 	if (nwt < 0) {
@@ -471,8 +477,8 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, total_len);
 		ret = -FAILED;
 	}
-	//printf("nwt=%d\n", nwt);
-	//printf("radio_write -\n");
+//	printf("nwt=%d\n", nwt);
+//	printf("radio_write -\n");
 	return ret;
 }
 
@@ -1037,19 +1043,19 @@ void radio_print_result(radio_result_t result)
 int radio_write_test(radio_info_t * radio_info)
 {
 	int ret = NO_ERROR;
-	uint8_t buf[4];
+	//uint8_t buf[4];
 	radio_result_t result;
 
 	printf("Enter %s\n", __func__);
-
+/*
 	buf[0] = 0xCC;
 	buf[1] = 0xDD;
 	buf[2] = 0xEE;
 	buf[3] = 0xAC;
-
+*/
 	lock_radio(&radio_info->c_lock);
 
-	ret = radio_write(radio_info, 0, 4, buf);
+	ret = radio_write(radio_info, 0, 0, NULL);
 	if (ret != NO_ERROR) {
 		unlock_radio(&radio_info->c_lock);
 		printf("write test cmd failed!\n");
@@ -1083,16 +1089,16 @@ int test_radio(radio_info_t * pr)
 	//  goto test_fail;
 	//}
 
-	//radio_write_test(pr);
+	ret = radio_write_test(pr);
 
-	//radio_get_status(pr);
+	ret = radio_get_status(pr);
 	/* set version */
 	//radio_set_version(pr);
 
 	/* disable fhss */
 	//radio_set_fhss(pr, false);
 
-	ret = radio_set_conti_check(pr);
+//	ret = radio_set_conti_check(pr);
 	/* enable no.4 antenna */
 	//radio_set_antenna_attr(pr, NO_TO_ATTR(4));
 
