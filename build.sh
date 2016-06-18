@@ -51,7 +51,8 @@ mkdir -p $IMAGE
 
 cd $ROOT_DIR/$READER
 make
-cp uhf $ROOT_DIR/rfs/$ROOTFS/home/root/
+
+cp uhf $ROOT_DIR/rfs/$ROOTFS/uhf/
 
 cd $ROOT_DIR/$UBOOT
 . build_uboot.sh $PLATFORM
