@@ -365,21 +365,22 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 	uint8_t *temp;
 	uint16_t len = 0;
 	uint16_t type = 0;
-	int i = 0;
+	//int i = 0;
 
 	//printf("%s: +\n", __func__);
 
 	nrd = read(fd, data, RADIO_MTU);
 	temp = data;
+/*
 	for (i = 0; i < nrd; i++) {
 		printf("%4x", data[i]);
 	}
 	printf("\n");
-
+*/
 	if (nrd >= RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
 		memcpy(&rsp->hdr, temp, RADIO_PACK_HDR_SIZE);
 		len = conv_type16(rsp->hdr.len);
-		printf("rsp->hdr.len=%x, len=%x.\n", rsp->hdr.len, len);
+		//printf("rsp->hdr.len=%x, len=%x.\n", rsp->hdr.len, len);
 		type = conv_type16(rsp->hdr.type);
 		if (nrd == len + RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
 			temp += RADIO_PACK_HDR_SIZE;

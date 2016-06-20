@@ -516,7 +516,7 @@ static int upper_request_Keepalive(upper_info_t * info)
 }
 
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
-										llrp_u8_t anten_no, llrp_u64_t timestamp, void * part_data)
+					llrp_u8_t anten_no, llrp_u64_t timestamp, void * part_data)
 {
 	int ret = NO_ERROR;
 	tag_list_t *curr_list;
@@ -1316,7 +1316,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
-																   tag_info->FirstSeenTimestampUTC);
+								tag_info->FirstSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
@@ -1324,7 +1324,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
 						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
-																  tag_info->LastSeenTimestampUTC);
+									tag_info->LastSeenTimestampUTC);
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
@@ -1336,7 +1336,157 @@ void *upper_upload_loop(void *data)
 					}
 
 					/* TODO: add tag part data info */
-					// free part data memory
+					// FIXME: free part data memory
+					if (tag_info->PartData.nValue) {
+						LLRP_tSCustomizedSelectSpecResult *pCSSR = NULL;
+						LLRP_tSReadDataInfo *pRDI = NULL;
+						data_param_t *data = NULL;
+						llrp_u8v_t tmp;
+						uint16_t pos = 0;
+
+						pCSSR = LLRP_CustomizedSelectSpecResult_construct();
+						LLRP_CustomizedSelectSpecResult_setResult(pCSSR, 0);
+
+						pRDI = LLRP_ReadDataInfo_construct();
+
+						tag_info->PartData.nValue -= 5;
+						for (; tag_info->PartData.nValue - pos >= 4; pos += (data->len + 4)) {
+							memset(&tmp, 0, sizeof(llrp_u8v_t));
+							data = (data_param_t *)(tag_info->PartData.pValue + pos);
+							tmp.nValue = data->len;
+							tmp.pValue = malloc(tmp.nValue);
+							memcpy(tmp.pValue, data->payload, tmp.nValue);
+
+							if (tag_info->PartData.nValue < pos + data->len)
+								break;
+
+							switch (data->type_code) {
+							case TYPE_CID:
+							{
+								LLRP_tSCID *pCID = NULL;
+
+								pCID = LLRP_CID_construct();
+								LLRP_CID_setCIDData(pCID, tmp);
+								LLRP_ReadDataInfo_setCID(pRDI, pCID);
+								break;
+							}
+							case TYPE_FPDH:
+							{
+								LLRP_tSFPDH *pFPDH = NULL;
+
+								pFPDH = LLRP_FPDH_construct();
+								LLRP_FPDH_setFPDHData(pFPDH, tmp);
+								LLRP_ReadDataInfo_setFPDH(pRDI, pFPDH);
+								break;
+							}
+							case TYPE_SYXZ:
+							{
+								LLRP_tSSYXZ *pSYXZ = NULL;
+
+								pSYXZ = LLRP_SYXZ_construct();
+								LLRP_SYXZ_setSYXZData(pSYXZ, tmp);
+								LLRP_ReadDataInfo_setSYXZ(pRDI, pSYXZ);
+								break;
+							}
+							case TYPE_CCRQ:
+							{
+								LLRP_tSCCRQ *pCCRQ = NULL;
+
+								pCCRQ = LLRP_CCRQ_construct();
+								LLRP_CCRQ_setCCRQData(pCCRQ, tmp);
+								LLRP_ReadDataInfo_setCCRQ(pRDI, pCCRQ);
+								break;
+							}
+							case TYPE_CLLX:
+							{
+								LLRP_tSCLLX *pCLLX = NULL;
+
+								pCLLX = LLRP_CLLX_construct();
+								LLRP_CLLX_setCLLXData(pCLLX, tmp);
+								LLRP_ReadDataInfo_setCLLX(pRDI, pCLLX);
+								break;
+							}
+							case TYPE_PL:
+							{
+								LLRP_tSPL *pPL = NULL;
+
+								pPL = LLRP_PL_construct();
+								LLRP_PL_setPLData(pPL, tmp);
+								LLRP_ReadDataInfo_setPL(pRDI, pPL);
+								break;
+							}
+							case TYPE_GL:
+							{
+								LLRP_tSGL *pGL = NULL;
+
+								pGL = LLRP_GL_construct();
+								LLRP_GL_setGLData(pGL, tmp);
+								LLRP_ReadDataInfo_setGL(pRDI, pGL);
+								break;
+							}
+							case TYPE_HPZL:
+							{
+								LLRP_tSHPZL *pHPZL = NULL;
+
+								pHPZL = LLRP_HPZL_construct();
+								LLRP_HPZL_setHPZLData(pHPZL, tmp);
+								LLRP_ReadDataInfo_setHPZL(pRDI, pHPZL);
+								break;
+							}
+							case TYPE_HPHMXH:
+							{
+								LLRP_tSHPHMXH *pHPHMXH = NULL;
+
+								pHPHMXH = LLRP_HPHMXH_construct();
+								LLRP_HPHMXH_setHPHMXHData(pHPHMXH, tmp);
+								LLRP_ReadDataInfo_setHPHMXH(pRDI, pHPHMXH);
+								break;
+							}
+							case TYPE_JYYXQ:
+							{
+								LLRP_tSJYYXQ *pJYYXQ = NULL;
+
+								pJYYXQ = LLRP_JYYXQ_construct();
+								LLRP_JYYXQ_setJYYXQData(pJYYXQ, tmp);
+								LLRP_ReadDataInfo_setJYYXQ(pRDI, pJYYXQ);
+								break;
+							}
+							case TYPE_QZBFQ:
+							{
+								LLRP_tSQZBFQ *pQZBFQ = NULL;
+
+								pQZBFQ = LLRP_QZBFQ_construct();
+								LLRP_QZBFQ_setQZBFQData(pQZBFQ, tmp);
+								LLRP_ReadDataInfo_setQZBFQ(pRDI, pQZBFQ);
+								break;
+							}
+							case TYPE_CSYS:
+							{
+								LLRP_tSCSYS *pCSYS = NULL;
+
+								pCSYS = LLRP_CSYS_construct();
+								LLRP_CSYS_setCSYSData(pCSYS, tmp);
+								LLRP_ReadDataInfo_setCSYS(pRDI, pCSYS);
+								break;
+							}
+							case TYPE_ZKZL:
+							{
+								LLRP_tSZKZL *pZKZL = NULL;
+
+								pZKZL = LLRP_ZKZL_construct();
+								LLRP_ZKZL_setZKZLData(pZKZL, tmp);
+								LLRP_ReadDataInfo_setZKZL(pRDI, pZKZL);
+								break;
+							}
+							default:
+								printf("%s: has no this data type %u.\n", __func__, data->type_code);
+								break;
+							}
+						}
+						LLRP_CustomizedSelectSpecResult_setReadDataInfo(pCSSR, pRDI);
+						LLRP_TagReportData_setSelectSpecResult(pTRD, (LLRP_tSParameter *)pCSSR);
+						free(tag_info->PartData.pValue);
+					}
 
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}

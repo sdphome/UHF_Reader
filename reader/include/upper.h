@@ -34,6 +34,25 @@
 
 #define DB_PATH	"/uhf/uhf.db"
 
+typedef struct data_param {
+#define TYPE_CID	0x8801
+#define TYPE_FPDH	0x8802
+#define TYPE_SYXZ	0x8803
+#define TYPE_CCRQ	0x8804
+#define TYPE_CLLX	0x8805
+#define TYPE_PL		0x8806
+#define TYPE_GL		0x8807
+#define TYPE_HPZL	0x8808
+#define TYPE_HPHMXH	0x8809
+#define TYPE_JYYXQ	0x880A
+#define TYPE_QZBFQ	0x880B
+#define TYPE_CSYS	0x880C
+#define TYPE_ZKZL	0x880D
+	uint16_t type_code;
+	uint16_t len;
+	uint8_t payload[0];
+} data_param_t;
+
 typedef struct select_report_spec {
 	uint8_t SelectReportTrigger;
 	uint16_t NValue;

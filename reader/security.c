@@ -38,7 +38,7 @@
 
 /* FIXME: undef it */
 //#define TEST
-#define DEBUG
+//#define DEBUG
 
 static inline int security_open(char *dev)
 {
@@ -1131,6 +1131,8 @@ static void security_upload_part(security_info_t * info, security_package_t * up
 			  part_data.pValue = (uint8_t *)malloc(part_data.nValue);
 			  if (part_data.pValue == NULL)
 				  part_data.nValue = 0;
+			  else
+				memcpy(part_data.pValue, param->data, part_data.nValue);
 
 			  if (info->uhf != NULL && ((uhf_info_t *) (info->uhf))->upper != NULL) {
 				  upper_request_TagSelectAccessReport(((uhf_info_t *) (info->uhf))->upper,
@@ -1208,7 +1210,7 @@ void *security_upload_loop(void *data)
 					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
 						if (upload.hdr.cmd == REPORT_TID) {
 							security_upload_tid(info, &upload);
-						} else if (upload.hdr.cmd == REPORT_PART) {
+						} else if (upload.hdr.cmd == REPORT_PART || upload.hdr.cmd == REPORT_PART_2) {
 							security_upload_part(info, &upload);
 							//printf("%s: Got REPORT_PART cmd.\n", __func__);
 						}
@@ -1250,6 +1252,8 @@ void *security_read_loop(void *data)
 			int i = 0;
 			printf("%s: nrd = %d\n", __func__, nrd);
 			for (i = 0; i < nrd; i++) {
+				if (!(i % 20))
+					printf("\n");
 				printf("%4x", *(buf + i));
 			}
 			printf("\n");
@@ -1498,30 +1502,18 @@ void test_security(security_info_t * pr)
 #endif
 	printf("***********************set_work_mode**************************\n");
 	part_info_param part1;
-	part_info_param part2;
 	memset(&part1, 0, PART_INFO_PARAM_SIZE);
-	memset(&part2, 0, PART_INFO_PARAM_SIZE);
 	part1.part_no = 0;
-	part1.part_indi = 1;
+	part1.part_indi = 2;
 	part1.ciphertext = 1;
-	part1.high_speed = 0;
+	part1.high_speed = 1;
 	part1.read_index = 0;
-	part1.read_len = 122;
-	part2.part_no = 2;
-	part2.part_indi = 2;
-	part2.ciphertext = 0;
-	part2.high_speed = 1;
-	part2.read_index = 0;
-	part2.read_len = 234;
-#if 0
-	setup_work_mode = (work_mode_param *) malloc(2 + 2 * 7);
-	setup_work_mode->num = 2;
+	part1.read_len = 0;
+
+	setup_work_mode = (work_mode_param *) malloc(1 + 7);
+	setup_work_mode->num = 1;
 	memcpy(setup_work_mode->data, (void *)&part1, 7);
-	memcpy(setup_work_mode->data + 7, (void *)&part2, 7);
-#else
-	setup_work_mode = (work_mode_param *) malloc(1);
-	setup_work_mode->num = 0;
-#endif
+
 	security_set_work_mode(pr, setup_work_mode);
 	free(setup_work_mode);
 #if 0
