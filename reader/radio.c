@@ -230,7 +230,7 @@ int radio_wait_result(radio_info_t * radio_info, uint8_t cmd, radio_result_t * r
 		outtime.tv_nsec = now.tv_usec * 1000;
 		ret = pthread_cond_timedwait(&radio_info->c_cond, &radio_info->c_lock, &outtime);
 		if (ret == ETIMEDOUT) {
-			printf("%s: timeout for cmd %x\n", __func__, cmd);
+			//printf("%s: timeout for cmd %x\n", __func__, cmd);
 			return ret;
 		} else
 			ret = NO_ERROR;
@@ -371,6 +371,7 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 
 	nrd = read(fd, data, RADIO_MTU);
 	temp = data;
+
 /*
 	for (i = 0; i < nrd; i++) {
 		printf("%4x", data[i]);
@@ -396,7 +397,6 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 
 			rsp->end.crc16 = conv_type16(rsp->end.crc16);
 
-
 			if (rsp->end.crc16 != calc_crc16_1(data, nrd)) {
 				printf("%s: crc by read:%x, crc by calc:%x\n", __func__,
 					   rsp->end.crc16, calc_crc16_1(data, nrd));
@@ -404,8 +404,7 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 					free(rsp->payload);
 					rsp->payload = NULL;
 				}
-			} else
-			{
+			} else {
 				rsp->hdr.len = len;
 				rsp->hdr.type = type;
 				ret = NO_ERROR;
@@ -463,6 +462,7 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 		data = data + len;
 	}
 	memcpy(data, &end, RADIO_PACK_END_SIZE);
+
 /*
 	printf("Before send: ");
 	for (i = 0; i < total_len; i++)
@@ -478,8 +478,8 @@ int radio_write(radio_info_t * radio_info, uint8_t cmd, uint16_t len, uint8_t * 
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, total_len);
 		ret = -FAILED;
 	}
-//	printf("nwt=%d\n", nwt);
-//	printf("radio_write -\n");
+//  printf("nwt=%d\n", nwt);
+//  printf("radio_write -\n");
 	return ret;
 }
 
@@ -1048,6 +1048,7 @@ int radio_write_test(radio_info_t * radio_info)
 	radio_result_t result;
 
 	printf("Enter %s\n", __func__);
+
 /*
 	buf[0] = 0xCC;
 	buf[1] = 0xDD;
@@ -1099,7 +1100,7 @@ int test_radio(radio_info_t * pr)
 	/* disable fhss */
 	//radio_set_fhss(pr, false);
 
-//	ret = radio_set_conti_check(pr);
+//  ret = radio_set_conti_check(pr);
 	/* enable no.4 antenna */
 	//radio_set_antenna_attr(pr, NO_TO_ATTR(4));
 

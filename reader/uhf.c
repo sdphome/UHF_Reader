@@ -198,6 +198,7 @@ static void uhf_print_trace(int signum)
 
 	free(strings);
 	fclose(fp);
+	// TODO: run reboot if exception
 	//system("reboot");
 	exit(1);
 }
@@ -312,12 +313,9 @@ int main(int argc, char **argv)
 
 	//radio_main(p_uhf->radio);
 
-
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-
 
 	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
 	sleep(30);
@@ -330,8 +328,6 @@ int main(int argc, char **argv)
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-
 
 //  security_main(p_uhf->security);
 

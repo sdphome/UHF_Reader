@@ -69,7 +69,7 @@ static void upper_show_report_speed(upper_info_t * info)
 	if (diff > 1000) {
 		speed = (((double)(info->tid_count - info->last_tid_count)) *
 				 (double)(1000)) / (double)diff;
-		printf("%s:tid_diff=%lld, time_fidd=%lld, speed is %.4f TIDs/sec.\n",
+		printf("%s:tid_diff=%lld, time_diff=%lld, speed is %.4f TIDs/sec.\n",
 			   __func__, info->tid_count - info->last_tid_count, diff, speed);
 		info->last_tid_count = info->tid_count;
 		info->last_report_time = curr;
@@ -305,7 +305,8 @@ int upper_notify_connected_event(upper_info_t * info)
 									   ((uint64_t) now.tv_usec) / 1000));
 	LLRP_DeviceEventNotification_setUTCTimestamp(pThis, pTimestamp);
 
-	LLRP_ConnectionAttemptEvent_setConnectionStatus(pCAE, LLRP_ConnectionAttemptEventStatusType_Success);
+	LLRP_ConnectionAttemptEvent_setConnectionStatus(pCAE,
+													LLRP_ConnectionAttemptEventStatusType_Success);
 	LLRP_DeviceEventNotification_setConnectionAttemptEvent(pThis, pCAE);
 
 	lock_upper(&info->lock);
@@ -320,6 +321,12 @@ int upper_notify_connected_event(upper_info_t * info)
 
 	info->status = UPPER_READY;
 	return ret;
+}
+
+llrp_u32_t inline upper_conv_type32(llrp_u32_t value)
+{
+	return (((value) & 0xff) << 24) + (((value >> 8) & 0xff) << 16) +
+		(((value >> 16) & 0xff) << 8) + (((value >> 24) & 0xff));
 }
 
 static int upper_write_to_file(char *path, llrp_u8v_t * data)
@@ -516,7 +523,7 @@ static int upper_request_Keepalive(upper_info_t * info)
 }
 
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
-					llrp_u8_t anten_no, llrp_u64_t timestamp, void * part_data)
+										llrp_u8_t anten_no, llrp_u64_t timestamp, void *part_data)
 {
 	int ret = NO_ERROR;
 	tag_list_t *curr_list;
@@ -561,7 +568,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			tag_list->tag.TagSeenCount += 1;
 			tag_list->tag.LastSeenTimestampUTC = timestamp;
 			if (tag_list->tag.PartData.nValue == 0 && part_data != NULL) {
-				tag_list->tag.PartData = *(llrp_u8v_t *)part_data;
+				tag_list->tag.PartData = *(llrp_u8v_t *) part_data;
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
@@ -588,7 +595,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.TagSeenCount = 1;
 		curr_list->tag.FirstTime = true;
 		if (part_data != NULL) {
-			curr_list->tag.PartData = *(llrp_u8v_t *)part_data;
+			curr_list->tag.PartData = *(llrp_u8v_t *) part_data;
 		}
 
 		if (tag_list_prev == NULL)
@@ -666,9 +673,9 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 			goto out;
 
 		if (ret == NO_ERROR)
-			pStatus = upper_setup_status(0, NULL); //"BINDING SUCCESS!");
+			pStatus = upper_setup_status(0, NULL);	//"BINDING SUCCESS!");
 		else
-			pStatus = upper_setup_status(0, NULL); //"BINDING FAILED!");
+			pStatus = upper_setup_status(0, NULL);	//"BINDING FAILED!");
 
 		LLRP_DeviceBindingResultNotification_setStatus(pDBRN, pStatus);
 
@@ -931,9 +938,15 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					uint8_t gate[16];
 					uint8_t dns[16];
 
-					upper_trans_ip(ip, LLRP_EthernetIpv4Configuration_getIPAddress(pEIV4C));
-					upper_trans_ip(mask, LLRP_EthernetIpv4Configuration_getIPMask(pEIV4C));
-					upper_trans_ip(gate, LLRP_EthernetIpv4Configuration_getGateWayAddr(pEIV4C));
+					upper_trans_ip(ip,
+								   upper_conv_type32(LLRP_EthernetIpv4Configuration_getIPAddress
+													 (pEIV4C)));
+					upper_trans_ip(mask,
+								   upper_conv_type32(LLRP_EthernetIpv4Configuration_getIPMask
+													 (pEIV4C)));
+					upper_trans_ip(gate,
+								   upper_conv_type32(LLRP_EthernetIpv4Configuration_getGateWayAddr
+													 (pEIV4C)));
 					upper_trans_ip(dns, LLRP_EthernetIpv4Configuration_getDNSAddr(pEIV4C));
 
 					memset(cmd, 0, 128);
@@ -946,6 +959,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					sprintf(cmd, "setup_ip.sh auto");
 					system(cmd);
 				}
+				/*TODO: may need reboot or wait request reset */
 			}
 		}
 
@@ -959,20 +973,21 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 			for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
 				 pIPA != NULL; pIPA = LLRP_NTPConfiguration_nextIPAddress(pIPA)) {
 				/* just support ipv4 now */
-				if (LLRP_IPAddress_getVersion(pIPA) == 0) {
+				if (LLRP_IPAddress_getVersion(pIPA) == LLRP_IPAddressVersion_Ipv4) {
 					FILE *fp = NULL;
-					llrp_u32v_t ip;
-					ip = LLRP_IPAddress_getAddress(pIPA);
-					if (ip.nValue < 7)
-						continue;
-					fp = fopen("/etc/ntp.conf", "w");
+					uint8_t ip[16];
+
+					upper_trans_ip(ip, *((llrp_u32_t *) (LLRP_IPAddress_getAddress(pIPA)).pValue));
+
+					fp = fopen("/etc/ntp.conf", "a+");
 					if (fp == NULL) {
 						system("mv /etc/ntp.conf.bak /etc/ntp.conf");
 						break;
 					}
+					printf("%s: setup ntp, ip = %s.\n", __func__, ip);
 					file_write_data((uint8_t *) "\n", fp, 1);
 					file_write_data((uint8_t *) "server ", fp, 7);
-					file_write_data((uint8_t *) ip.pValue, fp, ip.nValue * sizeof(llrp_u32_t));
+					file_write_data(ip, fp, strlen((char *)ip));
 					file_write_data((uint8_t *) "\n", fp, 1);
 					fclose(fp);
 				}
@@ -1037,7 +1052,8 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	}
 
 	server_type = LLRP_VersionDownload_getServerType(pVD);
-	if (server_type != LLRP_VersionDownloadServerType_Ftp || server_type != LLRP_VersionDownloadServerType_Tftp) {
+	if (server_type != LLRP_VersionDownloadServerType_Ftp
+		|| server_type != LLRP_VersionDownloadServerType_Tftp) {
 		goto out;
 	} else {
 		uint8_t ip[16];
@@ -1079,36 +1095,36 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 	int ret;
 	LLRP_tEVersionType type;
 	char *message = NULL;
-	LLRP_tSActiveVersionAck * pAck = NULL;
-	LLRP_tSStatus * pStatus = NULL;
+	LLRP_tSActiveVersionAck *pAck = NULL;
+	LLRP_tSStatus *pStatus = NULL;
 
 	type = LLRP_ActiveVersion_getVerType(pThis);
 
 	/* TODO: */
 	switch (type) {
-		case LLRP_VersionType_Device_Boot:
-			break;
-		case LLRP_VersionType_Device_Sys:
-			break;
-		case LLRP_VersionType_Security_Module_Sys:
-			break;
-		case LLRP_VersionType_Security_Chip_Sys:
-			ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
-										SECURITY_FW_DEFAULT_PATH);
-			if (ret == -ENOENT)
-				message = "No such file";
-			else if (ret == -FAILED)
-				message = "Upgrade failed";
-			else
-				message = "Unknow error";
-			break;
-		case LLRP_VersionType_Security_Module_Pwd:
-			ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
-			break;
-		default:
-			ret = -FAILED;
-			message = "No such version type";
-			printf("%s: error version type : %d.\n", __func__, type);
+	  case LLRP_VersionType_Device_Boot:
+		  break;
+	  case LLRP_VersionType_Device_Sys:
+		  break;
+	  case LLRP_VersionType_Security_Module_Sys:
+		  break;
+	  case LLRP_VersionType_Security_Chip_Sys:
+		  ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
+										  SECURITY_FW_DEFAULT_PATH);
+		  if (ret == -ENOENT)
+			  message = "No such file";
+		  else if (ret == -FAILED)
+			  message = "Upgrade failed";
+		  else
+			  message = "Unknow error";
+		  break;
+	  case LLRP_VersionType_Security_Module_Pwd:
+		  ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
+		  break;
+	  default:
+		  ret = -FAILED;
+		  message = "No such version type";
+		  printf("%s: error version type : %d.\n", __func__, type);
 	}
 
 	pAck = LLRP_ActiveVersionAck_construct();
@@ -1125,7 +1141,7 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 	upper_send_message(info, &pAck->hdr);
 	unlock_upper(&info->upload_lock);
 
-out:
+  out:
 	if (pThis != NULL)
 		LLRP_ActiveVersion_destruct(pThis);
 
@@ -1316,7 +1332,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
-								tag_info->FirstSeenTimestampUTC);
+																   tag_info->FirstSeenTimestampUTC);
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
@@ -1324,7 +1340,7 @@ void *upper_upload_loop(void *data)
 						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
 						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
-									tag_info->LastSeenTimestampUTC);
+																  tag_info->LastSeenTimestampUTC);
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
@@ -1352,7 +1368,7 @@ void *upper_upload_loop(void *data)
 						tag_info->PartData.nValue -= 5;
 						for (; tag_info->PartData.nValue - pos >= 4; pos += (data->len + 4)) {
 							memset(&tmp, 0, sizeof(llrp_u8v_t));
-							data = (data_param_t *)(tag_info->PartData.pValue + pos);
+							data = (data_param_t *) (tag_info->PartData.pValue + pos);
 							tmp.nValue = data->len;
 							tmp.pValue = malloc(tmp.nValue);
 							memcpy(tmp.pValue, data->payload, tmp.nValue);
@@ -1361,130 +1377,131 @@ void *upper_upload_loop(void *data)
 								break;
 
 							switch (data->type_code) {
-							case TYPE_CID:
-							{
-								LLRP_tSCID *pCID = NULL;
+							  case TYPE_CID:
+								  {
+									  LLRP_tSCID *pCID = NULL;
 
-								pCID = LLRP_CID_construct();
-								LLRP_CID_setCIDData(pCID, tmp);
-								LLRP_ReadDataInfo_setCID(pRDI, pCID);
-								break;
-							}
-							case TYPE_FPDH:
-							{
-								LLRP_tSFPDH *pFPDH = NULL;
+									  pCID = LLRP_CID_construct();
+									  LLRP_CID_setCIDData(pCID, tmp);
+									  LLRP_ReadDataInfo_setCID(pRDI, pCID);
+									  break;
+								  }
+							  case TYPE_FPDH:
+								  {
+									  LLRP_tSFPDH *pFPDH = NULL;
 
-								pFPDH = LLRP_FPDH_construct();
-								LLRP_FPDH_setFPDHData(pFPDH, tmp);
-								LLRP_ReadDataInfo_setFPDH(pRDI, pFPDH);
-								break;
-							}
-							case TYPE_SYXZ:
-							{
-								LLRP_tSSYXZ *pSYXZ = NULL;
+									  pFPDH = LLRP_FPDH_construct();
+									  LLRP_FPDH_setFPDHData(pFPDH, tmp);
+									  LLRP_ReadDataInfo_setFPDH(pRDI, pFPDH);
+									  break;
+								  }
+							  case TYPE_SYXZ:
+								  {
+									  LLRP_tSSYXZ *pSYXZ = NULL;
 
-								pSYXZ = LLRP_SYXZ_construct();
-								LLRP_SYXZ_setSYXZData(pSYXZ, tmp);
-								LLRP_ReadDataInfo_setSYXZ(pRDI, pSYXZ);
-								break;
-							}
-							case TYPE_CCRQ:
-							{
-								LLRP_tSCCRQ *pCCRQ = NULL;
+									  pSYXZ = LLRP_SYXZ_construct();
+									  LLRP_SYXZ_setSYXZData(pSYXZ, tmp);
+									  LLRP_ReadDataInfo_setSYXZ(pRDI, pSYXZ);
+									  break;
+								  }
+							  case TYPE_CCRQ:
+								  {
+									  LLRP_tSCCRQ *pCCRQ = NULL;
 
-								pCCRQ = LLRP_CCRQ_construct();
-								LLRP_CCRQ_setCCRQData(pCCRQ, tmp);
-								LLRP_ReadDataInfo_setCCRQ(pRDI, pCCRQ);
-								break;
-							}
-							case TYPE_CLLX:
-							{
-								LLRP_tSCLLX *pCLLX = NULL;
+									  pCCRQ = LLRP_CCRQ_construct();
+									  LLRP_CCRQ_setCCRQData(pCCRQ, tmp);
+									  LLRP_ReadDataInfo_setCCRQ(pRDI, pCCRQ);
+									  break;
+								  }
+							  case TYPE_CLLX:
+								  {
+									  LLRP_tSCLLX *pCLLX = NULL;
 
-								pCLLX = LLRP_CLLX_construct();
-								LLRP_CLLX_setCLLXData(pCLLX, tmp);
-								LLRP_ReadDataInfo_setCLLX(pRDI, pCLLX);
-								break;
-							}
-							case TYPE_PL:
-							{
-								LLRP_tSPL *pPL = NULL;
+									  pCLLX = LLRP_CLLX_construct();
+									  LLRP_CLLX_setCLLXData(pCLLX, tmp);
+									  LLRP_ReadDataInfo_setCLLX(pRDI, pCLLX);
+									  break;
+								  }
+							  case TYPE_PL:
+								  {
+									  LLRP_tSPL *pPL = NULL;
 
-								pPL = LLRP_PL_construct();
-								LLRP_PL_setPLData(pPL, tmp);
-								LLRP_ReadDataInfo_setPL(pRDI, pPL);
-								break;
-							}
-							case TYPE_GL:
-							{
-								LLRP_tSGL *pGL = NULL;
+									  pPL = LLRP_PL_construct();
+									  LLRP_PL_setPLData(pPL, tmp);
+									  LLRP_ReadDataInfo_setPL(pRDI, pPL);
+									  break;
+								  }
+							  case TYPE_GL:
+								  {
+									  LLRP_tSGL *pGL = NULL;
 
-								pGL = LLRP_GL_construct();
-								LLRP_GL_setGLData(pGL, tmp);
-								LLRP_ReadDataInfo_setGL(pRDI, pGL);
-								break;
-							}
-							case TYPE_HPZL:
-							{
-								LLRP_tSHPZL *pHPZL = NULL;
+									  pGL = LLRP_GL_construct();
+									  LLRP_GL_setGLData(pGL, tmp);
+									  LLRP_ReadDataInfo_setGL(pRDI, pGL);
+									  break;
+								  }
+							  case TYPE_HPZL:
+								  {
+									  LLRP_tSHPZL *pHPZL = NULL;
 
-								pHPZL = LLRP_HPZL_construct();
-								LLRP_HPZL_setHPZLData(pHPZL, tmp);
-								LLRP_ReadDataInfo_setHPZL(pRDI, pHPZL);
-								break;
-							}
-							case TYPE_HPHMXH:
-							{
-								LLRP_tSHPHMXH *pHPHMXH = NULL;
+									  pHPZL = LLRP_HPZL_construct();
+									  LLRP_HPZL_setHPZLData(pHPZL, tmp);
+									  LLRP_ReadDataInfo_setHPZL(pRDI, pHPZL);
+									  break;
+								  }
+							  case TYPE_HPHMXH:
+								  {
+									  LLRP_tSHPHMXH *pHPHMXH = NULL;
 
-								pHPHMXH = LLRP_HPHMXH_construct();
-								LLRP_HPHMXH_setHPHMXHData(pHPHMXH, tmp);
-								LLRP_ReadDataInfo_setHPHMXH(pRDI, pHPHMXH);
-								break;
-							}
-							case TYPE_JYYXQ:
-							{
-								LLRP_tSJYYXQ *pJYYXQ = NULL;
+									  pHPHMXH = LLRP_HPHMXH_construct();
+									  LLRP_HPHMXH_setHPHMXHData(pHPHMXH, tmp);
+									  LLRP_ReadDataInfo_setHPHMXH(pRDI, pHPHMXH);
+									  break;
+								  }
+							  case TYPE_JYYXQ:
+								  {
+									  LLRP_tSJYYXQ *pJYYXQ = NULL;
 
-								pJYYXQ = LLRP_JYYXQ_construct();
-								LLRP_JYYXQ_setJYYXQData(pJYYXQ, tmp);
-								LLRP_ReadDataInfo_setJYYXQ(pRDI, pJYYXQ);
-								break;
-							}
-							case TYPE_QZBFQ:
-							{
-								LLRP_tSQZBFQ *pQZBFQ = NULL;
+									  pJYYXQ = LLRP_JYYXQ_construct();
+									  LLRP_JYYXQ_setJYYXQData(pJYYXQ, tmp);
+									  LLRP_ReadDataInfo_setJYYXQ(pRDI, pJYYXQ);
+									  break;
+								  }
+							  case TYPE_QZBFQ:
+								  {
+									  LLRP_tSQZBFQ *pQZBFQ = NULL;
 
-								pQZBFQ = LLRP_QZBFQ_construct();
-								LLRP_QZBFQ_setQZBFQData(pQZBFQ, tmp);
-								LLRP_ReadDataInfo_setQZBFQ(pRDI, pQZBFQ);
-								break;
-							}
-							case TYPE_CSYS:
-							{
-								LLRP_tSCSYS *pCSYS = NULL;
+									  pQZBFQ = LLRP_QZBFQ_construct();
+									  LLRP_QZBFQ_setQZBFQData(pQZBFQ, tmp);
+									  LLRP_ReadDataInfo_setQZBFQ(pRDI, pQZBFQ);
+									  break;
+								  }
+							  case TYPE_CSYS:
+								  {
+									  LLRP_tSCSYS *pCSYS = NULL;
 
-								pCSYS = LLRP_CSYS_construct();
-								LLRP_CSYS_setCSYSData(pCSYS, tmp);
-								LLRP_ReadDataInfo_setCSYS(pRDI, pCSYS);
-								break;
-							}
-							case TYPE_ZKZL:
-							{
-								LLRP_tSZKZL *pZKZL = NULL;
+									  pCSYS = LLRP_CSYS_construct();
+									  LLRP_CSYS_setCSYSData(pCSYS, tmp);
+									  LLRP_ReadDataInfo_setCSYS(pRDI, pCSYS);
+									  break;
+								  }
+							  case TYPE_ZKZL:
+								  {
+									  LLRP_tSZKZL *pZKZL = NULL;
 
-								pZKZL = LLRP_ZKZL_construct();
-								LLRP_ZKZL_setZKZLData(pZKZL, tmp);
-								LLRP_ReadDataInfo_setZKZL(pRDI, pZKZL);
-								break;
-							}
-							default:
-								printf("%s: has no this data type %u.\n", __func__, data->type_code);
-								break;
+									  pZKZL = LLRP_ZKZL_construct();
+									  LLRP_ZKZL_setZKZLData(pZKZL, tmp);
+									  LLRP_ReadDataInfo_setZKZL(pRDI, pZKZL);
+									  break;
+								  }
+							  default:
+								  printf("%s: has no this data type %u.\n", __func__,
+										 data->type_code);
+								  break;
 							}
 						}
 						LLRP_CustomizedSelectSpecResult_setReadDataInfo(pCSSR, pRDI);
-						LLRP_TagReportData_setSelectSpecResult(pTRD, (LLRP_tSParameter *)pCSSR);
+						LLRP_TagReportData_setSelectSpecResult(pTRD, (LLRP_tSParameter *) pCSSR);
 						free(tag_info->PartData.pValue);
 					}
 
@@ -1646,7 +1663,8 @@ int start_upper(upper_info_t * info)
 		//  printf("%s: pConn is null.\n", __func__);
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
-			printf("%s: start server failed, error:%s.\n", __func__, info->pConn->pConnectErrorStr);
+			printf("%s: start server failed, error:%s, ret = %d.\n", __func__,
+				   info->pConn->pConnectErrorStr, info->sock);
 			goto retry;
 		}
 
@@ -1690,6 +1708,7 @@ int start_upper(upper_info_t * info)
 	  retry:
 		info->status = UPPER_STOP;
 
+		/* TODO: check if thread alive */
 		lock_upper(&info->req_lock);
 		pthread_cond_broadcast(&info->req_cond);
 		unlock_upper(&info->req_lock);
@@ -1704,6 +1723,7 @@ int start_upper(upper_info_t * info)
 			close(info->pConn->fd);
 			info->pConn->fd = -1;
 		}
+
 		pthread_join(info->read_thread, &status);
 		pthread_join(info->request_thread, &status);
 		pthread_join(info->upload_thread, &status);

@@ -140,7 +140,7 @@ void release_upper(upper_info_t ** info);
 
 void upper_signal_upload(upper_info_t * info);
 int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
-										llrp_u8_t anten_no, llrp_u64_t timestamp,  void * part_data);
+										llrp_u8_t anten_no, llrp_u64_t timestamp, void *part_data);
 
 int upper_send_heartbeat(upper_info_t * info);
 
