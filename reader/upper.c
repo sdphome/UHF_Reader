@@ -133,15 +133,15 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 	LLRP_tSConnection *pConn = info->pConn;
 	const LLRP_tSTypeDescriptor *pErrorMsgType;
 	LLRP_tSErrorDetails *pError = &pConn->Recv.ErrorDetails;
-	//llrp_u32_t ResponseMessageID = pSendMessage->MessageID;
-	const LLRP_tSTypeDescriptor *pResponseType = pSendMessage->elementHdr.pType->pResponseType;
+	llrp_u32_t ResponseMessageID = pSendMessage->MessageID;
+	//const LLRP_tSTypeDescriptor *pResponseType = pSendMessage->elementHdr.pType->pResponseType;
+	const LLRP_tSTypeDescriptor *pSendType = pSendMessage->elementHdr.pType;
 
 	if (0 > pConn->fd) {
 		LLRP_Error_resultCodeAndWhatStr(pError, LLRP_RC_MiscError, "not connected");
 		return NULL;
 	}
 
-	pResponseType = pSendMessage->elementHdr.pType->pResponseType;
 	pErrorMsgType = LLRP_TypeRegistry_lookupMessage(pConn->pTypeRegistry, 303u);
 
 	gettimeofday(&now, NULL);
@@ -158,26 +158,32 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 		pPrev = info->response_list;
 		pResponse = info->response_list;
 		for (; pResponse != NULL; pResponse = pResponse->pQueueNext) {
-			if (NULL != pResponseType) {
-				if (pResponse->elementHdr.pType != pResponseType &&
-					pResponse->elementHdr.pType != pErrorMsgType) {
-					pPrev = pResponse;
-					continue;
-				}
+			if (pResponse->elementHdr.pType == pErrorMsgType) {
+				responseReceived = 1;
+				break;
 			}
 
-/*
-			if (pResponse->MessageID != ResponseMessageID) {
+			if (strncmp(pSendType->pName, pResponse->elementHdr.pType->pName, strlen(pSendType->pName))) {
 				pPrev = pResponse;
 				continue;
 			}
-*/
+
+			if (pResponse->MessageID == ResponseMessageID) {
+				responseReceived = 1;
+				break;
+			}
+
+			/*
+			 * the xml doesn't contains ack type now which get from tmri,  so can't use
+			 * this method to check response.
+			 */
+/*
 			if (pResponseType != pResponse->elementHdr.pType) {
 				pPrev = pResponse;
 				continue;
 			}
-
-			responseReceived = 1;
+*/
+			pPrev = pResponse;
 			break;
 		}
 	}
@@ -510,14 +516,15 @@ static int upper_request_Keepalive(upper_info_t * info)
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pKA->hdr);
 
-	if (ret == NO_ERROR)
+	if (ret == NO_ERROR) {
 		pAck = (LLRP_tSKeepaliveAck *) upper_wait_response(info, &pKA->hdr);
-
+	}
 	unlock_upper(&info->lock);
 
 	LLRP_Keepalive_destruct(pKA);
-	if (pAck != NULL)
+	if (pAck != NULL) {
 		LLRP_Element_destruct(&pAck->hdr.elementHdr);
+	}
 
 	return ret;
 }
