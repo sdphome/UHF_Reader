@@ -51,9 +51,10 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 	ret = security_send_auth_data(security, sec_rand);
 	p_uhf->sec_auth_status = ret;
 
-//  ret = security_set_rtc(security);
+	ret = security_set_rtc(security);
+	ret += security_set_work_mode_helper(security, 0, 2);
 
-	printf("%s: security_send_auth_data ret = %d.\n", __func__, ret);
+	printf("%s: security_send_auth_data ret = %d.\n", __func__, p_uhf->sec_auth_status);
 
 	return ret;
 }
@@ -241,8 +242,6 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 */
-
-	security_main(p_uhf->security);
 
 	uhf_init_upper(p_uhf);
 

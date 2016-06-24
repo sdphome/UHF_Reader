@@ -755,6 +755,32 @@ int security_set_work_mode(security_info_t * info, work_mode_param * param)
 	return ret;
 }
 
+int security_set_work_mode_helper(security_info_t * info, uint8_t part_no, uint8_t part_indi)
+{
+	int ret;
+    part_info_param part;
+	work_mode_param *setup_work_mode = NULL;
+
+    memset(&part, 0, PART_INFO_PARAM_SIZE);
+    part.part_no = part_no;
+    part.part_indi = part_indi;
+    part.ciphertext = 1;
+    part.high_speed = 1;
+    part.read_index = 0;
+    part.read_len = 0;
+
+	// Just set one part param default
+    setup_work_mode = (work_mode_param *) malloc(1 + 7);
+    setup_work_mode->num = 1;
+    memcpy(setup_work_mode->data, (void *)&part, 7);
+
+    ret = security_set_work_mode(info, setup_work_mode);
+
+    free(setup_work_mode);
+
+	return ret;
+}
+
 uint64_t security_request_rand_num(security_info_t * info)
 {
 	int ret = NO_ERROR;

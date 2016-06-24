@@ -501,6 +501,7 @@ int security_get_key_version(security_info_t * info, security_package_t * result
 int security_get_filtr_interv(security_info_t * info, filtr_interv_param * param);
 int security_get_perm(security_info_t * info, perm_table_param * param);
 int security_set_work_mode(security_info_t * info, work_mode_param * param);
+int security_set_work_mode_helper(security_info_t * info, uint8_t part_no, uint8_t part_indi);
 uint64_t security_request_rand_num(security_info_t * info);
 int security_send_auth_data(security_info_t * info, uint64_t sec_rand);
 int security_send_user_info(security_info_t * info, security_package_t * result);
