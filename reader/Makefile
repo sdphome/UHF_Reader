@@ -46,7 +46,7 @@ $(OUT):
 	$(MKDIR) -p $(OBJS)
 
 $(EXE): $(UHF_OBJS)
-	$(CC) $(CFLAGS) $^ -o $@ -L $(LTK_INCLU) -L $(SM2_INCLU) -lpthread -lsm2 -lltkc -lsqlite3 -ldl
+	$(CC) $(CFLAGS) $^ -o $@ -lpthread -lsm2 -lltkc -lsqlite3 -ldl -lxml2
 
 $(OBJS)/uhf.o: uhf.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU)
