@@ -473,34 +473,6 @@ static int upper_request_Disconnect(upper_info_t * info)
 }
 */
 
-static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDis)
-{
-	int ret = NO_ERROR;
-	LLRP_tSDisconnectAck *pAck = NULL;
-
-	pAck = LLRP_DisconnectAck_construct();
-	if (pAck == NULL)
-		goto out;
-
-	pAck->hdr.MessageID = pDis->hdr.MessageID;
-
-	lock_upper(&info->lock);
-	ret = upper_send_message(info, &pAck->hdr);
-	unlock_upper(&info->lock);
-
-	lock_upper(&info->disconnect_lock);
-	pthread_cond_broadcast(&info->disconnect_cond);
-	unlock_upper(&info->disconnect_lock);
-
-  out:
-	if (pDis != NULL)
-		LLRP_Disconnect_destruct(pDis);
-	if (pAck != NULL)
-		LLRP_DisconnectAck_destruct(pAck);
-
-	return ret;
-}
-
 static int upper_request_Keepalive(upper_info_t * info)
 {
 	int ret = NO_ERROR;
@@ -707,6 +679,58 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 		LLRP_DeviceBindingResultNotification_destruct(pDBRN);
 
 	return ret;
+}
+
+// 303
+static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDis)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDisconnectAck *pAck = NULL;
+
+	pAck = LLRP_DisconnectAck_construct();
+	if (pAck == NULL)
+		goto out;
+
+	pAck->hdr.MessageID = pDis->hdr.MessageID;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pAck->hdr);
+	unlock_upper(&info->lock);
+
+	lock_upper(&info->disconnect_lock);
+	pthread_cond_broadcast(&info->disconnect_cond);
+	unlock_upper(&info->disconnect_lock);
+
+  out:
+	if (pDis != NULL)
+		LLRP_Disconnect_destruct(pDis);
+	if (pAck != NULL)
+		LLRP_DisconnectAck_destruct(pAck);
+
+	return ret;
+}
+
+// 400
+static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec * pASS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSAddSelectSpecAck * pASS_Ack = NULL;
+	LLRP_tSSelectSpec * pSS = NULL;
+
+	if (pASS == NULL)
+		goto out;
+
+	pSS = LLRP_AddSelectSpec_getSelectSpec(pASS);
+	if (pSS == NULL)
+		goto out;
+
+
+
+  out:
+	if (pASS != NULL)
+		LLRP_AddSelectSpec_destruct(pASS);
+	if (pASS_Ack != NULL)
+		LLRP_AddSelectSpecAck_destruct(pASS_Ack);
 }
 
 // 602
@@ -1181,6 +1205,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 350:				//GetDeviceCapabilities
 		  break;
 	  case 400:				//AddSelectSpec
+		  upper_process_AddSelectSpec(info, (LLRP_tSDisconnect *) pRequest);
 		  break;
 	  case 402:				//DeleteSelectSpec
 		  break;

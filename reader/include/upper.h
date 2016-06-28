@@ -68,6 +68,15 @@ typedef struct select_report_spec {
 	uint16_t mask;
 } select_report_spec_t;
 
+typedef struct select_spec {
+	uint32_t SelectSpecID;
+	uint8_t Priority;
+	uint8_t CurrentState;
+	uint8_t Persistence;
+	select_spec_start_trigger_t SelectStart;
+	select_spec_start_trigger_t SelectStop;
+} select_spec_t;
+
 typedef struct tag_info {
 	uint64_t TID;
 	uint32_t SelectSpecID;
