@@ -554,7 +554,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
-				free(part_data.pValue);
+				free(((llrp_u8v_t *)part_data)->pValue);
 			}
 			break;
 		}
@@ -733,6 +733,8 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		LLRP_AddSelectSpec_destruct(pASS);
 	if (pASS_Ack != NULL)
 		LLRP_AddSelectSpecAck_destruct(pASS_Ack);
+
+	return ret;
 }
 
 // 602
@@ -1207,7 +1209,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 350:				//GetDeviceCapabilities
 		  break;
 	  case 400:				//AddSelectSpec
-		  upper_process_AddSelectSpec(info, (LLRP_tSDisconnect *) pRequest);
+		  upper_process_AddSelectSpec(info, (LLRP_tSAddSelectSpec *) pRequest);
 		  break;
 	  case 402:				//DeleteSelectSpec
 		  break;
