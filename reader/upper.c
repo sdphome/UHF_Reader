@@ -163,7 +163,8 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 				break;
 			}
 
-			if (strncmp(pSendType->pName, pResponse->elementHdr.pType->pName, strlen(pSendType->pName))) {
+			if (strncmp
+				(pSendType->pName, pResponse->elementHdr.pType->pName, strlen(pSendType->pName))) {
 				pPrev = pResponse;
 				continue;
 			}
@@ -177,6 +178,7 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 			 * the xml doesn't contains ack type now which get from tmri,  so can't use
 			 * this method to check response.
 			 */
+
 /*
 			if (pResponseType != pResponse->elementHdr.pType) {
 				pPrev = pResponse;
@@ -714,8 +716,8 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec * pASS)
 {
 	int ret = NO_ERROR;
-	LLRP_tSAddSelectSpecAck * pASS_Ack = NULL;
-	LLRP_tSSelectSpec * pSS = NULL;
+	LLRP_tSAddSelectSpecAck *pASS_Ack = NULL;
+	LLRP_tSSelectSpec *pSS = NULL;
 
 	if (pASS == NULL)
 		goto out;
@@ -723,8 +725,6 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	pSS = LLRP_AddSelectSpec_getSelectSpec(pASS);
 	if (pSS == NULL)
 		goto out;
-
-
 
   out:
 	if (pASS != NULL)
