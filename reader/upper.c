@@ -548,11 +548,13 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			new_tag = false;
 			tag_list->tag.TagSeenCount += 1;
 			tag_list->tag.LastSeenTimestampUTC = timestamp;
+			/* if this tag first time have part data, then report it */
 			if (tag_list->tag.PartData.nValue == 0 && part_data != NULL) {
 				tag_list->tag.PartData = *(llrp_u8v_t *) part_data;
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
+				free(part_data.pValue);
 			}
 			break;
 		}
@@ -1317,13 +1319,13 @@ void *upper_upload_loop(void *data)
 				tag_info_t *tag_info = &tag_list->tag;
 				/* FIXME: maybe other condiction */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
-					(tag_info->TagSeenCount > info->tag_spec.NValue &&
-					 tag_info->TagSeenCount % info->tag_spec.NValue == 0) ||
+					tag_info->TagSeenCount >= info->tag_spec.NValue ||
 					tag_info->FirstTime == true) {
 					LLRP_tSTagReportData *pTRD = NULL;
 					llrp_u8v_t Tid;
 
 					found = true;
+					tag_info->TagSeenCount = 0;
 
 					pTRD = LLRP_TagReportData_construct();
 					Tid.nValue = 8;
@@ -1383,8 +1385,6 @@ void *upper_upload_loop(void *data)
 						LLRP_TagReportData_setTagSeenCount(pTRD, pTSC);
 					}
 
-					/* TODO: add tag part data info */
-					// FIXME: free part data memory
 					if (tag_info->PartData.nValue) {
 						LLRP_tSCustomizedSelectSpecResult *pCSSR = NULL;
 						LLRP_tSReadDataInfo *pRDI = NULL;
