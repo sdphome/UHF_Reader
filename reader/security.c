@@ -326,14 +326,10 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	if (nwt < 0) {
 		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
-	}
-
-/*
-	else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
+	} else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
 		ret = -FAILED;
 	}
-*/
 
 //  printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
@@ -1234,16 +1230,15 @@ void *security_upload_loop(void *data)
 					info->upload_list = upload_list->next;
 				}
 				if (upload_received == true) {
-					/* TODO: we can process the upload now, TBD */
 					if (upload.hdr.type == UPLOAD_INFO_TYPE) {
 						if (upload.hdr.cmd == REPORT_TID) {
 							security_upload_tid(info, &upload);
 						} else if (upload.hdr.cmd == REPORT_PART || upload.hdr.cmd == REPORT_PART_2) {
 							security_upload_part(info, &upload);
-							//printf("%s: Got REPORT_PART cmd.\n", __func__);
 						}
 					} else if (upload.hdr.type == DATA_FORWA_TYPE) {
-						//printf("%s: Got DATA_FORWA_TYPE.\n", __func__);
+						/* TODO: process data forward */
+						printf("%s: Got DATA_FORWA_TYPE command.\n", __func__);
 					}
 				}
 
@@ -1322,9 +1317,8 @@ void *security_read_loop(void *data)
 				continue;
 		}
 
-		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list
+		/* TODO: check UPLOAD_INFO_TYPE, need add the result in a new list,
 		   DATA_FORWARD also need */
-
 		if (result.hdr.type == UPLOAD_INFO_TYPE || result.hdr.type == DATA_FORWA_TYPE)
 			security_signal_upload(info, &result);
 		else
@@ -1367,13 +1361,12 @@ int start_security(security_info_t * info)
 		goto create_thread_failed;
 	}
 
-/*
 	security_reset(info->fd);
 	security_get_status(info->fd);
 	security_reset_radio(info->fd);
 	security_get_status(info->fd);
 	sleep(6);
-*/
+
 	/* FIXME : sequential */
 	/* wait for ready */
 #if 0

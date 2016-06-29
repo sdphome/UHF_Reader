@@ -700,11 +700,11 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pAck->hdr);
 	unlock_upper(&info->lock);
-
+/*
 	lock_upper(&info->disconnect_lock);
 	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
-
+*/
   out:
 	if (pDis != NULL)
 		LLRP_Disconnect_destruct(pDis);
@@ -733,6 +733,29 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		LLRP_AddSelectSpec_destruct(pASS);
 	if (pASS_Ack != NULL)
 		LLRP_AddSelectSpecAck_destruct(pASS_Ack);
+
+	return ret;
+}
+
+// 450
+static int upper_process_AddAccessSpec(upper_info_t * info, LLRP_tSAddAccessSpec * pAAS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSAddAccessSpecAck *pAAS_Ack = NULL;
+	LLRP_tSAccessSpec *pAS = NULL;
+
+	if (pAAS == NULL)
+		goto out;
+
+	pAS = LLRP_AddAccessSpec_getAccessSpec(pAAS);
+	if (pAS == NULL)
+		goto out;
+
+  out:
+	if (pAAS != NULL)
+		LLRP_AddAccessSpec_destruct(pAAS);
+	if (pAAS_Ack != NULL)
+		LLRP_AddAccessSpecAck_destruct(pAAS_Ack);
 
 	return ret;
 }
@@ -1012,7 +1035,7 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					FILE *fp = NULL;
 					uint8_t ip[16];
 
-					upper_trans_ip(ip, *((llrp_u32_t *) (LLRP_IPAddress_getAddress(pIPA)).pValue));
+					upper_trans_ip(ip, upper_conv_type32(*((llrp_u32_t *) (LLRP_IPAddress_getAddress(pIPA)).pValue)));
 
 					fp = fopen("/etc/ntp.conf", "a+");
 					if (fp == NULL) {
@@ -1224,6 +1247,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 	  case 412:				//GetSelectSpec
 		  break;
 	  case 450:				//AddAccessSpec
+		  upper_process_AddAccessSpec(info, (LLRP_tSAddAccessSpec *) pRequest);
 		  break;
 	  case 452:				//DeleteAccessSpec
 		  break;
@@ -1669,32 +1693,27 @@ void upper_signal_upload(upper_info_t * info)
 
 void stop_upper(upper_info_t * info)
 {
-	void *ret;
-
 	if (info == NULL)
 		return;
 
 	info->status = UPPER_STOP;
-	pthread_cancel(info->read_thread);
-	pthread_cancel(info->request_thread);
-	pthread_cancel(info->upload_thread);
-	pthread_join(info->read_thread, &ret);
-	pthread_join(info->request_thread, &ret);
-	pthread_join(info->upload_thread, &ret);
 
+	lock_upper(&info->disconnect_lock);
+	pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
+	unlock_upper(&info->disconnect_lock);
+
+	if (info->sock > 0)
+		close(info->sock);
 	LLRP_Conn_closeConnectionToUpper(info->pConn);
-	close(info->sock);
 }
 
 int start_upper(upper_info_t * info)
 {
 	int ret = NO_ERROR;
 	pthread_attr_t attr;
-	void *status;
 
 	while (true) {
-		//if (info->pConn == NULL)
-		//  printf("%s: pConn is null.\n", __func__);
+		printf("[UPPER] Start the server.....\n");
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
 			printf("%s: start server failed, error:%s, ret = %d.\n", __func__,
@@ -1704,7 +1723,7 @@ int start_upper(upper_info_t * info)
 
 		info->status = UPPER_CONNECTED;
 		pthread_attr_init(&attr);
-		//pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
 		ret = pthread_create(&info->read_thread, &attr, upper_read_loop, (void *)info);
 		if (ret < 0) {
@@ -1731,6 +1750,7 @@ int start_upper(upper_info_t * info)
 		if (ret < 0)
 			goto retry;
 
+		info->retry = 0;
 		info->status = UPPER_READY;
 		printf("Start upper module, ret=%d\n", ret);
 
@@ -1742,6 +1762,9 @@ int start_upper(upper_info_t * info)
 	  retry:
 		info->status = UPPER_STOP;
 
+		if (info->retry++ == 5)
+			break;
+
 		/* TODO: check if thread alive */
 		lock_upper(&info->req_lock);
 		pthread_cond_broadcast(&info->req_cond);
@@ -1752,15 +1775,14 @@ int start_upper(upper_info_t * info)
 		unlock_upper(&info->upload_lock);
 
 		if (info->sock > 0) {
+			shutdown(info->sock, SHUT_RDWR);
 			close(info->sock);
 			info->sock = -1;
+			shutdown(info->pConn->fd, SHUT_RDWR);
 			close(info->pConn->fd);
 			info->pConn->fd = -1;
 		}
 
-		pthread_join(info->read_thread, &status);
-		pthread_join(info->request_thread, &status);
-		pthread_join(info->upload_thread, &status);
 		sleep(2);				/* workaround to release the link */
 	}
 

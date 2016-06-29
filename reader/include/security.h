@@ -110,7 +110,7 @@ enum security_status {
 //UPLOAD_INFO_TYPE
 #define REPORT_TID						0x1
 #define REPORT_PART						0x2
-#define REPORT_PART_2						0x3
+#define REPORT_PART_2					0x3
 
 // UPLOAD_INFO errno
 #define TID_DECIP_FAILED				0x1

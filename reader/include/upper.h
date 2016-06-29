@@ -100,6 +100,7 @@ typedef struct tag_list {
 
 typedef struct upper_info {
 	int sock;
+	int retry;
 	int status;
 	int verbose;
 	int db_valid;

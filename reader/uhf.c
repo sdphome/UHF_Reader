@@ -52,6 +52,7 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 	p_uhf->sec_auth_status = ret;
 
 	ret = security_set_rtc(security);
+	/* default work mode: part0, full partion */
 	ret += security_set_work_mode_helper(security, 0, 2);
 
 	printf("%s: security_send_auth_data ret = %d.\n", __func__, p_uhf->sec_auth_status);
@@ -65,12 +66,10 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	radio_info_t *radio = p_uhf->radio;
 
 	radio->uhf = (void *)p_uhf;
-
-#ifndef TEST
+#if 0	/* process by select spec */
 	printf("%s: start continue check.\n", __func__);
 	ret = radio_set_conti_check(radio);
 #endif
-
 	return ret;
 }
 
@@ -157,6 +156,8 @@ void uhf_stop(int signo)
 	radio_info_t *radio = g_uhf->radio;
 	security_info_t *security = g_uhf->security;
 	upper_info_t *upper = g_uhf->upper;
+
+	printf("[UHF] %s Enter\n", __func__);
 
 	pthread_cancel(g_uhf->heartbeat_thread);
 	pthread_join(g_uhf->heartbeat_thread, &ret);
@@ -270,7 +271,7 @@ int main(int argc, char **argv)
 	release_security(&p_uhf->security);
 	release_radio(&p_uhf->radio);
 
-	/* TODO: reboot */
+	system("reboot");
 	return ret;
 }
 #else							// TEST
