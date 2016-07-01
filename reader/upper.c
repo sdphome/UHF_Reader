@@ -207,8 +207,8 @@ static int upper_send_message(upper_info_t * info, LLRP_tSMessage * pSendMsg)
 	int ret = NO_ERROR;
 	LLRP_tSConnection *pConn = info->pConn;
 
-	if (pConn == NULL) {
-		printf("%s: pConn is null.\n", __func__);
+	if (pConn == NULL || pSendMsg == NULL) {
+		printf("%s: pConn(%p) or pSendMsg(%p) is null.\n", __func__, pConn, pSendMsg);
 		return -FAILED;
 	}
 
@@ -374,7 +374,8 @@ static LLRP_tSStatus *upper_setup_status(llrp_u32_t status, char *str)
 
 	if (str != NULL) {
 		description.nValue = strlen(str);
-		description.pValue = malloc(description.nValue);
+		if (description.nValue > 0)
+			description.pValue = malloc(description.nValue);
 		if (description.pValue != NULL)
 			memcpy(description.pValue, str, description.nValue);
 	}
@@ -527,12 +528,12 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			   info->status);
 		tag_info_t tag;
 		tag.TID = tid;
-		tag.SelectSpecID = 1;
-		tag.RfSpecID = 1;
+		tag.SelectSpecID = info->select_spec->SelectSpecID;
+		tag.RfSpecID = info->select_spec->RfSpec.RfSpecId;
 		tag.AntennalID = anten_no;
 		tag.FirstSeenTimestampUTC = timestamp;
 		tag.LastSeenTimestampUTC = timestamp;
-		tag.AccessSpecID = 1;
+		tag.AccessSpecID = 1;	/* FIXME */
 		tag.TagSeenCount = 1;
 		info->db_valid = true;
 		sql_insert_tag_info(DB_PATH, &tag);
@@ -568,9 +569,9 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			goto out;
 		memset(curr_list, 0, sizeof(tag_list_t));
 		curr_list->tag.TID = tid;
-		curr_list->tag.SelectSpecID = 1;
-		curr_list->tag.SpecIndex = 1;
-		curr_list->tag.RfSpecID = 1;
+		curr_list->tag.SelectSpecID = info->select_spec->SelectSpecID;
+		curr_list->tag.SpecIndex = 0;
+		curr_list->tag.RfSpecID = info->select_spec->RfSpec.RfSpecId;
 		curr_list->tag.AntennalID = anten_no;
 		curr_list->tag.FirstSeenTimestampUTC = timestamp;
 		curr_list->tag.LastSeenTimestampUTC = timestamp;
@@ -700,11 +701,7 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pAck->hdr);
 	unlock_upper(&info->lock);
-/*
-	lock_upper(&info->disconnect_lock);
-	pthread_cond_broadcast(&info->disconnect_cond);
-	unlock_upper(&info->disconnect_lock);
-*/
+
   out:
 	if (pDis != NULL)
 		LLRP_Disconnect_destruct(pDis);
@@ -718,21 +715,254 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec * pASS)
 {
 	int ret = NO_ERROR;
+	char status[64] = { 0 };
 	LLRP_tSAddSelectSpecAck *pASS_Ack = NULL;
 	LLRP_tSSelectSpec *pSS = NULL;
+	LLRP_tSSelectReportSpec *pSRS = NULL;
+	LLRP_tSSelectSpecStartTrigger *pSSST = NULL;
+	LLRP_tSAntennaSpec *pAS = NULL;
+	LLRP_tSRfSpec *pRS = NULL;
+	LLRP_tSMemoryBank *pMB = NULL;
 
 	if (pASS == NULL)
 		goto out;
 
 	pSS = LLRP_AddSelectSpec_getSelectSpec(pASS);
-	if (pSS == NULL)
-		goto out;
+	if (pSS == NULL) {
+		ret = -1;
+		goto ack;
+	}
+
+	/* process select spec start trigger */
+	if (info->select_spec != NULL) {
+		if (info->select_spec->SelectSpecID == LLRP_SelectSpec_getSelectSpecID(pSS) ||
+			info->select_spec->Priority < LLRP_SelectSpec_getPriority(pSS)) {
+			printf("this spec has exist, old SelectSpecID = %u, new SelectSpecID=%u,"
+					"old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,	\
+					LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,	\
+					LLRP_SelectSpec_getPriority(pSS));
+			ret = -2;
+			strncpy(status, "this spec has exist.", 64);
+			goto ack;
+		}
+	} else {
+		info->select_spec = (select_spec_t *)malloc(sizeof(select_spec_t));
+		if (info->select_spec == NULL) {
+			printf("malloc for select_spec failed.\n");
+			ret = -3;
+			strncpy(status, "malloc memory for select spec failed.", 64);
+			goto ack;
+		}
+		memset(info->select_spec, 0, sizeof(select_spec_t));
+	}
+
+	info->select_spec->SelectSpecID = LLRP_SelectSpec_getSelectSpecID(pSS);
+	info->select_spec->Priority = LLRP_SelectSpec_getPriority(pSS);
+	info->select_spec->CurrentState = LLRP_SelectSpec_getCurrentState(pSS);
+	info->select_spec->Persistence = LLRP_SelectSpec_getPersistence(pSS);
+	pSSST = LLRP_SelectSpec_getSelectSpecStartTrigger(pSS);
+	info->select_spec->SelectSpecStart.type = LLRP_SelectSpecStartTrigger_getSelectSpecStartTriggerType(pSSST);
+
+	/* Just process one spec */
+	pAS = (LLRP_tSAntennaSpec *)LLRP_SelectSpec_beginSpecParameter(pSS);
+	pRS = LLRP_AntennaSpec_beginRfSpec(pAS);
+	info->select_spec->RfSpec.RfSpecId = LLRP_RfSpec_getRfSpecID(pRS);
+	info->select_spec->RfSpec.SelectType = LLRP_RfSpec_getSelectType(pRS);
+	pMB = LLRP_RfSpec_getMemoryBank(pRS);
+	if (pMB != NULL) {
+		info->select_spec->RfSpec.MemoryBankId = LLRP_MemoryBank_getMemoryBankID(pMB);
+		info->select_spec->RfSpec.BankType = LLRP_MemoryBank_getBankType(pMB);
+	} else {
+		info->select_spec->RfSpec.MemoryBankId = LLRP_HbSpecMemoryBankIDType_User_0;
+		info->select_spec->RfSpec.BankType = LLRP_HbBankType_Full;
+	}
+
+	if (info->select_spec->SelectSpecStart.type == LLRP_SelectSpecStartTriggerType_Periodic) {
+		LLRP_tSPeriodicTrigger * pPT = NULL;
+
+		pPT = LLRP_SelectSpecStartTrigger_getPeriodicTrigger(pSSST);
+		info->select_spec->SelectSpecStart.offset = LLRP_PeriodicTrigger_getOffset(pPT);
+		info->select_spec->SelectSpecStart.period = LLRP_PeriodicTrigger_getPeriod(pPT);
+		/* TODO: TBD */
+	} else if (info->select_spec->SelectSpecStart.type == LLRP_SelectSpecStartTriggerType_Immediate) {
+		rf_spec_t *rf_spec = &info->select_spec->RfSpec;
+		/* setup security work mode */
+		security_set_work_mode_helper(((uhf_info_t *) (info->uhf))->security, rf_spec->MemoryBankId,
+										rf_spec->BankType);
+
+		/* start radio continue check */
+		radio_start_conti_check(((uhf_info_t *) (info->uhf))->radio);
+	}
+
+	/* process report spec */
+	pSRS = LLRP_SelectSpec_getSelectReportSpec(pSS);
+	if (pSRS != NULL) {
+		info->tag_spec.SelectReportTrigger = LLRP_SelectReportSpec_getSelectReportTrigger(pSRS);
+		info->tag_spec.NValue = LLRP_SelectReportSpec_getNValue(pSRS);
+		info->tag_spec.mask = 0;
+		if (LLRP_SelectReportSpec_getEnableSelectSpecID(pSRS)) {
+			info->tag_spec.mask |= ENABLE_SELECT_SPEC_ID;
+		}
+		if (LLRP_SelectReportSpec_getEnableSpecIndex(pSRS)) {
+			info->tag_spec.mask |= ENABLE_SPEC_INDEX;
+		}
+		if (LLRP_SelectReportSpec_getEnableRfSpecID(pSRS)) {
+			info->tag_spec.mask |= ENABLE_RF_SPEC_ID;
+		}
+		if (LLRP_SelectReportSpec_getEnableAntennaID(pSRS)) {
+			info->tag_spec.mask |= ENABLE_ANTENNAL_ID;
+		}
+		if (LLRP_SelectReportSpec_getEnablePeakRSSI(pSRS)) {
+			info->tag_spec.mask |= ENABLE_PEAK_RSSI;
+		}
+		if (LLRP_SelectReportSpec_getEnableFirstSeenTimestamp(pSRS)) {
+			info->tag_spec.mask |= ENABLE_FST;
+		}
+		if (LLRP_SelectReportSpec_getEnableLastSeenTimestamp(pSRS)) {
+			info->tag_spec.mask |= ENABLE_LST;
+		}
+		if (LLRP_SelectReportSpec_getEnableTagSeenCount(pSRS)) {
+			info->tag_spec.mask |= ENABLE_TSC;
+		}
+		if (LLRP_SelectReportSpec_getEnableAccessSpecID(pSRS)) {
+			info->tag_spec.mask |= ENABLE_ACCESS_SPEC_ID;
+		}
+	}
+
+  ack:
+
+	pASS_Ack = LLRP_AddSelectSpecAck_construct();
+	if (pASS_Ack != NULL) {
+		LLRP_tSStatus *pStatus = NULL;
+
+		pStatus = upper_setup_status(-ret, status);
+		LLRP_AddSelectSpecAck_setStatus(pASS_Ack, pStatus);
+	}
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pASS_Ack->hdr);
+	unlock_upper(&info->lock);
 
   out:
 	if (pASS != NULL)
 		LLRP_AddSelectSpec_destruct(pASS);
 	if (pASS_Ack != NULL)
 		LLRP_AddSelectSpecAck_destruct(pASS_Ack);
+
+	return ret;
+}
+
+// 402
+static int upper_process_DeleteSelectSpec(upper_info_t * info, LLRP_tSDeleteSelectSpec * pDSS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDeleteSelectSpecAck *pDSS_Ack = NULL;
+	LLRP_tSStatus *pStatus = NULL;
+
+	if (pDSS == NULL)
+		goto out;
+
+	if (info->select_spec != NULL) {
+		if (info->select_spec->SelectSpecID == LLRP_DeleteSelectSpec_getSelectSpecID(pDSS)) {
+			free(info->select_spec);
+			info->select_spec = NULL;
+		}
+	}
+
+	/* TODO:release db */
+
+	pDSS_Ack = LLRP_DeleteSelectSpecAck_construct();
+	if (pDSS_Ack == NULL)
+		goto out;
+
+	pStatus = upper_setup_status(0, NULL);
+	LLRP_DeleteSelectSpecAck_setStatus(pDSS_Ack, pStatus);
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pDSS_Ack->hdr);
+	unlock_upper(&info->lock);
+
+  out:
+	if (pDSS != NULL)
+		LLRP_DeleteSelectSpec_destruct(pDSS);
+	if (pDSS_Ack != NULL)
+		LLRP_DeleteSelectSpecAck_destruct(pDSS_Ack);
+
+	return ret;
+}
+
+// 404
+static int upper_process_StartSelectSpec(upper_info_t * info, LLRP_tSStartSelectSpec * pSSS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSStartSelectSpecAck *pSSS_Ack = NULL;
+
+	if (pSSS == NULL)
+		goto out;
+
+
+//  ack:
+	pSSS_Ack = LLRP_StartSelectSpecAck_construct();
+
+  out:
+	if (pSSS != NULL)
+		LLRP_StartSelectSpec_destruct(pSSS);
+	if (pSSS_Ack != NULL)
+		LLRP_StartSelectSpecAck_destruct(pSSS_Ack);
+
+	return ret;
+}
+
+// 406
+static int upper_process_StopSelectSpec(upper_info_t * info, LLRP_tSStopSelectSpec * pSSS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSStopSelectSpecAck *pSSS_Ack = NULL;
+
+	if (pSSS == NULL)
+		goto out;
+
+  out:
+	if (pSSS != NULL)
+		LLRP_StopSelectSpec_destruct(pSSS);
+	if (pSSS_Ack != NULL)
+		LLRP_StopSelectSpecAck_destruct(pSSS_Ack);
+
+	return ret;
+}
+
+// 408
+static int upper_process_EnableSelectSpec(upper_info_t * info, LLRP_tSEnableSelectSpec * pESS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSEnableSelectSpecAck *pESS_Ack = NULL;
+
+	if (pESS == NULL)
+		goto out;
+
+  out:
+	if (pESS != NULL)
+		LLRP_EnableSelectSpec_destruct(pESS);
+	if (pESS_Ack != NULL)
+		LLRP_EnableSelectSpecAck_destruct(pESS_Ack);
+
+	return ret;
+}
+
+// 410
+static int upper_process_DisableSelectSpec(upper_info_t * info, LLRP_tSDisableSelectSpec * pDSS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDisableSelectSpecAck *pDSS_Ack = NULL;
+
+	if (pDSS == NULL)
+		goto out;
+
+  out:
+	if (pDSS != NULL)
+		LLRP_DisableSelectSpec_destruct(pDSS);
+	if (pDSS_Ack != NULL)
+		LLRP_DisableSelectSpecAck_destruct(pDSS_Ack);
 
 	return ret;
 }
@@ -756,6 +986,60 @@ static int upper_process_AddAccessSpec(upper_info_t * info, LLRP_tSAddAccessSpec
 		LLRP_AddAccessSpec_destruct(pAAS);
 	if (pAAS_Ack != NULL)
 		LLRP_AddAccessSpecAck_destruct(pAAS_Ack);
+
+	return ret;
+}
+
+// 452
+static int upper_process_DeleteAccessSpec(upper_info_t * info, LLRP_tSDeleteAccessSpec * pDAS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDeleteAccessSpecAck *pDAS_Ack = NULL;
+
+	if (pDAS == NULL)
+		goto out;
+
+  out:
+	if (pDAS != NULL)
+		LLRP_DeleteAccessSpec_destruct(pDAS);
+	if (pDAS_Ack != NULL)
+		LLRP_DeleteAccessSpecAck_destruct(pDAS_Ack);
+
+	return ret;
+}
+
+// 454
+static int upper_process_EnableAccessSpec(upper_info_t * info, LLRP_tSEnableAccessSpec * pEAS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSEnableAccessSpecAck *pEAS_Ack = NULL;
+
+	if (pEAS == NULL)
+		goto out;
+
+  out:
+	if (pEAS != NULL)
+		LLRP_EnableAccessSpec_destruct(pEAS);
+	if (pEAS_Ack != NULL)
+		LLRP_EnableAccessSpecAck_destruct(pEAS_Ack);
+
+	return ret;
+}
+
+// 456
+static int upper_process_DisableAccessSpec(upper_info_t * info, LLRP_tSDisableAccessSpec * pDAS)
+{
+	int ret = NO_ERROR;
+	LLRP_tSDisableAccessSpecAck *pDAS_Ack = NULL;
+
+	if (pDAS == NULL)
+		goto out;
+
+  out:
+	if (pDAS != NULL)
+		LLRP_DisableAccessSpec_destruct(pDAS);
+	if (pDAS_Ack != NULL)
+		LLRP_DisableAccessSpecAck_destruct(pDAS_Ack);
 
 	return ret;
 }
@@ -1235,14 +1519,19 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_AddSelectSpec(info, (LLRP_tSAddSelectSpec *) pRequest);
 		  break;
 	  case 402:				//DeleteSelectSpec
+		  upper_process_DeleteSelectSpec(info, (LLRP_tSDeleteSelectSpec *) pRequest);
 		  break;
 	  case 404:				//StartSelectSpec
+		  upper_process_StartSelectSpec(info, (LLRP_tSStartSelectSpec *) pRequest);
 		  break;
 	  case 406:				//StopSelectSpec
+		  upper_process_StopSelectSpec(info, (LLRP_tSStopSelectSpec *) pRequest);
 		  break;
 	  case 408:				//EnableSelectSpec
+		  upper_process_EnableSelectSpec(info, (LLRP_tSEnableSelectSpec *) pRequest);
 		  break;
 	  case 410:				//DisableSelectSpecAck
+		  upper_process_DisableSelectSpec(info, (LLRP_tSDisableSelectSpec *) pRequest);
 		  break;
 	  case 412:				//GetSelectSpec
 		  break;
@@ -1250,10 +1539,13 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_AddAccessSpec(info, (LLRP_tSAddAccessSpec *) pRequest);
 		  break;
 	  case 452:				//DeleteAccessSpec
+		  upper_process_DeleteAccessSpec(info, (LLRP_tSDeleteAccessSpec *) pRequest);
 		  break;
 	  case 454:				//EnableAccessSpec
+		  upper_process_EnableAccessSpec(info, (LLRP_tSEnableAccessSpec *) pRequest);
 		  break;
 	  case 456:				//DisableAccessSpec
+		  upper_process_DisableAccessSpec(info, (LLRP_tSDisableAccessSpec *) pRequest);
 		  break;
 	  case 458:				//GetAccessSpec
 		  break;
@@ -1293,11 +1585,17 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_ResetDevice(info);
 		  break;
 	  default:
-		  printf("hasn't support this type.\n");
+		  printf("%s: hasn't support this type.\n", __func__);
+		  LLRP_Element_finalDestruct((LLRP_tSElement *) pRequest);
 		  break;
 	}
 
 	printf("%s: type = %d -\n", __func__, type);
+}
+
+void upper_check_local_spec(upper_info_t * info)
+{
+
 }
 
 int upper_send_heartbeat(upper_info_t * info)
@@ -1872,6 +2170,8 @@ void release_upper(upper_info_t ** info)
 
 	LLRP_TypeRegistry_destruct((*info)->pTypeRegistry);
 	LLRP_Conn_destruct((*info)->pConn);
+
+	/* TODO: before free info, need free the resoure in the struct */
 
 	free(*info);
 	*info = NULL;

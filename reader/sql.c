@@ -319,9 +319,7 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 	sqlite3_close(db);
 	return ret;
 }
-
 #if 0
-
 /* spec : TODO */
 int sql_create_SRC_table(char *path)
 {

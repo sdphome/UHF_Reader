@@ -68,16 +68,27 @@ typedef struct select_report_spec {
 	uint16_t mask;
 } select_report_spec_t;
 
-/*
+typedef struct select_spec_start_trigger {
+	uint8_t type;
+	uint32_t offset;
+	uint32_t period;
+} select_spec_start_trigger_t;
+
+typedef struct rf_spec {
+	uint8_t RfSpecId;
+	uint8_t SelectType;
+	uint8_t MemoryBankId;
+	uint8_t BankType;
+} rf_spec_t;
+
 typedef struct select_spec {
 	uint32_t SelectSpecID;
 	uint8_t Priority;
 	uint8_t CurrentState;
 	uint8_t Persistence;
-	select_spec_start_trigger_t SelectStart;
-	select_spec_start_trigger_t SelectStop;
+	select_spec_start_trigger_t SelectSpecStart;
+	rf_spec_t RfSpec;
 } select_spec_t;
-*/
 
 typedef struct tag_info {
 	uint64_t TID;
@@ -142,6 +153,8 @@ typedef struct upper_info {
 	uint64_t tid_count;
 	uint64_t last_tid_count;
 
+	select_spec_t *select_spec;
+
 	void *uhf;
 } upper_info_t;
 
@@ -155,5 +168,6 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 										llrp_u8_t anten_no, llrp_u64_t timestamp, void *part_data);
 
 int upper_send_heartbeat(upper_info_t * info);
+void upper_check_local_spec(upper_info_t * info);
 
 #endif

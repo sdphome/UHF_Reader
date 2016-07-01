@@ -800,7 +800,7 @@ int radio_set_antenna_attr(radio_info_t * radio_info, uint8_t attr)
 	return ret;
 }
 
-int radio_set_conti_check(radio_info_t * radio_info)
+int radio_start_conti_check(radio_info_t * radio_info)
 {
 	int ret = NO_ERROR;
 	radio_result_t result;
@@ -820,6 +820,39 @@ int radio_set_conti_check(radio_info_t * radio_info)
 	}
 
 	ret = radio_wait_result(radio_info, START_CONTI_CHECK, &result);
+
+	unlock_radio(&radio_info->c_lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	printf("%s -\n", __func__);
+	return ret;
+}
+
+int radio_stop_conti_check(radio_info_t * radio_info)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+	uint8_t dummy = 0;
+
+	printf("%s +\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	lock_radio(&radio_info->c_lock);
+
+	ret = radio_write(radio_info, STOP_CONTI_CHECK, 1, (uint8_t *) & dummy);
+	if (ret != NO_ERROR) {
+		unlock_radio(&radio_info->c_lock);
+		printf("%s write failed!\n", __func__);
+		return -FAILED;
+	}
+
+	ret = radio_wait_result(radio_info, STOP_CONTI_CHECK, &result);
 
 	unlock_radio(&radio_info->c_lock);
 

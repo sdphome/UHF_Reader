@@ -372,17 +372,35 @@ int xml_util_get_upper_config(struct xmlConfigInfo *pXmlConfig)
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
 	uhf_config_t *configPtr = pXmlConfig->configPtr;
 	uint32_t num_pairs = 0;
-	struct xmlKeyValuePair key_value_pair[5];
+	struct xmlKeyValuePair key_value_pair[4];
 
 	strlcpy(key_value_pair[num_pairs].key, "LogLevel", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->security.log_level;
+	key_value_pair[num_pairs].value = &configPtr->upper.log_level;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "DBPath", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.db_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "Timeout", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.timeout;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "HeartBeatPeri", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.heart_peri;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
 	RETURN_ON_FALSE(xml_util_get_node_data(docPtr, nodePtr, "Upper", key_value_pair, num_pairs, 0));
 
-	printf("upper log level = %d.\n", configPtr->security.log_level);
+	printf("upper log level = %d.\n", configPtr->upper.log_level);
 
 	return 0;
 }
@@ -404,10 +422,38 @@ int xml_util_get_uhf_probe_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
+	strlcpy(key_value_pair[num_pairs].key, "UserInfoPath", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = configPtr->user_info_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "BindAcceptFile", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = configPtr->bind_accept_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "UUIDPath", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = configPtr->uuid_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	strlcpy(key_value_pair[num_pairs].key, "UHFTraceFile", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = configPtr->uhf_trace_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
 	RETURN_ON_FALSE(xml_util_get_node_data
 					(docPtr, nodePtr, "UHFModuleConfig", key_value_pair, num_pairs, 0));
 
 	printf("active_cert_path = %s.\n", configPtr->active_cert_path);
+	printf("user_info_path = %s.\n", configPtr->user_info_path);
+	printf("bind_accept_file = %s.\n", configPtr->bind_accept_path);
+	printf("uuid_path = %s.\n", configPtr->uuid_path);
+	printf("uhf_trace_path = %s.\n", configPtr->uhf_trace_path);
 
 	xml_util_get_radio_config(pXmlConfig);
 	xml_util_get_security_config(pXmlConfig);

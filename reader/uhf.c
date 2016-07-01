@@ -66,10 +66,10 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	radio_info_t *radio = p_uhf->radio;
 
 	radio->uhf = (void *)p_uhf;
-#if 0	/* process by select spec */
-	printf("%s: start continue check.\n", __func__);
-	ret = radio_set_conti_check(radio);
-#endif
+
+	printf("%s: stop continue check.\n", __func__);
+	ret = radio_stop_conti_check(radio);
+
 	return ret;
 }
 
@@ -89,6 +89,8 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 	upper->tag_spec.mask |= ENABLE_FST;
 	upper->tag_spec.mask |= ENABLE_LST;
 	upper->tag_spec.mask |= ENABLE_TSC;
+
+	upper_check_local_spec(upper);
 }
 
 void *uhf_heartbeat_loop(void *data)
@@ -101,10 +103,6 @@ void *uhf_heartbeat_loop(void *data)
 
 	while (true) {
 
-/*
-		printf("%s: radio_per_seconds=%d, upper_per_seconds=%d.\n",
-			   __func__, radio->heartbeats_periodic, upper->heartbeats_periodic);
-*/
 		radio_per_seconds = radio->heartbeats_periodic / 1000;
 		upper_per_seconds = upper->heartbeats_periodic / 1000;
 		if (upper_per_seconds != 0)
@@ -113,12 +111,10 @@ void *uhf_heartbeat_loop(void *data)
 			base = radio_per_seconds;
 
 		if (count % radio_per_seconds == 0) {
-			//printf("%s: radio send heartbeat.\n", __func__);
 			radio_send_heartbeat(radio);
 		}
 
 		if (upper_per_seconds && count % upper_per_seconds == 0) {
-			//printf("%s: upper set heartbeat.\n", __func__);
 			upper_send_heartbeat(upper);
 		}
 
