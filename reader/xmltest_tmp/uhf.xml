@@ -45,6 +45,28 @@
 		<DBPath>/uhf/uhf.db</DBPath>
 		<Timeout>5</Timeout>
 		<HeartBeatPeri>1000</HeartBeatPeri>
+		<SelectSpec>
+			<SelectSpecID>0</SelectSpecID>
+			<Priority>0</Priority>
+			<CurrentState>0</CurrentState>
+			<Persistence>1</Persistence>
+			<SelectStartSpec>
+				<Type>0</Type>
+				<Offset>0</Offset>
+				<Period>0</Period>
+			</SelectStartSpec>
+			<RfSpec>
+				<RfSpecId>0</RfSpecId>
+				<SelectType>0</SelectType>
+				<MemoryBankId>0</MemoryBankId>
+				<BankType>2</BankType>
+			</RfSpec>
+		</SelectSpec>
+		<ReportSpec>
+			<SelectReportTrigger>0</SelectReportTrigger>
+			<NValue>400</NValue>
+			<Mask>0</Mask>
+		</ReportSpec>
 	</Upper>
   </UHFModuleConfig>
 </UHFConfigurationRoot>
