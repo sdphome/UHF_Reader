@@ -10,7 +10,7 @@
 
 #define BUFF_SIZE_255 255
 
-#define CONFIG_XML_PATH "/home/sdphome/work/UHF_Reader/reader/xmltest_tmp/"
+#define CONFIG_XML_PATH "./"
 #define CONFIG_XML "uhf.xml"
 
 #define TRUE 0
@@ -962,6 +962,8 @@ int main()
 	uhf_cfg.upper.select_spec.RfSpec.BankType = 77;
 	xml_set_report_spec_config(&xmlConfig);
 	xml_set_select_spec_config(&xmlConfig);
+
+	xmlSaveFileEnc(config_xml_name, docPtr, "UTF-8");
 
   XML_PROBE_EXIT:
 	xml_unload_file(docPtr);
