@@ -1,3 +1,4 @@
+
 /*
  *   Author: Shao Depeng <dp.shao@gmail.com>
  *   Copyright 2016 Golden Sky Technology CO.,LTD 
@@ -40,7 +41,7 @@
      }
 #endif
 
-#if !defined RETURN_ON_NULL                       
+#if !defined RETURN_ON_NULL
 #define RETURN_ON_NULL(expr)                           \
     if ((expr) == NULL) {                              \
         printf("failed NULL pointer detected " #expr); \
@@ -57,40 +58,41 @@
 #endif
 
 enum xmlValueType {
-    XML_VALUE_STRING,
-    XML_VALUE_INT8,
-    XML_VALUE_UINT8,
-    XML_VALUE_INT16,
-    XML_VALUE_UINT16,
-    XML_VALUE_UINT64,
-    XML_VALUE_INT32,
-    XML_VALUE_UINT32,
-    XML_VALUE_FLOAT,
-    XML_VALUE_MAX
+	XML_VALUE_STRING,
+	XML_VALUE_INT8,
+	XML_VALUE_UINT8,
+	XML_VALUE_INT16,
+	XML_VALUE_UINT16,
+	XML_VALUE_UINT64,
+	XML_VALUE_INT32,
+	XML_VALUE_UINT32,
+	XML_VALUE_FLOAT,
+	XML_VALUE_MAX
 };
 
 struct xmlKeyValuePair {
-    void *value;
-    char key[MAX_KEY_SIZE];
-    xmlElementType nodeType;
-    enum xmlValueType value_type;
+	void *value;
+	char key[MAX_KEY_SIZE];
+	xmlElementType nodeType;
+	enum xmlValueType value_type;
 };
 
 typedef struct {
-    uint8_t log_level;
-    char dev_link[NAME_SIZE_MAX];
-    char fw_path[NAME_SIZE_MAX];
-    uint8_t timeout;
-    uint32_t heart_peri;
+	uint8_t log_level;
+	char dev_link[NAME_SIZE_MAX];
+	char fw_path[NAME_SIZE_MAX];
+	uint8_t timeout;
+	uint32_t heart_peri;
 } radio_config_t;
 
 typedef struct {
-    uint8_t log_level;
-    char dev_link[NAME_SIZE_MAX];
-    char fw_path[NAME_SIZE_MAX];
-    char auth_x509_path[NAME_SIZE_MAX];
-    uint8_t timeout;
+	uint8_t log_level;
+	char dev_link[NAME_SIZE_MAX];
+	char fw_path[NAME_SIZE_MAX];
+	char auth_x509_path[NAME_SIZE_MAX];
+	uint8_t timeout;
 } security_config_t;
+
 /*
 typedef struct select_report_spec {
     uint8_t SelectReportTrigger;
@@ -108,10 +110,11 @@ typedef struct select_report_spec {
 } select_report_spec_t;
 */
 typedef struct select_start_spec_trigger {
-    uint8_t type;
-    uint32_t offset;
-    uint32_t period;
+	uint8_t type;
+	uint32_t offset;
+	uint32_t period;
 } select_start_spec_trigger_t;
+
 /*
 typedef struct rf_spec {
     uint8_t RfSpecId;
@@ -120,6 +123,7 @@ typedef struct rf_spec {
     uint8_t BankType;
 } rf_spec_t;
 */
+
 /*
 typedef struct select_spec {
     uint32_t SelectSpecID;
@@ -132,30 +136,30 @@ typedef struct select_spec {
 */
 
 typedef struct {
-    uint8_t log_level;
-    char db_path[NAME_SIZE_MAX];
-    uint8_t timeout;
-    uint32_t heart_peri;
-    select_spec_t select_spec;
-    select_report_spec_t report_spec;
+	uint8_t log_level;
+	char db_path[NAME_SIZE_MAX];
+	uint8_t timeout;
+	uint32_t heart_peri;
+	select_spec_t select_spec;
+	select_report_spec_t report_spec;
 } upper_config_t;
 
 typedef struct {
-    char active_cert_path[NAME_SIZE_MAX];
-    char user_info_path[NAME_SIZE_MAX];
-    char bind_accept_path[NAME_SIZE_MAX];
-    char uuid_path[NAME_SIZE_MAX];
-    char uhf_trace_path[NAME_SIZE_MAX];
+	char active_cert_path[NAME_SIZE_MAX];
+	char user_info_path[NAME_SIZE_MAX];
+	char bind_accept_path[NAME_SIZE_MAX];
+	char uuid_path[NAME_SIZE_MAX];
+	char uhf_trace_path[NAME_SIZE_MAX];
 
-    radio_config_t radio;
-    security_config_t security;
-    upper_config_t upper;
+	radio_config_t radio;
+	security_config_t security;
+	upper_config_t upper;
 } uhf_config_t;
 
 struct xmlConfigInfo {
-    xmlDocPtr docPtr;
-    xmlNodePtr nodePtr;
-    uhf_config_t *configPtr;
+	xmlDocPtr docPtr;
+	xmlNodePtr nodePtr;
+	uhf_config_t *configPtr;
 };
 
 #endif

@@ -330,7 +330,6 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
 		ret = -FAILED;
 	}
-
 //  printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
 }

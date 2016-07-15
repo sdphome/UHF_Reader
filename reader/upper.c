@@ -556,7 +556,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
-				free(((llrp_u8v_t *)part_data)->pValue);
+				free(((llrp_u8v_t *) part_data)->pValue);
 			}
 			break;
 		}
@@ -739,15 +739,15 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		if (info->select_spec->SelectSpecID == LLRP_SelectSpec_getSelectSpecID(pSS) ||
 			info->select_spec->Priority < LLRP_SelectSpec_getPriority(pSS)) {
 			printf("this spec has exist, old SelectSpecID = %u, new SelectSpecID=%u,"
-					"old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,	\
-					LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,	\
-					LLRP_SelectSpec_getPriority(pSS));
+				   "old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,
+				   LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,
+				   LLRP_SelectSpec_getPriority(pSS));
 			ret = -2;
 			strncpy(status, "this spec has exist.", 64);
 			goto ack;
 		}
 	} else {
-		info->select_spec = (select_spec_t *)malloc(sizeof(select_spec_t));
+		info->select_spec = (select_spec_t *) malloc(sizeof(select_spec_t));
 		if (info->select_spec == NULL) {
 			printf("malloc for select_spec failed.\n");
 			ret = -3;
@@ -762,10 +762,11 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	info->select_spec->CurrentState = LLRP_SelectSpec_getCurrentState(pSS);
 	info->select_spec->Persistence = LLRP_SelectSpec_getPersistence(pSS);
 	pSSST = LLRP_SelectSpec_getSelectSpecStartTrigger(pSS);
-	info->select_spec->SelectSpecStart.type = LLRP_SelectSpecStartTrigger_getSelectSpecStartTriggerType(pSSST);
+	info->select_spec->SelectSpecStart.type =
+		LLRP_SelectSpecStartTrigger_getSelectSpecStartTriggerType(pSSST);
 
 	/* Just process one spec */
-	pAS = (LLRP_tSAntennaSpec *)LLRP_SelectSpec_beginSpecParameter(pSS);
+	pAS = (LLRP_tSAntennaSpec *) LLRP_SelectSpec_beginSpecParameter(pSS);
 	pRS = LLRP_AntennaSpec_beginRfSpec(pAS);
 	info->select_spec->RfSpec.RfSpecId = LLRP_RfSpec_getRfSpecID(pRS);
 	info->select_spec->RfSpec.SelectType = LLRP_RfSpec_getSelectType(pRS);
@@ -779,7 +780,7 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	}
 
 	if (info->select_spec->SelectSpecStart.type == LLRP_SelectSpecStartTriggerType_Periodic) {
-		LLRP_tSPeriodicTrigger * pPT = NULL;
+		LLRP_tSPeriodicTrigger *pPT = NULL;
 
 		pPT = LLRP_SelectSpecStartTrigger_getPeriodicTrigger(pSSST);
 		info->select_spec->SelectSpecStart.offset = LLRP_PeriodicTrigger_getOffset(pPT);
@@ -789,7 +790,7 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		rf_spec_t *rf_spec = &info->select_spec->RfSpec;
 		/* setup security work mode */
 		security_set_work_mode_helper(((uhf_info_t *) (info->uhf))->security, rf_spec->MemoryBankId,
-										rf_spec->BankType);
+									  rf_spec->BankType);
 
 		/* start radio continue check */
 		radio_start_conti_check(((uhf_info_t *) (info->uhf))->radio);
@@ -900,7 +901,6 @@ static int upper_process_StartSelectSpec(upper_info_t * info, LLRP_tSStartSelect
 
 	if (pSSS == NULL)
 		goto out;
-
 
 //  ack:
 	pSSS_Ack = LLRP_StartSelectSpecAck_construct();
@@ -1320,7 +1320,11 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					FILE *fp = NULL;
 					uint8_t ip[16];
 
-					upper_trans_ip(ip, upper_conv_type32(*((llrp_u32_t *) (LLRP_IPAddress_getAddress(pIPA)).pValue)));
+					upper_trans_ip(ip,
+								   upper_conv_type32(*
+													 ((llrp_u32_t
+													   *) (LLRP_IPAddress_getAddress(pIPA)).
+													  pValue)));
 
 					fp = fopen("/etc/ntp.conf", "a+");
 					if (fp == NULL) {
