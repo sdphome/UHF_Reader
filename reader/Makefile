@@ -30,6 +30,7 @@ OBJS			= objs
 SM2_INCLU		= utils/sm2
 LTK_INCLU		= utils/llrp
 SQL_INCLU		= utils/sqlite3
+XML_INCLU		= /usr/include/libxml2
 UHF_HDRS		= include
 
 UHF_OBJS = \
@@ -52,7 +53,7 @@ $(OBJS)/uhf.o: uhf.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU)
 
 $(OBJS)/upper.o: upper.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(LTK_INCLU) -I $(UHF_HDRS)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(LTK_INCLU) -I $(UHF_HDRS) -I $(XML_INCLU)
 
 $(OBJS)/radio.o: radio.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)

@@ -30,6 +30,7 @@
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <ltkc.h>
+#include <xml.h>
 #include <uhf.h>
 
 static void upper_print_XML_message(LLRP_tSMessage * pMessage)
