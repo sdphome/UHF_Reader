@@ -146,7 +146,7 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 	pErrorMsgType = LLRP_TypeRegistry_lookupMessage(pConn->pTypeRegistry, 303u);
 
 	gettimeofday(&now, NULL);
-	outtime.tv_sec = now.tv_sec + UPPER_TIMEOUT;
+	outtime.tv_sec = now.tv_sec + info->pXmlConfig->config.upper.timeout;
 	outtime.tv_nsec = now.tv_usec * 1000;
 
 	while (!responseReceived) {
@@ -537,7 +537,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		tag.AccessSpecID = 1;	/* FIXME */
 		tag.TagSeenCount = 1;
 		info->db_valid = true;
-		sql_insert_tag_info(DB_PATH, &tag);
+		sql_insert_tag_info(info->pXmlConfig->config.upper.db_path, &tag);
 		goto out;
 	}
 
@@ -746,7 +746,10 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 			strncpy(status, "this spec has exist.", 64);
 			goto ack;
 		}
-	} else {
+	}
+
+/*
+	else {
 		info->select_spec = (select_spec_t *) malloc(sizeof(select_spec_t));
 		if (info->select_spec == NULL) {
 			printf("malloc for select_spec failed.\n");
@@ -756,7 +759,7 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		}
 		memset(info->select_spec, 0, sizeof(select_spec_t));
 	}
-
+*/
 	info->select_spec->SelectSpecID = LLRP_SelectSpec_getSelectSpecID(pSS);
 	info->select_spec->Priority = LLRP_SelectSpec_getPriority(pSS);
 	info->select_spec->CurrentState = LLRP_SelectSpec_getCurrentState(pSS);
@@ -799,35 +802,35 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	/* process report spec */
 	pSRS = LLRP_SelectSpec_getSelectReportSpec(pSS);
 	if (pSRS != NULL) {
-		info->tag_spec.SelectReportTrigger = LLRP_SelectReportSpec_getSelectReportTrigger(pSRS);
-		info->tag_spec.NValue = LLRP_SelectReportSpec_getNValue(pSRS);
-		info->tag_spec.mask = 0;
+		info->report_spec->SelectReportTrigger = LLRP_SelectReportSpec_getSelectReportTrigger(pSRS);
+		info->report_spec->NValue = LLRP_SelectReportSpec_getNValue(pSRS);
+		info->report_spec->mask = 0;
 		if (LLRP_SelectReportSpec_getEnableSelectSpecID(pSRS)) {
-			info->tag_spec.mask |= ENABLE_SELECT_SPEC_ID;
+			info->report_spec->mask |= ENABLE_SELECT_SPEC_ID;
 		}
 		if (LLRP_SelectReportSpec_getEnableSpecIndex(pSRS)) {
-			info->tag_spec.mask |= ENABLE_SPEC_INDEX;
+			info->report_spec->mask |= ENABLE_SPEC_INDEX;
 		}
 		if (LLRP_SelectReportSpec_getEnableRfSpecID(pSRS)) {
-			info->tag_spec.mask |= ENABLE_RF_SPEC_ID;
+			info->report_spec->mask |= ENABLE_RF_SPEC_ID;
 		}
 		if (LLRP_SelectReportSpec_getEnableAntennaID(pSRS)) {
-			info->tag_spec.mask |= ENABLE_ANTENNAL_ID;
+			info->report_spec->mask |= ENABLE_ANTENNAL_ID;
 		}
 		if (LLRP_SelectReportSpec_getEnablePeakRSSI(pSRS)) {
-			info->tag_spec.mask |= ENABLE_PEAK_RSSI;
+			info->report_spec->mask |= ENABLE_PEAK_RSSI;
 		}
 		if (LLRP_SelectReportSpec_getEnableFirstSeenTimestamp(pSRS)) {
-			info->tag_spec.mask |= ENABLE_FST;
+			info->report_spec->mask |= ENABLE_FST;
 		}
 		if (LLRP_SelectReportSpec_getEnableLastSeenTimestamp(pSRS)) {
-			info->tag_spec.mask |= ENABLE_LST;
+			info->report_spec->mask |= ENABLE_LST;
 		}
 		if (LLRP_SelectReportSpec_getEnableTagSeenCount(pSRS)) {
-			info->tag_spec.mask |= ENABLE_TSC;
+			info->report_spec->mask |= ENABLE_TSC;
 		}
 		if (LLRP_SelectReportSpec_getEnableAccessSpecID(pSRS)) {
-			info->tag_spec.mask |= ENABLE_ACCESS_SPEC_ID;
+			info->report_spec->mask |= ENABLE_ACCESS_SPEC_ID;
 		}
 	}
 
@@ -844,6 +847,9 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	lock_upper(&info->lock);
 	ret = upper_send_message(info, &pASS_Ack->hdr);
 	unlock_upper(&info->lock);
+
+	/* save the config into xml file */
+	xml_save_config(info->pXmlConfig);
 
   out:
 	if (pASS != NULL)
@@ -1074,8 +1080,8 @@ static int upper_process_DeviceCertificateConfig(upper_info_t * info,
 	pCer = LLRP_DeviceCertificateConfig_getCertificateData(pDCC);
 	pUser = LLRP_DeviceCertificateConfig_getUserData(pDCC);
 
-	ret += upper_write_to_file(info->active_cer_path, &pCer);
-	ret += upper_write_to_file(info->user_info_path, &pUser);
+	ret += upper_write_to_file(info->pXmlConfig->config.active_cert_path, &pCer);
+	ret += upper_write_to_file(info->pXmlConfig->config.user_info_path, &pUser);
 
 	if (ret == NO_ERROR) {
 		security_package_t result;
@@ -1321,8 +1327,8 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					uint8_t ip[16];
 
 					upper_trans_ip(ip, upper_conv_type32(*((llrp_u32_t *)
-														   (LLRP_IPAddress_getAddress(pIPA)).
-														   pValue)));
+														   (LLRP_IPAddress_getAddress
+															(pIPA)).pValue)));
 
 					fp = fopen("/etc/ntp.conf", "a+");
 					if (fp == NULL) {
@@ -1455,7 +1461,7 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 		  break;
 	  case LLRP_VersionType_Security_Chip_Sys:
 		  ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
-										  SECURITY_FW_DEFAULT_PATH);
+										  info->pXmlConfig->config.security.fw_path);
 		  if (ret == -ENOENT)
 			  message = "No such file";
 		  else if (ret == -FAILED)
@@ -1626,7 +1632,7 @@ void *upper_upload_loop(void *data)
 		}
 
 		if (info->db_valid == true) {
-			sql_get_tag_info(DB_PATH, &info->tag_list);
+			sql_get_tag_info(info->pXmlConfig->config.upper.db_path, &info->tag_list);
 			info->db_valid = false;
 		}
 
@@ -1646,7 +1652,7 @@ void *upper_upload_loop(void *data)
 				tag_info_t *tag_info = &tag_list->tag;
 				/* FIXME: maybe other condiction */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
-					tag_info->TagSeenCount >= info->tag_spec.NValue ||
+					tag_info->TagSeenCount >= info->report_spec->NValue ||
 					tag_info->FirstTime == true) {
 					LLRP_tSTagReportData *pTRD = NULL;
 					llrp_u8v_t Tid;
@@ -1661,35 +1667,35 @@ void *upper_upload_loop(void *data)
 
 					LLRP_TagReportData_setTID(pTRD, Tid);
 
-					if (info->tag_spec.mask | ENABLE_SELECT_SPEC_ID) {
+					if (info->report_spec->mask | ENABLE_SELECT_SPEC_ID) {
 						LLRP_tSSelectSpecID *pSSID = NULL;
 						pSSID = LLRP_SelectSpecID_construct();
 						LLRP_SelectSpecID_setSelectSpecID(pSSID, tag_info->SelectSpecID);
 						LLRP_TagReportData_setSelectSpecID(pTRD, pSSID);
 					}
 
-					if (info->tag_spec.mask | ENABLE_SPEC_INDEX) {
+					if (info->report_spec->mask | ENABLE_SPEC_INDEX) {
 						LLRP_tSSpecIndex *pSI = NULL;
 						pSI = LLRP_SpecIndex_construct();
 						LLRP_SpecIndex_setSpecIndex(pSI, tag_info->SpecIndex);
 						LLRP_TagReportData_setSpecIndex(pTRD, pSI);
 					}
 
-					if (info->tag_spec.mask | ENABLE_RF_SPEC_ID) {
+					if (info->report_spec->mask | ENABLE_RF_SPEC_ID) {
 						LLRP_tSRfSpecID *pRSID = NULL;
 						pRSID = LLRP_RfSpecID_construct();
 						LLRP_RfSpecID_setRfSpecID(pRSID, tag_info->RfSpecID);
 						LLRP_TagReportData_setRfSpecID(pTRD, pRSID);
 					}
 
-					if (info->tag_spec.mask | ENABLE_ANTENNAL_ID) {
+					if (info->report_spec->mask | ENABLE_ANTENNAL_ID) {
 						LLRP_tSAntennaID *pAID = NULL;
 						pAID = LLRP_AntennaID_construct();
 						LLRP_AntennaID_setAntennaID(pAID, tag_info->AntennalID);
 						LLRP_TagReportData_setAntennaID(pTRD, pAID);
 					}
 
-					if (info->tag_spec.mask | ENABLE_FST) {
+					if (info->report_spec->mask | ENABLE_FST) {
 						LLRP_tSFirstSeenTimestampUTC *pFST = NULL;
 						pFST = LLRP_FirstSeenTimestampUTC_construct();
 						LLRP_FirstSeenTimestampUTC_setMicroseconds(pFST,
@@ -1697,7 +1703,7 @@ void *upper_upload_loop(void *data)
 						LLRP_TagReportData_setFirstSeenTimestampUTC(pTRD, pFST);
 					}
 
-					if (info->tag_spec.mask | ENABLE_LST) {
+					if (info->report_spec->mask | ENABLE_LST) {
 						LLRP_tSLastSeenTimestampUTC *pLST = NULL;
 						pLST = LLRP_LastSeenTimestampUTC_construct();
 						LLRP_LastSeenTimestampUTC_setMicroseconds(pLST,
@@ -1705,7 +1711,7 @@ void *upper_upload_loop(void *data)
 						LLRP_TagReportData_setLastSeenTimestampUTC(pTRD, pLST);
 					}
 
-					if (info->tag_spec.mask | ENABLE_TSC) {
+					if (info->report_spec->mask | ENABLE_TSC) {
 						LLRP_tSTagSeenCount *pTSC = NULL;
 						pTSC = LLRP_TagSeenCount_construct();
 						LLRP_TagSeenCount_setTagCount(pTSC, tag_info->TagSeenCount);
@@ -2096,9 +2102,6 @@ int start_upper(upper_info_t * info)
 int alloc_upper(upper_info_t ** info)
 {
 	int ret = NO_ERROR;
-	FILE *fp = NULL;
-	unsigned long size = -1;
-	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
 
 	*info = (upper_info_t *) malloc(sizeof(upper_info_t));
 	if (*info == NULL) {
@@ -2126,23 +2129,7 @@ int alloc_upper(upper_info_t ** info)
 
 	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
-	(*info)->heartbeats_periodic = UPPER_DEFAULT_HEARTBEATS_PERIODIC;
 	(*info)->tag_list = NULL;
-
-	ret = file_get_size(UUID_PATH, &size);
-	if (ret == NO_ERROR && size == 9) {
-		fp = fopen(UUID_PATH, "r");
-		if (fp != NULL) {
-			file_read_data(userid, fp, 8);
-			printf("%s: userid = %llx.\n", __func__, *(uint64_t *) userid);
-			fclose(fp);
-		}
-	}
-
-	memcpy(&(*info)->serial, userid, 8);
-
-	memcpy((*info)->active_cer_path, ACTIVE_CER_PATH, sizeof(ACTIVE_CER_PATH));
-	memcpy((*info)->user_info_path, USER_INFO_PATH, sizeof(USER_INFO_PATH));
 
 	(*info)->pConn = LLRP_Conn_construct((*info)->pTypeRegistry, 32u * 1024u);
 	if ((*info)->pConn == NULL) {
@@ -2151,8 +2138,6 @@ int alloc_upper(upper_info_t ** info)
 		free(*info);
 		return -FAILED;
 	}
-
-	sql_create_tag_table(DB_PATH);
 
 	return ret;
 }

@@ -23,19 +23,13 @@
 
 #include <stdint.h>
 
-#define SECURITY_DEV        "/dev/uhf_security"
-
 #define SECURITY_MTU					1500
-#define SECURITY_TIMEOUT				5
 
 #define US_IOC_MAGIC            		'u'
 #define US_IOC_RESET            		_IO(US_IOC_MAGIC, 1)
 #define US_IOC_GET_STATUS       		_IO(US_IOC_MAGIC, 2)
 #define US_IOC_RESET_RADIO      		_IO(US_IOC_MAGIC, 3)
 #define US_IOC_GET_RADIO_STATUS      	_IO(US_IOC_MAGIC, 4)
-
-#define SECURITY_FW_DEFAULT_PATH   "/uhf/fw/security_fw.bin"
-#define SECURITY_AUTH_X509_PATH    "/uhf/cert/ReaderCert.cer"
 
 /* security module status */
 #define OK 							0
@@ -475,10 +469,8 @@ typedef struct security_info {
 	/* security module info */
 	uint8_t version;
 	uint64_t serial;
-	char auth_x509_path[50];
-	char active_x509_path[50];
 
-	security_config_t *security_cfg;
+	struct xmlConfigInfo *pXmlConfig;
 
 	void *uhf;
 } security_info_t;

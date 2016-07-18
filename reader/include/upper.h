@@ -24,16 +24,10 @@
 #include "../utils/llrp/ltkc.h"
 #include "xml.h"
 
-#define UPPER_TIMEOUT				5
-
-#define UPPER_DEFAULT_HEARTBEATS_PERIODIC	1000
-
 #define UPPER_STOP			0x00
 #define UPPER_DISCONNECTED	0x01
 #define UPPER_CONNECTED		0x02
 #define UPPER_READY			0x03
-
-#define DB_PATH	"/uhf/uhf.db"
 
 typedef struct data_param {
 #define TYPE_CID	0x8801
@@ -53,45 +47,6 @@ typedef struct data_param {
 	uint16_t len;
 	uint8_t payload[0];
 } data_param_t;
-
-/*
-typedef struct select_report_spec {
-	uint8_t SelectReportTrigger;
-	uint16_t NValue;
-#define	ENABLE_SELECT_SPEC_ID		0x8000
-#define ENABLE_SPEC_INDEX			0x4000
-#define ENABLE_RF_SPEC_ID			0x2000
-#define ENABLE_ANTENNAL_ID			0x1000
-#define ENABLE_PEAK_RSSI			0x0800
-#define ENABLE_FST					0x0400
-#define ENABLE_LST					0x0200
-#define ENABLE_TSC					0x0100
-#define ENABLE_ACCESS_SPEC_ID		0x0080
-	uint16_t mask;
-} select_report_spec_t;
-
-typedef struct select_spec_start_trigger {
-	uint8_t type;
-	uint32_t offset;
-	uint32_t period;
-} select_spec_start_trigger_t;
-
-typedef struct rf_spec {
-	uint8_t RfSpecId;
-	uint8_t SelectType;
-	uint8_t MemoryBankId;
-	uint8_t BankType;
-} rf_spec_t;
-
-typedef struct select_spec {
-	uint32_t SelectSpecID;
-	uint8_t Priority;
-	uint8_t CurrentState;
-	uint8_t Persistence;
-	select_spec_start_trigger_t SelectSpecStart;
-	rf_spec_t RfSpec;
-} select_spec_t;
-*/
 
 typedef struct tag_info {
 	uint64_t TID;
@@ -118,8 +73,6 @@ typedef struct upper_info {
 	int status;
 	int verbose;
 	int db_valid;
-	char active_cer_path[48];
-	char user_info_path[48];
 
 	uint64_t next_msg_id;
 	uint64_t serial;
@@ -128,7 +81,7 @@ typedef struct upper_info {
 	uint64_t ntp_left_sec;
 	uint16_t port;
 
-	select_report_spec_t tag_spec;
+	select_report_spec_t *report_spec;
 	tag_list_t *tag_list;
 
 	pthread_t read_thread;
@@ -158,7 +111,7 @@ typedef struct upper_info {
 
 	select_spec_t *select_spec;
 
-	upper_config_t *upper_cfg;
+	struct xmlConfigInfo *pXmlConfig;
 
 	void *uhf;
 } upper_info_t;

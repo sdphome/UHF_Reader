@@ -25,13 +25,6 @@
 #include <stdint.h>
 #include <uhf.h>
 
-#define RADIO_PORT      "/dev/ttymxc1"
-
-#define RADIO_TIMEOUT					5
-#define RADIO_DEFAULT_HEARTBEATS_PERIODIC   1000
-
-#define RADIO_FW_DEFAULT_PATH	"/uhf/fw/radio_fw.bin"
-
 /* ---------- Package Fixed Value ---------- */
 #define PACK_HDR                        0xFA
 #define PACK_END                        0xFB
@@ -238,7 +231,7 @@ typedef struct {
 
 	uint8_t flashing;
 
-	radio_config_t *radio_cfg;
+	struct xmlConfigInfo *pXmlConfig;
 
 	void *uhf;
 } radio_info_t;

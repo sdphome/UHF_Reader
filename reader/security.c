@@ -171,7 +171,7 @@ int security_wait_result(security_info_t * info, uint8_t type, uint8_t cmd,
 	memset(result, 0, sizeof(security_package_t));
 
 	gettimeofday(&now, NULL);
-	outtime.tv_sec = now.tv_sec + SECURITY_TIMEOUT;
+	outtime.tv_sec = now.tv_sec + info->pXmlConfig->config.security.timeout;
 	outtime.tv_nsec = now.tv_usec * 1000;
 #ifdef DEBUG
 	printf("%s: +\n", __func__);
@@ -829,7 +829,9 @@ int security_send_auth_data(security_info_t * info, uint64_t sec_rand)
 
 	memset(&result, 0, sizeof(security_package_t));
 
-	len = security_pack_sign_data(info->serial, sec_rand, SECURITY_AUTH_X509_PATH, &data);
+	len =
+		security_pack_sign_data(info->serial, sec_rand,
+								info->pXmlConfig->config.security.auth_x509_path, &data);
 	if (len == 0) {
 		printf("%s: generate auth data failed.\n", __func__);
 		return -FAILED;
@@ -893,21 +895,22 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 	memset(result, 0, sizeof(security_package_t));
 	memset(&user_info, 0, USER_INFO_PARAM_SIZE);
 	/* TODO: fill user_info */
-	ret = file_get_size(USER_INFO_PATH, &size);
+	ret = file_get_size(info->pXmlConfig->config.user_info_path, &size);
 	if (ret != NO_ERROR || size != USER_INFO_PARAM_SIZE) {
-		printf("%s: %s size is %ld, ret = %d.\n", __func__, USER_INFO_PATH, size, ret);
+		printf("%s: %s size is %ld, ret = %d.\n", __func__, info->pXmlConfig->config.user_info_path,
+			   size, ret);
 		ret = -FAILED;
 		return ret;
 	}
 
-	fp = fopen(USER_INFO_PATH, "r");
+	fp = fopen(info->pXmlConfig->config.user_info_path, "r");
 	if (fp == NULL) {
-		printf("open %s fp is null.\n", USER_INFO_PATH);
+		printf("open %s fp is null.\n", info->pXmlConfig->config.user_info_path);
 		return -FAILED;
 	}
 	ret = file_read_data((uint8_t *) & user_info, fp, size);
 	if (ret != NO_ERROR) {
-		printf("%s: read x509 failed.\n", __func__);
+		printf("%s: read user info failed.\n", __func__);
 		fclose(fp);
 		return ret;
 	}
@@ -1332,7 +1335,7 @@ int start_security(security_info_t * info)
 
 	assert(info != NULL);
 
-	info->fd = security_open((char *)SECURITY_DEV);
+	info->fd = security_open(info->pXmlConfig->config.security.dev_link);
 	if (info->fd < 0) {
 		printf("%s: open security device node failed.\n", __func__);
 		return -FAILED;
@@ -1402,11 +1405,6 @@ void stop_security(security_info_t * info)
 
 int alloc_security(security_info_t ** security_info)
 {
-	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
-	FILE *fp = NULL;
-	int ret = NO_ERROR;
-	unsigned long size = -1;
-
 	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
 		printf("Alloc memory for security info failed., errno=%d\n", errno);
@@ -1417,21 +1415,6 @@ int alloc_security(security_info_t ** security_info)
 	(*security_info)->wait_ref = 0;
 	(*security_info)->result_list = NULL;
 	(*security_info)->upload_list = NULL;
-
-	ret = file_get_size(UUID_PATH, &size);
-	if (ret == NO_ERROR && size == 9) {
-		fp = fopen(UUID_PATH, "r");
-		if (fp != NULL) {
-			file_read_data(userid, fp, 8);
-			printf("%s: userid = %llx.\n", __func__, *(uint64_t *) userid);
-			fclose(fp);
-		}
-	}
-
-	memcpy(&(*security_info)->serial, userid, 8);
-
-	memcpy((*security_info)->auth_x509_path, SECURITY_AUTH_X509_PATH,
-		   sizeof(SECURITY_AUTH_X509_PATH));
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
 	pthread_cond_init(&(*security_info)->cond, NULL);

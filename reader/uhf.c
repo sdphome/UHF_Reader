@@ -45,6 +45,8 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 	uint64_t sec_rand = 0;
 
 	security->uhf = (void *)p_uhf;
+	security->pXmlConfig = &p_uhf->xmlConfig;
+	security->serial = p_uhf->serial;
 
 	sec_rand = security_request_rand_num(security);
 
@@ -66,6 +68,8 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	radio_info_t *radio = p_uhf->radio;
 
 	radio->uhf = (void *)p_uhf;
+	radio->pXmlConfig = &p_uhf->xmlConfig;
+	radio->heartbeats_periodic = p_uhf->xmlConfig.config.radio.heart_peri;
 
 	printf("%s: stop continue check.\n", __func__);
 	ret = radio_stop_conti_check(radio);
@@ -78,19 +82,37 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 	upper_info_t *upper = p_uhf->upper;
 
 	upper->uhf = (void *)p_uhf;
+	upper->pXmlConfig = &p_uhf->xmlConfig;
+	upper->serial = p_uhf->serial;
+	upper->heartbeats_periodic = p_uhf->xmlConfig.config.upper.heart_peri;
+	sql_create_tag_table(p_uhf->xmlConfig.config.upper.db_path);
 
-	/* setup default select report spec */
-	upper->tag_spec.SelectReportTrigger = 1;
-	upper->tag_spec.NValue = 400;
-	upper->tag_spec.mask = 0;
-	upper->tag_spec.mask |= ENABLE_SELECT_SPEC_ID;
-	upper->tag_spec.mask |= ENABLE_RF_SPEC_ID;
-	upper->tag_spec.mask |= ENABLE_ANTENNAL_ID;
-	upper->tag_spec.mask |= ENABLE_FST;
-	upper->tag_spec.mask |= ENABLE_LST;
-	upper->tag_spec.mask |= ENABLE_TSC;
+	upper->report_spec = &p_uhf->xmlConfig.config.upper.report_spec;
+	upper->select_spec = &p_uhf->xmlConfig.config.upper.select_spec;
 
 	upper_check_local_spec(upper);
+}
+
+int uhf_get_uuid(uhf_info_t * info)
+{
+	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
+	FILE *fp = NULL;
+	int ret = NO_ERROR;
+	unsigned long size = -1;
+
+	ret = file_get_size(info->xmlConfig.config.uuid_path, &size);
+	if (ret == NO_ERROR && size == 9) {
+		fp = fopen(info->xmlConfig.config.uuid_path, "r");
+		if (fp != NULL) {
+			file_read_data(userid, fp, 8);
+			printf("%s: userid = %llx.\n", __func__, *(uint64_t *) userid);
+			fclose(fp);
+		}
+	}
+
+	memcpy(&info->serial, userid, 8);
+
+	return ret;
 }
 
 void *uhf_heartbeat_loop(void *data)
@@ -180,12 +202,13 @@ static void uhf_print_trace(int signum)
 	char **strings;
 	size_t i;
 	FILE *fp;
+	uhf_config_t *uhf_cfg = &g_uhf->xmlConfig.config;
 
 	signal(signum, SIG_DFL);
 	size = backtrace(array, 10);
 	strings = (char **)backtrace_symbols(array, size);
 
-	fp = fopen(UHF_SIGSEGV_PATH, "w");
+	fp = fopen(uhf_cfg->uhf_trace_path, "w");
 
 	fprintf(stderr, "uhf received SIGSEGV! Stack trace:\n");
 	for (i = 0; i < size; i++) {
@@ -196,8 +219,7 @@ static void uhf_print_trace(int signum)
 
 	free(strings);
 	fclose(fp);
-	// TODO: run reboot if exception
-	//system("reboot");
+	system("reboot");
 	exit(1);
 }
 
@@ -231,6 +253,8 @@ int main(int argc, char **argv)
 		printf("xml parse config failed.");
 		goto failed;
 	}
+
+	uhf_get_uuid(p_uhf);
 
 	ret = alloc_radio(&p_uhf->radio);
 	ret += alloc_security(&p_uhf->security);
@@ -323,7 +347,7 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 
-	security_upgrade_firmware(p_uhf->security, SECURITY_FW_DEFAULT_PATH);
+	security_upgrade_firmware(p_uhf->security, p_uhf.xmlConfig.config.security.fw_path);
 	sleep(30);
 
 	security_reset(p_uhf->security->fd);

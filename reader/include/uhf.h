@@ -28,13 +28,6 @@
 #include "sql.h"
 #include "xml.h"
 
-#define ACTIVE_CER_PATH     "/uhf/cert/active.cer"
-#define USER_INFO_PATH      "/uhf/cert/user_info.bin"
-#define BIND_ACCEPT_FILE	"/uhf/cert/BindAcceptFile.bin"
-
-#define UUID_PATH			"/uhf/uuid"
-#define UHF_SIGSEGV_PATH	"/uhf/uhf_backtrace"
-
 #define false			0
 #define true			1
 
@@ -44,6 +37,7 @@
 typedef struct uhf_info {
 	int status;
 	int sec_auth_status;
+	uint64_t serial;
 
 	pthread_t heartbeat_thread;
 

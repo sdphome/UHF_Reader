@@ -226,7 +226,7 @@ int radio_wait_result(radio_info_t * radio_info, uint8_t cmd, radio_result_t * r
 
 	while (!resultReceived) {
 		gettimeofday(&now, NULL);
-		outtime.tv_sec = now.tv_sec + RADIO_TIMEOUT;
+		outtime.tv_sec = now.tv_sec + radio_info->pXmlConfig->config.radio.timeout;
 		outtime.tv_nsec = now.tv_usec * 1000;
 		ret = pthread_cond_timedwait(&radio_info->c_cond, &radio_info->c_lock, &outtime);
 		if (ret == ETIMEDOUT) {
@@ -613,9 +613,10 @@ int radio_update_firmware(radio_info_t * info)
 
 	memset(&result, 0, sizeof(radio_result_t));
 
-	ret = file_get_size(RADIO_FW_DEFAULT_PATH, &file_size);
+	ret = file_get_size(info->pXmlConfig->config.radio.fw_path, &file_size);
 	if (file_size <= 0) {
-		printf("%s: can't get %s size, ret = %d.\n", __func__, RADIO_FW_DEFAULT_PATH, ret);
+		printf("%s: can't get %s size, ret = %d.\n", __func__,
+			   info->pXmlConfig->config.radio.fw_path, ret);
 		return -FAILED;
 	}
 
@@ -625,7 +626,7 @@ int radio_update_firmware(radio_info_t * info)
 	if (buf == NULL)
 		return -ENOMEM;
 
-	fp = fopen(RADIO_FW_DEFAULT_PATH, "r");
+	fp = fopen(info->pXmlConfig->config.radio.fw_path, "r");
 	fseek(fp, 0L, SEEK_SET);
 	ret = file_read_data(buf, fp, file_size);
 	if (ret != NO_ERROR) {
@@ -978,7 +979,7 @@ int start_radio(radio_info_t * radio_info)
 
 	assert(radio_info != NULL);
 
-	radio_info->fd = init_uart(RADIO_PORT);
+	radio_info->fd = init_uart(radio_info->pXmlConfig->config.radio.dev_link);
 	if (radio_info->fd < 0) {
 		printf("Init uart failed.\n");
 		return -FAILED;
@@ -1024,7 +1025,6 @@ int alloc_radio(radio_info_t ** radio_info)
 
 	(*radio_info)->fd = -1;
 	(*radio_info)->result_list = NULL;
-	(*radio_info)->heartbeats_periodic = RADIO_DEFAULT_HEARTBEATS_PERIODIC;
 	(*radio_info)->flashing = false;
 
 	pthread_mutex_init(&(*radio_info)->c_lock, NULL);

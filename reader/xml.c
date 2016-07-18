@@ -422,7 +422,7 @@ static int xml_get_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 	printf("report spec SelectReportTrigger = %d.\n",
 		   configPtr->upper.report_spec.SelectReportTrigger);
 	printf("report spec NValue = %d.\n", configPtr->upper.report_spec.NValue);
-	printf("report spec Mask = %d.\n", configPtr->upper.report_spec.mask);
+	printf("report spec Mask = 0x%x.\n", configPtr->upper.report_spec.mask);
 
 	return 0;
 }
