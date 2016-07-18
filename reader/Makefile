@@ -19,8 +19,7 @@
 ############################################################################
 
 CC				= ${CROSS_COMPILE}gcc
-CFLAGS			= -Wall -g
-#-rdynamic -funwind-tables
+CFLAGS			= -Wall -g #-rdynamic -funwind-tables
 MKDIR			= mkdir
 RM				= rm
 OUT				= out
@@ -37,6 +36,7 @@ UHF_OBJS = \
 	$(OBJS)/uhf.o	\
 	$(OBJS)/sql.o	\
 	$(OBJS)/file.o	\
+	$(OBJS)/xml.o	\
 	$(OBJS)/upper.o	\
 	$(OBJS)/radio.o	\
 	$(OBJS)/security.o
@@ -50,22 +50,25 @@ $(EXE): $(UHF_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ -lpthread -lsm2 -lltkc -lsqlite3 -ldl -lxml2
 
 $(OBJS)/uhf.o: uhf.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(LTK_INCLU) -I $(XML_INCLU)
 
 $(OBJS)/upper.o: upper.c
 	$(CC) -c $(CFLAGS) $^ -o $@ -I $(LTK_INCLU) -I $(UHF_HDRS) -I $(XML_INCLU)
 
 $(OBJS)/radio.o: radio.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(XML_INCLU)
 
 $(OBJS)/security.o: security.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(SM2_INCLU) -I $(UHF_HDRS)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(SM2_INCLU) -I $(UHF_HDRS) -I $(XML_INCLU)
 
 $(OBJS)/file.o: file.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(XML_INCLU)
 
 $(OBJS)/sql.o: sql.c
-	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(SQL_INCLU)
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(SQL_INCLU) -I $(XML_INCLU)
+
+$(OBJS)/xml.o: xml.c
+	$(CC) -c $(CFLAGS) $^ -o $@ -I $(UHF_HDRS) -I $(XML_INCLU)
 
 clean:
 	find -name '*.o' -exec rm -rf {} \;

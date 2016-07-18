@@ -25,7 +25,6 @@
 	<BindAcceptFile>/uhf/cert/BindAcceptFile.bin</BindAcceptFile>
 	<UUIDPath>/uhf/uuid</UUIDPath>
 	<UHFTraceFile>/uhf/uhf_backtrace</UHFTraceFile>
-
 	<Radio>
 		<LogLevel>1</LogLevel>
 		<DevLink>/dev/ttymxc1</DevLink>
@@ -50,11 +49,11 @@
 			<Priority>0</Priority>
 			<CurrentState>0</CurrentState>
 			<Persistence>1</Persistence>
-			<SelectStartSpec>
+			<SelectSpecStart>
 				<Type>0</Type>
 				<Offset>0</Offset>
 				<Period>0</Period>
-			</SelectStartSpec>
+			</SelectSpecStart>
 			<RfSpec>
 				<RfSpecId>0</RfSpecId>
 				<SelectType>0</SelectType>

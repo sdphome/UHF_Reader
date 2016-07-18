@@ -26,6 +26,7 @@
 #include "security.h"
 #include "file.h"
 #include "sql.h"
+#include "xml.h"
 
 #define ACTIVE_CER_PATH     "/uhf/cert/active.cer"
 #define USER_INFO_PATH      "/uhf/cert/user_info.bin"
@@ -49,6 +50,8 @@ typedef struct uhf_info {
 	upper_info_t *upper;
 	security_info_t *security;
 	radio_info_t *radio;
+
+	struct xmlConfigInfo xmlConfig;
 } uhf_info_t;
 
 #endif

@@ -22,6 +22,7 @@
 #define __UPPER_H
 #include <stdint.h>
 #include "../utils/llrp/ltkc.h"
+#include "xml.h"
 
 #define UPPER_TIMEOUT				5
 
@@ -53,6 +54,7 @@ typedef struct data_param {
 	uint8_t payload[0];
 } data_param_t;
 
+/*
 typedef struct select_report_spec {
 	uint8_t SelectReportTrigger;
 	uint16_t NValue;
@@ -89,6 +91,7 @@ typedef struct select_spec {
 	select_spec_start_trigger_t SelectSpecStart;
 	rf_spec_t RfSpec;
 } select_spec_t;
+*/
 
 typedef struct tag_info {
 	uint64_t TID;
@@ -154,6 +157,8 @@ typedef struct upper_info {
 	uint64_t last_tid_count;
 
 	select_spec_t *select_spec;
+
+	upper_config_t *upper_cfg;
 
 	void *uhf;
 } upper_info_t;

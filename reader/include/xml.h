@@ -22,7 +22,6 @@
 #define __XML_H
 
 #include <libxml/parser.h>
-#include "upper.h"
 
 #define NAME_SIZE_MAX			512
 #define MAX_KEY_VALUE_PAIRS 	20
@@ -33,11 +32,11 @@
 #define CONFIG_XML_PATH			"/uhf/"
 #define CONFIG_XML				"uhf.xml"
 
-#if !defined RETURN_ON_FALSE
-#define RETURN_ON_FALSE(expr)                         \
-    if ((expr) == FALSE) {                            \
+#if !defined RETURN_ON_FAILED
+#define RETURN_ON_FAILED(expr)                         \
+    if ((expr) == FAILED) {                            \
         printf("failed evaluated expression is FALSE.\n"); \
-        return FALSE;                                 \
+        return FAILED;                                 \
      }
 #endif
 
@@ -45,15 +44,15 @@
 #define RETURN_ON_NULL(expr)                           \
     if ((expr) == NULL) {                              \
         printf("failed NULL pointer detected " #expr); \
-        return FALSE;                                  \
+        return FAILED;                                  \
      }
 #endif
 
-#if !defined RETURN_FALSE_IF
-#define RETURN_FALSE_IF(_cond, args...)                \
+#if !defined RETURN_FAILED_IF
+#define RETURN_FAILED_IF(_cond, args...)                \
     if ((_cond)) {                                     \
         printf(" failed evaluated expression is FALSE: " #_cond " : " args); \
-        return FALSE;                                           \
+        return FAILED;                                           \
     }
 #endif
 
@@ -93,10 +92,9 @@ typedef struct {
 	uint8_t timeout;
 } security_config_t;
 
-/*
 typedef struct select_report_spec {
-    uint8_t SelectReportTrigger;
-    uint16_t NValue;
+	uint8_t SelectReportTrigger;
+	uint16_t NValue;
 #define ENABLE_SELECT_SPEC_ID       0x8000
 #define ENABLE_SPEC_INDEX           0x4000
 #define ENABLE_RF_SPEC_ID           0x2000
@@ -106,34 +104,30 @@ typedef struct select_report_spec {
 #define ENABLE_LST                  0x0200
 #define ENABLE_TSC                  0x0100
 #define ENABLE_ACCESS_SPEC_ID       0x0080
-    uint16_t mask;
+	uint16_t mask;
 } select_report_spec_t;
-*/
-typedef struct select_start_spec_trigger {
+
+typedef struct select_spec_start_trigger {
 	uint8_t type;
 	uint32_t offset;
 	uint32_t period;
-} select_start_spec_trigger_t;
+} select_spec_start_trigger_t;
 
-/*
 typedef struct rf_spec {
-    uint8_t RfSpecId;
-    uint8_t SelectType;
-    uint8_t MemoryBankId;
-    uint8_t BankType;
+	uint8_t RfSpecId;
+	uint8_t SelectType;
+	uint8_t MemoryBankId;
+	uint8_t BankType;
 } rf_spec_t;
-*/
 
-/*
 typedef struct select_spec {
-    uint32_t SelectSpecID;
-    uint8_t Priority;
-    uint8_t CurrentState;
-    uint8_t Persistence;
-    select_start_spec_trigger_t SelectStartSpec;
-    rf_spec_t RfSpec;
+	uint32_t SelectSpecID;
+	uint8_t Priority;
+	uint8_t CurrentState;
+	uint8_t Persistence;
+	select_spec_start_trigger_t SelectSpecStart;
+	rf_spec_t RfSpec;
 } select_spec_t;
-*/
 
 typedef struct {
 	uint8_t log_level;
@@ -159,7 +153,10 @@ typedef struct {
 struct xmlConfigInfo {
 	xmlDocPtr docPtr;
 	xmlNodePtr nodePtr;
-	uhf_config_t *configPtr;
+	uhf_config_t config;
 };
+
+int xml_save_config(struct xmlConfigInfo *pXmlConfig);
+int xml_parse_config(struct xmlConfigInfo *pXmlConfig);
 
 #endif

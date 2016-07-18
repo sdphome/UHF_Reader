@@ -24,9 +24,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <libxml/parser.h>
+#include <xml.h>
 #include <uhf.h>
 
-size_t xml_strlcpy(char *destination, const char *source, const size_t size)
+static size_t xml_strlcpy(char *destination, const char *source, const size_t size)
 {
 	if (0 < size) {
 		snprintf(destination, size, "%s", source);
@@ -42,16 +43,16 @@ size_t xml_strlcpy(char *destination, const char *source, const size_t size)
 	return strlen(source);
 }
 
-int xml_unload_file(xmlDocPtr docPtr)
+static void xml_unload_file(xmlDocPtr docPtr)
 {
 	xmlFreeDoc(docPtr);
 }
 
-int xml_load_file(char *file_name, xmlDocPtr * pDocPtr, xmlNodePtr * pNodePtr, const char *nodeName)
+static int xml_load_file(char *file_name, xmlDocPtr * pDocPtr, xmlNodePtr * pNodePtr,
+						 const char *nodeName)
 {
 	xmlDocPtr docPtr = NULL;
 	xmlNodePtr rootPtr = NULL;
-	xmlNodePtr cur = NULL;
 
 	docPtr = xmlParseFile(file_name);
 	if (!docPtr) {
@@ -82,16 +83,15 @@ int xml_load_file(char *file_name, xmlDocPtr * pDocPtr, xmlNodePtr * pNodePtr, c
 	return -1;
 }
 
-uint32_t xml_get_num_nodes(xmlNodePtr pNodePtr, const char *nodeName)
+static int32_t xml_get_num_nodes(xmlNodePtr pNodePtr, const char *nodeName)
 {
-	uint32_t i = 0;
-	uint32_t child_count = 0;
 	uint32_t num_nodes = 0;
 	xmlNodePtr curPtr = NULL;
 
 	if (!pNodePtr || !nodeName)
 		return 0;
-	if (!xmlStrncmp(pNodePtr->name, (const xmlChar *)nodeName, xmlStrlen(pNodePtr->name)))
+	if (!xmlStrncmp
+		(pNodePtr->name, (const xmlChar *)nodeName, xmlStrlen((const xmlChar *)nodeName)))
 		num_nodes++;
 	for (curPtr = xmlFirstElementChild(pNodePtr); curPtr; curPtr = xmlNextElementSibling(curPtr)) {
 		num_nodes += xml_get_num_nodes(curPtr, nodeName);
@@ -99,12 +99,13 @@ uint32_t xml_get_num_nodes(xmlNodePtr pNodePtr, const char *nodeName)
 	return num_nodes;
 }
 
-xmlNodePtr xml_get_node(xmlNodePtr pNodePtr, const char *nodeName, uint32_t node_index)
+static xmlNodePtr xml_get_node(xmlNodePtr pNodePtr, const char *nodeName, uint32_t node_index)
 {
 	uint32_t node_count = 0;
 	xmlNodePtr curPtr = NULL;
 
-	if (!xmlStrncmp(pNodePtr->name, (const xmlChar *)nodeName, xmlStrlen(pNodePtr->name))) {
+	if (!xmlStrncmp
+		(pNodePtr->name, (const xmlChar *)nodeName, xmlStrlen((const xmlChar *)nodeName))) {
 		if (node_index == 0)
 			return pNodePtr;
 		else
@@ -128,7 +129,6 @@ static int xml_get_node_data(xmlDocPtr docPtr,
 {
 	uint16_t i = 0;
 	char *str = NULL;
-	uint32_t size = 0;
 	xmlNodePtr curPtr = NULL;
 
 	RETURN_ON_NULL(key_value_pair);
@@ -136,8 +136,8 @@ static int xml_get_node_data(xmlDocPtr docPtr,
 	RETURN_ON_NULL(pNodePtr);
 	RETURN_ON_NULL(docPtr);
 
-	RETURN_FALSE_IF(!num_pairs);
-	RETURN_FALSE_IF(num_pairs > MAX_KEY_VALUE_PAIRS, "pairs = %d", num_pairs);
+	RETURN_FAILED_IF(!num_pairs);
+	RETURN_FAILED_IF(num_pairs > MAX_KEY_VALUE_PAIRS, "pairs = %d", num_pairs);
 
 	//printf("num_pairs = %d\n", num_pairs);
 
@@ -155,7 +155,8 @@ static int xml_get_node_data(xmlDocPtr docPtr,
 			for (curPtr = xmlFirstElementChild(pNodePtr);
 				 curPtr
 				 && xmlStrncmp(curPtr->name, (const xmlChar *)key_value_pair[i].key,
-							   xmlStrlen(curPtr->name)); curPtr = xmlNextElementSibling(curPtr)) ;
+							   xmlStrlen((const xmlChar *)key_value_pair[i].key));
+				 curPtr = xmlNextElementSibling(curPtr)) ;
 
 			/* Check if we found a match */
 			if (!curPtr) {
@@ -170,7 +171,7 @@ static int xml_get_node_data(xmlDocPtr docPtr,
 			str = (char *)xmlGetProp(pNodePtr, (const xmlChar *)key_value_pair[i].key);
 		} else {
 			printf("Invalid nodeType = %d\n", key_value_pair[i].nodeType);
-			return FALSE;
+			return -FAILED;
 		}
 
 		/* Check if data pointer is NULL */
@@ -212,13 +213,13 @@ static int xml_get_node_data(xmlDocPtr docPtr,
 			  break;
 		  default:
 			  printf(" Invalid value_type = %d.\n", key_value_pair[i].value_type);
-			  return FALSE;
+			  return -FAILED;
 		}
 
 		xmlFree(str);
 	}
 
-	return TRUE;
+	return NO_ERROR;
 }
 
 static int xml_set_node_data(xmlDocPtr docPtr,
@@ -228,7 +229,6 @@ static int xml_set_node_data(xmlDocPtr docPtr,
 {
 	uint16_t i = 0;
 	char str[NAME_SIZE_MAX] = { 0 };
-	uint32_t size = 0;
 	xmlNodePtr curPtr = NULL;
 
 	RETURN_ON_NULL(key_value_pair);
@@ -236,8 +236,8 @@ static int xml_set_node_data(xmlDocPtr docPtr,
 	RETURN_ON_NULL(pNodePtr);
 	RETURN_ON_NULL(docPtr);
 
-	RETURN_FALSE_IF(!num_pairs);
-	RETURN_FALSE_IF(num_pairs > MAX_KEY_VALUE_PAIRS, "pairs = %d", num_pairs);
+	RETURN_FAILED_IF(!num_pairs);
+	RETURN_FAILED_IF(num_pairs > MAX_KEY_VALUE_PAIRS, "pairs = %d", num_pairs);
 
 	pNodePtr = xml_get_node(pNodePtr, parentName, index);
 	RETURN_ON_NULL(pNodePtr);
@@ -275,14 +275,14 @@ static int xml_set_node_data(xmlDocPtr docPtr,
 			  sprintf(str, "%u", *((uint32_t *) key_value_pair[i].value));
 			  break;
 		  case XML_VALUE_UINT64:
-			  sprintf(str, "%lu", *((uint64_t *) key_value_pair[i].value));
+			  sprintf(str, "%llu", *((uint64_t *) key_value_pair[i].value));
 			  break;
 		  case XML_VALUE_FLOAT:
 			  sprintf(str, "%f", *((float *)key_value_pair[i].value));
 			  break;
 		  default:
 			  printf(" Invalid value_type = %d.\n", key_value_pair[i].value_type);
-			  return FALSE;
+			  return -FAILED;
 		}
 
 		if (key_value_pair[i].nodeType == XML_ELEMENT_NODE) {
@@ -307,21 +307,21 @@ static int xml_set_node_data(xmlDocPtr docPtr,
 			xmlSetProp(pNodePtr, (const xmlChar *)key_value_pair[i].key, (const xmlChar *)str);
 		} else {
 			printf("Invalid nodeType = %d\n", key_value_pair[i].nodeType);
-			return FALSE;
+			return -FAILED;
 		}
 
 	}
 
 	printf("%s Exit.\n", __func__);
 
-	return TRUE;
+	return NO_ERROR;
 }
 
-int xml_get_radio_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_radio_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[5];
 
@@ -355,7 +355,7 @@ int xml_get_radio_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "Radio", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "Radio", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("radio log level = %d.\n", configPtr->radio.log_level);
@@ -367,11 +367,11 @@ int xml_get_radio_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_get_security_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_security_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[5];
 
@@ -381,7 +381,7 @@ int xml_get_security_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "Security", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "Security", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("security log level = %d.\n", configPtr->security.log_level);
@@ -389,11 +389,11 @@ int xml_get_security_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_get_report_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[3];
 
@@ -415,7 +415,8 @@ int xml_get_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "ReportSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data
+					 (docPtr, nodePtr, "ReportSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("report spec SelectReportTrigger = %d.\n",
@@ -426,11 +427,11 @@ int xml_get_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_set_report_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_set_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[3];
 
@@ -452,7 +453,8 @@ int xml_set_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_set_node_data(docPtr, nodePtr, "ReportSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_set_node_data
+					 (docPtr, nodePtr, "ReportSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("report spec SelectReportTrigger = %d.\n",
@@ -463,11 +465,11 @@ int xml_set_report_spec_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_get_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[4];
 
@@ -495,7 +497,7 @@ int xml_get_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "RfSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "RfSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("rf spec RfSpecId = %d.\n", configPtr->upper.select_spec.RfSpec.RfSpecId);
@@ -506,11 +508,11 @@ int xml_get_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_set_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_set_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[4];
 
@@ -538,7 +540,7 @@ int xml_set_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_set_node_data(docPtr, nodePtr, "RfSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_set_node_data(docPtr, nodePtr, "RfSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("rf spec RfSpecId = %d.\n", configPtr->upper.select_spec.RfSpec.RfSpecId);
@@ -549,85 +551,85 @@ int xml_set_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
-int xml_get_select_start_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_select_spec_start_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[3];
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Type", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.type;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.type;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Offset", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.offset;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.offset;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT32;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Period", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.period;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.period;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT32;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data
-					(docPtr, nodePtr, "SelectStartSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data
+					 (docPtr, nodePtr, "SelectSpecStart", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
-	printf("select start spec type = %d.\n", configPtr->upper.select_spec.SelectStartSpec.type);
-	printf("select start spec Offset = %d.\n", configPtr->upper.select_spec.SelectStartSpec.offset);
-	printf("select start spec Period = %d.\n", configPtr->upper.select_spec.SelectStartSpec.period);
+	printf("select start spec type = %d.\n", configPtr->upper.select_spec.SelectSpecStart.type);
+	printf("select start spec Offset = %d.\n", configPtr->upper.select_spec.SelectSpecStart.offset);
+	printf("select start spec Period = %d.\n", configPtr->upper.select_spec.SelectSpecStart.period);
 
 	return 0;
 }
 
-int xml_set_select_start_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_set_select_spec_start_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[3];
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Type", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.type;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.type;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Offset", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.offset;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.offset;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT32;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "Period", MAX_KEY_SIZE);
-	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectStartSpec.period;
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.SelectSpecStart.period;
 	key_value_pair[num_pairs].value_type = XML_VALUE_UINT32;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_set_node_data
-					(docPtr, nodePtr, "SelectStartSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_set_node_data
+					 (docPtr, nodePtr, "SelectSpecStart", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
-	printf("select start spec type = %d.\n", configPtr->upper.select_spec.SelectStartSpec.type);
-	printf("select start spec Offset = %d.\n", configPtr->upper.select_spec.SelectStartSpec.offset);
-	printf("select start spec Period = %d.\n", configPtr->upper.select_spec.SelectStartSpec.period);
+	printf("select start spec type = %d.\n", configPtr->upper.select_spec.SelectSpecStart.type);
+	printf("select start spec Offset = %d.\n", configPtr->upper.select_spec.SelectSpecStart.offset);
+	printf("select start spec Period = %d.\n", configPtr->upper.select_spec.SelectSpecStart.period);
 
 	return 0;
 }
 
-int xml_get_select_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[4];
 
@@ -655,7 +657,8 @@ int xml_get_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "SelectSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data
+					 (docPtr, nodePtr, "SelectSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("select spec SelectSpecID = %d.\n", configPtr->upper.select_spec.SelectSpecID);
@@ -663,17 +666,17 @@ int xml_get_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 	printf("select spec CurrentState = %d.\n", configPtr->upper.select_spec.CurrentState);
 	printf("select spec Persistence = %d.\n", configPtr->upper.select_spec.Persistence);
 
-	xml_get_select_start_spec_config(pXmlConfig);
+	xml_get_select_spec_start_config(pXmlConfig);
 	xml_get_rf_spec_config(pXmlConfig);
 
 	return 0;
 }
 
-int xml_set_select_spec_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_set_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[4];
 
@@ -701,7 +704,8 @@ int xml_set_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_set_node_data(docPtr, nodePtr, "SelectSpec", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_set_node_data
+					 (docPtr, nodePtr, "SelectSpec", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("select spec SelectSpecID = %d.\n", configPtr->upper.select_spec.SelectSpecID);
@@ -709,17 +713,17 @@ int xml_set_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 	printf("select spec CurrentState = %d.\n", configPtr->upper.select_spec.CurrentState);
 	printf("select spec Persistence = %d.\n", configPtr->upper.select_spec.Persistence);
 
-	xml_set_select_start_spec_config(pXmlConfig);
+	xml_set_select_spec_start_config(pXmlConfig);
 	xml_set_rf_spec_config(pXmlConfig);
 
 	return 0;
 }
 
-int xml_get_upper_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_upper_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	uint32_t num_pairs = 0;
 	struct xmlKeyValuePair key_value_pair[4];
 
@@ -743,28 +747,47 @@ int xml_get_upper_config(struct xmlConfigInfo *pXmlConfig)
 
 	xml_strlcpy(key_value_pair[num_pairs].key, "HeartBeatPeri", MAX_KEY_SIZE);
 	key_value_pair[num_pairs].value = &configPtr->upper.heart_peri;
-	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT32;
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data(docPtr, nodePtr, "Upper", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "Upper", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("upper log level = %d.\n", configPtr->upper.log_level);
+	printf("upper db path = %s.\n", configPtr->upper.db_path);
+	printf("upper timeout = %d.\n", configPtr->upper.timeout);
+	printf("upper heart peri = %d.\n", configPtr->upper.heart_peri);
 
 	xml_get_select_spec_config(pXmlConfig);
+	xml_get_report_spec_config(pXmlConfig);
+
+	return NO_ERROR;
+}
+
+static int xml_set_uhf_config(struct xmlConfigInfo *pXmlConfig)
+{
+	char config_xml_name[255];
+
+	RETURN_ON_NULL(pXmlConfig);
+
+	snprintf(config_xml_name, BUFF_SIZE_255, "%s%s", CONFIG_XML_PATH, CONFIG_XML);
+
+	xml_set_report_spec_config(pXmlConfig);
+	xml_set_select_spec_config(pXmlConfig);
+
+	xmlSaveFileEnc(config_xml_name, pXmlConfig->docPtr, "UTF-8");
 
 	return 0;
 }
 
-int xml_get_uhf_probe_config(struct xmlConfigInfo *pXmlConfig)
+static int xml_get_uhf_config(struct xmlConfigInfo *pXmlConfig)
 {
 	uint32_t num_pairs = 0;
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
 	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
-	uhf_config_t *configPtr = pXmlConfig->configPtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
 	struct xmlKeyValuePair key_value_pair[20];
-	char positionStr[25];
 
 	memset(configPtr, 0, sizeof(uhf_config_t));
 
@@ -798,8 +821,8 @@ int xml_get_uhf_probe_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
-	RETURN_ON_FALSE(xml_get_node_data
-					(docPtr, nodePtr, "UHFModuleConfig", key_value_pair, num_pairs, 0));
+	RETURN_ON_FAILED(xml_get_node_data
+					 (docPtr, nodePtr, "UHFModuleConfig", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("active_cert_path = %s.\n", configPtr->active_cert_path);
@@ -812,7 +835,81 @@ int xml_get_uhf_probe_config(struct xmlConfigInfo *pXmlConfig)
 	xml_get_security_config(pXmlConfig);
 	xml_get_upper_config(pXmlConfig);
 
-	return TRUE;
+	return NO_ERROR;
+}
+
+int xml_save_config(struct xmlConfigInfo *pXmlConfig)
+{
+	int ret = NO_ERROR;
+	xmlDocPtr docPtr = NULL;
+	xmlNodePtr rootPtr = NULL;
+	xmlNodePtr nodePtr = NULL;
+	char config_xml_name[255];
+
+	snprintf(config_xml_name, BUFF_SIZE_255, "%s%s", CONFIG_XML_PATH, CONFIG_XML);
+
+	printf("saving file to %s.\n", config_xml_name);
+
+	ret = xml_load_file(config_xml_name, &docPtr, &rootPtr, "UHFConfigurationRoot");
+	if (ret) {
+		printf("xml_load_file failed.\n");
+		return -FAILED;
+	}
+
+	pXmlConfig->docPtr = docPtr;
+
+	/* node_index is 0, nodePtr is rootPtr */
+	nodePtr = xml_get_node(rootPtr, "UHFModuleConfig", 0);
+	if (!nodePtr) {
+		printf("can't get node..\n");
+		goto xml_exit;
+	}
+	pXmlConfig->nodePtr = nodePtr;
+
+	xml_set_uhf_config(pXmlConfig);
+
+  xml_exit:
+	xml_unload_file(docPtr);
+	return ret;
+}
+
+int xml_parse_config(struct xmlConfigInfo *pXmlConfig)
+{
+	int ret = NO_ERROR;
+	xmlDocPtr docPtr = NULL;
+	xmlNodePtr rootPtr = NULL;
+	xmlNodePtr nodePtr = NULL;
+	char config_xml_name[255];
+
+	snprintf(config_xml_name, BUFF_SIZE_255, "%s%s", CONFIG_XML_PATH, CONFIG_XML);
+
+	printf("reading from file %s.\n", config_xml_name);
+
+	ret = xml_load_file(config_xml_name, &docPtr, &rootPtr, "UHFConfigurationRoot");
+	if (ret) {
+		printf("xml_load_file failed.\n");
+		return -FAILED;
+	}
+
+	pXmlConfig->docPtr = docPtr;
+
+	/* node_index is 0, nodePtr is rootPtr */
+	nodePtr = xml_get_node(rootPtr, "UHFModuleConfig", 0);
+	if (!nodePtr) {
+		printf("can't get node..\n");
+		goto xml_exit;
+	}
+	pXmlConfig->nodePtr = nodePtr;
+
+	ret = xml_get_uhf_config(pXmlConfig);
+	if (ret) {
+		printf("get uhf config failed.\n");
+		goto xml_exit;
+	}
+
+  xml_exit:
+	xml_unload_file(docPtr);
+	return ret;
 }
 
 #if 0

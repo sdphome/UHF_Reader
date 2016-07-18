@@ -206,6 +206,7 @@ int main(int argc, char **argv)
 {
 	int ret = NO_ERROR;
 	uhf_info_t *p_uhf;
+	struct xmlConfigInfo *pXmlConfig = NULL;
 
 	signal(SIGSEGV, uhf_print_trace);
 	signal(SIGABRT, uhf_print_trace);
@@ -222,6 +223,14 @@ int main(int argc, char **argv)
 
 	signal(SIGINT, uhf_stop);
 	signal(SIGSTOP, uhf_stop);
+
+	pXmlConfig = &p_uhf->xmlConfig;
+
+	ret = xml_parse_config(pXmlConfig);
+	if (ret) {
+		printf("xml parse config failed.");
+		goto failed;
+	}
 
 	ret = alloc_radio(&p_uhf->radio);
 	ret += alloc_security(&p_uhf->security);
@@ -266,7 +275,8 @@ int main(int argc, char **argv)
 	release_upper(&p_uhf->upper);
 	release_security(&p_uhf->security);
 	release_radio(&p_uhf->radio);
-
+  failed:
+	free(p_uhf);
 	system("reboot");
 	return ret;
 }

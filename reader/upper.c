@@ -1320,11 +1320,9 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					FILE *fp = NULL;
 					uint8_t ip[16];
 
-					upper_trans_ip(ip,
-								   upper_conv_type32(*
-													 ((llrp_u32_t
-													   *) (LLRP_IPAddress_getAddress(pIPA)).
-													  pValue)));
+					upper_trans_ip(ip, upper_conv_type32(*((llrp_u32_t *)
+														   (LLRP_IPAddress_getAddress(pIPA)).
+														   pValue)));
 
 					fp = fopen("/etc/ntp.conf", "a+");
 					if (fp == NULL) {

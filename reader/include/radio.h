@@ -238,6 +238,8 @@ typedef struct {
 
 	uint8_t flashing;
 
+	radio_config_t *radio_cfg;
+
 	void *uhf;
 } radio_info_t;
 

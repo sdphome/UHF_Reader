@@ -478,6 +478,8 @@ typedef struct security_info {
 	char auth_x509_path[50];
 	char active_x509_path[50];
 
+	security_config_t *security_cfg;
+
 	void *uhf;
 } security_info_t;
 
