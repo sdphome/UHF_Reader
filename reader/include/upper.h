@@ -81,9 +81,6 @@ typedef struct upper_info {
 	uint64_t ntp_left_sec;
 	uint16_t port;
 
-	select_report_spec_t *report_spec;
-	tag_list_t *tag_list;
-
 	pthread_t read_thread;
 	pthread_mutex_t lock;
 	pthread_cond_t cond;
@@ -109,9 +106,10 @@ typedef struct upper_info {
 	uint64_t tid_count;
 	uint64_t last_tid_count;
 
-	select_spec_t *select_spec;
-
 	struct xmlConfigInfo *pXmlConfig;
+	select_spec_t *select_spec;
+	select_report_spec_t *report_spec;
+	tag_list_t *tag_list;
 
 	void *uhf;
 } upper_info_t;

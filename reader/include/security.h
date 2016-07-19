@@ -502,7 +502,6 @@ int security_send_user_info(security_info_t * info, security_package_t * result)
 int security_send_active_auth(security_info_t * info, uint8_t * active, uint16_t len);
 int security_send_cert(security_info_t * info, uint8_t * cert, uint16_t len);
 int security_upgrade_firmware(security_info_t * info, char *file);
-int security_main(security_info_t * info);
 int inline security_reset_radio(int fd);
 int inline security_reset(int fd);
 int inline security_get_status(int fd);

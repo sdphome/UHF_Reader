@@ -230,7 +230,6 @@ int main(int argc, char **argv)
 	signal(SIGSEGV, uhf_print_trace);
 	signal(SIGABRT, uhf_print_trace);
 
-	/* TODO: setup rtc */
 	system("ntpd");
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
@@ -338,8 +337,6 @@ int main(int argc, char **argv)
 
 	uhf_init_radio(p_uhf);
 
-	//radio_main(p_uhf->radio);
-
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
@@ -355,8 +352,6 @@ int main(int argc, char **argv)
 	ret = uhf_init_security(p_uhf);
 	if (ret != NO_ERROR)
 		goto start_failed;
-
-//  security_main(p_uhf->security);
 
 	printf("Will return.\n");
 

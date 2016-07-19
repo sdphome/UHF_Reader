@@ -872,12 +872,14 @@ static int upper_process_DeleteSelectSpec(upper_info_t * info, LLRP_tSDeleteSele
 
 	if (info->select_spec != NULL) {
 		if (info->select_spec->SelectSpecID == LLRP_DeleteSelectSpec_getSelectSpecID(pDSS)) {
-			free(info->select_spec);
-			info->select_spec = NULL;
+			/* FIXME : setup as default spec */
+			info->select_spec->SelectSpecID = 234;
+			info->select_spec->Priority = 7;
 		}
 	}
 
-	/* TODO:release db */
+	/* save the config into xml file */
+	xml_save_config(info->pXmlConfig);
 
 	pDSS_Ack = LLRP_DeleteSelectSpecAck_construct();
 	if (pDSS_Ack == NULL)
@@ -1213,13 +1215,6 @@ static int upper_process_ClearDeviceLog(upper_info_t * info, LLRP_tSClearDeviceL
 	return ret;
 }
 
-/*
-static int upper_config_ntpd(upper_info_t * info, LLRP_tSIPAddress * pIPA)
-{
-	return 0;
-}
-*/
-
 // 662
 static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig * pThis)
 {
@@ -1314,9 +1309,8 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 		pNTPC = LLRP_CommunicationConfiguration_getNTPConfiguration(pCC);
 		if (pNTPC != NULL) {
-			// upper_config_ntpd(info, pNTPC);
 			LLRP_tSIPAddress *pIPA = NULL;
-			/* TODO: setup ntp */
+
 			info->ntp_left_sec = LLRP_NTPConfiguration_getNtpPeriodicTime(pNTPC) * 3600;
 			system("mv /etc/ntp.conf /etc/ntp.conf.bak");
 			for (pIPA = LLRP_NTPConfiguration_beginIPAddress(pNTPC);
@@ -1621,8 +1615,6 @@ void *upper_upload_loop(void *data)
 	struct timeval now;
 
 	while (true) {
-		/* TODO: think indeep about the lock, if we can move the location of the lock
-		   to increase the speed */
 		lock_upper(&info->upload_lock);
 		pthread_cond_wait(&info->upload_cond, &info->upload_lock);
 
@@ -2159,8 +2151,6 @@ void release_upper(upper_info_t ** info)
 
 	LLRP_TypeRegistry_destruct((*info)->pTypeRegistry);
 	LLRP_Conn_destruct((*info)->pConn);
-
-	/* TODO: before free info, need free the resoure in the struct */
 
 	free(*info);
 	*info = NULL;

@@ -45,8 +45,8 @@
 		<Timeout>5</Timeout>
 		<HeartBeatPeri>1000</HeartBeatPeri>
 		<SelectSpec>
-			<SelectSpecID>0</SelectSpecID>
-			<Priority>0</Priority>
+			<SelectSpecID>234</SelectSpecID>
+			<Priority>7</Priority>
 			<CurrentState>0</CurrentState>
 			<Persistence>1</Persistence>
 			<SelectSpecStart>
