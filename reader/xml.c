@@ -361,8 +361,9 @@ static int xml_get_radio_config(struct xmlConfigInfo *pXmlConfig)
 	printf("radio log level = %d.\n", configPtr->radio.log_level);
 	printf("radio device link = %s.\n", configPtr->radio.dev_link);
 	printf("radio firmware path = %s.\n", configPtr->radio.fw_path);
-	printf("radio timeout = %d.\n", configPtr->radio.timeout);
-	printf("radio heart_peri = %d.\n", configPtr->radio.heart_peri);
+	printf("radio timeout = %u.\n", configPtr->radio.timeout);
+	printf("radio heart_peri = %u.\n", configPtr->radio.heart_peri);
+	printf("radio timeout = %u.\n", configPtr->radio.timeout);
 
 	return 0;
 }
@@ -381,10 +382,38 @@ static int xml_get_security_config(struct xmlConfigInfo *pXmlConfig)
 	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
 	num_pairs++;
 
+	xml_strlcpy(key_value_pair[num_pairs].key, "DevLink", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->security.dev_link;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "FWPath", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->security.fw_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "AuthX509Path", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->security.auth_x509_path;
+	key_value_pair[num_pairs].value_type = XML_VALUE_STRING;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "Timeout", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->security.timeout;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
 	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "Security", key_value_pair, num_pairs, 0));
 
 	printf("---------------------------------------------------[%s]\n", __func__);
 	printf("security log level = %d.\n", configPtr->security.log_level);
+	printf("security dev link = %s.\n", configPtr->security.dev_link);
+	printf("security fw path = %s.\n", configPtr->security.fw_path);
+	printf("security auth x509 path = %s.\n", configPtr->security.auth_x509_path);
+	printf("security timeout = %u.\n", configPtr->security.timeout);
 
 	return 0;
 }

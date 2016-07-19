@@ -2099,7 +2099,7 @@ int start_upper(upper_info_t * info)
 	return ret;
 }
 
-int alloc_upper(upper_info_t ** info)
+int alloc_upper(upper_info_t ** info, struct xmlConfigInfo *pXmlConfig)
 {
 	int ret = NO_ERROR;
 
@@ -2112,6 +2112,7 @@ int alloc_upper(upper_info_t ** info)
 	memset(*info, 0, sizeof(upper_info_t));
 	(*info)->sock = -1;
 	(*info)->status = UPPER_STOP;
+	(*info)->pXmlConfig = pXmlConfig;
 
 	pthread_mutex_init(&(*info)->lock, NULL);
 	pthread_cond_init(&(*info)->cond, NULL);

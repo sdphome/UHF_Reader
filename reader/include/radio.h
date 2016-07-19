@@ -239,7 +239,7 @@ typedef struct {
 int radio_main(radio_info_t * info);
 int start_radio(radio_info_t * radio_info);
 void stop_radio(radio_info_t * radio_info);
-int alloc_radio(radio_info_t ** radio_info);
+int alloc_radio(radio_info_t ** radio_info, struct xmlConfigInfo *pXmlConfig);
 void release_radio(radio_info_t ** radio_info);
 void radio_print_result(radio_result_t result);
 int radio_send_heartbeat(radio_info_t * info);

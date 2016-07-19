@@ -1403,7 +1403,7 @@ void stop_security(security_info_t * info)
 	info->status = SECURITY_STOP;
 }
 
-int alloc_security(security_info_t ** security_info)
+int alloc_security(security_info_t ** security_info, struct xmlConfigInfo *pXmlConfig)
 {
 	*security_info = (security_info_t *) malloc(sizeof(security_info_t));
 	if (*security_info == NULL) {
@@ -1415,6 +1415,7 @@ int alloc_security(security_info_t ** security_info)
 	(*security_info)->wait_ref = 0;
 	(*security_info)->result_list = NULL;
 	(*security_info)->upload_list = NULL;
+	(*security_info)->pXmlConfig = pXmlConfig;
 
 	pthread_mutex_init(&(*security_info)->lock, NULL);
 	pthread_cond_init(&(*security_info)->cond, NULL);

@@ -118,7 +118,7 @@ typedef struct upper_info {
 
 void stop_upper(upper_info_t * info);
 int start_upper(upper_info_t * info);
-int alloc_upper(upper_info_t ** info);
+int alloc_upper(upper_info_t ** info, struct xmlConfigInfo *pXmlConfig);
 void release_upper(upper_info_t ** info);
 
 void upper_signal_upload(upper_info_t * info);

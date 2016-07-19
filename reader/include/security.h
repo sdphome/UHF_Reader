@@ -480,7 +480,7 @@ void sm2_sign(unsigned char *data, int datalen, unsigned char *sA, int *Alen, un
 
 int start_security(security_info_t * info);
 void stop_security(security_info_t * info);
-int alloc_security(security_info_t ** security_info);
+int alloc_security(security_info_t ** security_info, struct xmlConfigInfo *pXmlConfig);
 void release_security(security_info_t ** security_info);
 int security_set_rtc(security_info_t * info);
 int security_set_repeat_read(security_info_t * info, uint8_t repeat);

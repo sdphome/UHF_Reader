@@ -45,7 +45,6 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 	uint64_t sec_rand = 0;
 
 	security->uhf = (void *)p_uhf;
-	security->pXmlConfig = &p_uhf->xmlConfig;
 	security->serial = p_uhf->serial;
 
 	sec_rand = security_request_rand_num(security);
@@ -68,7 +67,6 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	radio_info_t *radio = p_uhf->radio;
 
 	radio->uhf = (void *)p_uhf;
-	radio->pXmlConfig = &p_uhf->xmlConfig;
 	radio->heartbeats_periodic = p_uhf->xmlConfig.config.radio.heart_peri;
 
 	printf("%s: stop continue check.\n", __func__);
@@ -82,7 +80,6 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 	upper_info_t *upper = p_uhf->upper;
 
 	upper->uhf = (void *)p_uhf;
-	upper->pXmlConfig = &p_uhf->xmlConfig;
 	upper->serial = p_uhf->serial;
 	upper->heartbeats_periodic = p_uhf->xmlConfig.config.upper.heart_peri;
 	sql_create_tag_table(p_uhf->xmlConfig.config.upper.db_path);
@@ -219,7 +216,7 @@ static void uhf_print_trace(int signum)
 
 	free(strings);
 	fclose(fp);
-	system("reboot");
+	//system("reboot");
 	exit(1);
 }
 
@@ -256,9 +253,9 @@ int main(int argc, char **argv)
 
 	uhf_get_uuid(p_uhf);
 
-	ret = alloc_radio(&p_uhf->radio);
-	ret += alloc_security(&p_uhf->security);
-	ret += alloc_upper(&p_uhf->upper);
+	ret = alloc_radio(&p_uhf->radio, pXmlConfig);
+	ret += alloc_security(&p_uhf->security, pXmlConfig);
+	ret += alloc_upper(&p_uhf->upper, pXmlConfig);
 	if (ret != NO_ERROR)
 		goto alloc_failed;
 
@@ -301,7 +298,7 @@ int main(int argc, char **argv)
 	release_radio(&p_uhf->radio);
   failed:
 	free(p_uhf);
-	system("reboot");
+	//system("reboot");
 	return ret;
 }
 #else							// TEST

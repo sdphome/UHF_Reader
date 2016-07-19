@@ -1015,7 +1015,7 @@ void stop_radio(radio_info_t * radio_info)
 	close_uart(radio_info->fd);
 }
 
-int alloc_radio(radio_info_t ** radio_info)
+int alloc_radio(radio_info_t ** radio_info, struct xmlConfigInfo *pXmlConfig)
 {
 	*radio_info = (radio_info_t *) malloc(sizeof(radio_info_t));
 	if (radio_info == NULL) {
@@ -1026,6 +1026,7 @@ int alloc_radio(radio_info_t ** radio_info)
 	(*radio_info)->fd = -1;
 	(*radio_info)->result_list = NULL;
 	(*radio_info)->flashing = false;
+	(*radio_info)->pXmlConfig = pXmlConfig;
 
 	pthread_mutex_init(&(*radio_info)->c_lock, NULL);
 	pthread_cond_init(&(*radio_info)->c_cond, NULL);
