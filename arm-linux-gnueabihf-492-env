@@ -1,3 +1,4 @@
 export ARCH=arm
 export GCC_PATH=$PWD/gcc-linaro-arm-linux-gnueabihf-4.9-2014.09_linux/bin
 export CROSS_COMPILE=$GCC_PATH/arm-linux-gnueabihf-
+export KERNEL_BUILD_PATH=$PWD/linux-3.14.52
