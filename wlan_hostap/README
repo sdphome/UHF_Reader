@@ -1,0 +1,4 @@
+insmod wlan.ko
+ifconfig wlan0 up
+ifconfig wlan0 192.168.0.1
+hostapd -B rtl_hostap.config
