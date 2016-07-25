@@ -1372,33 +1372,37 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	LLRP_tSStatus *pStatus = NULL;
 	LLRP_tSSetVersionAck *pAck = NULL;
 	LLRP_tSVersionDownload *pVD = NULL;
+	char *message = NULL;
 	/* FIXME: it should be other status */
 	llrp_u32_t status = 5555;
 
-	memset(cmd, 0, 100);
+	memset(cmd, 0, sizeof(cmd));
 
 	if (pThis->eVerType == LLRP_VersionType_Device_Boot) {
-		local_file = "boot.bin";
-	} else if (pThis->eVerType == LLRP_VersionType_Device_Sys) {
-		local_file = "system.bin";
-	} else if (pThis->eVerType == LLRP_VersionType_Device_Sys) {
-		local_file = "security.bin";
-	} else if (pThis->eVerType == LLRP_VersionType_Security_Chip_Sys) {
-		local_file = "sec_chip.bin";
+		local_file = "/uhf/uhf";
+	} else if (pThis->eVerType == LLRP_VersionType_Security_Module_Sys) {
+		local_file = info->pXmlConfig->config.security.fw_path;
 	} else if (pThis->eVerType == LLRP_VersionType_Security_Module_Pwd) {
-		local_file = "radio.bin";
+		local_file = info->pXmlConfig->config.radio.fw_path;
 	} else {
+		message = "Doesn't support download this type firmware.";
 		goto out;
 	}
 
+	sprintf(cmd, "mv %s /tmp/fw_bak", local_file);
+	printf("cmd is %s.", cmd);
+	system(cmd);
+	memset(cmd, 0, sizeof(cmd));
+
 	pVD = LLRP_SetVersion_getVersionDownload(pThis);
 	if (pVD == NULL) {
+		printf("can't get VersionDownload paramter.\n");
 		goto out;
 	}
 
 	server_type = LLRP_VersionDownload_getServerType(pVD);
 	if (server_type != LLRP_VersionDownloadServerType_Ftp
-		|| server_type != LLRP_VersionDownloadServerType_Tftp) {
+		&& server_type != LLRP_VersionDownloadServerType_Tftp) {
 		goto out;
 	} else {
 		uint8_t ip[16];
@@ -1406,7 +1410,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 
 		pIP = LLRP_VersionDownload_getIPAddress(pVD);
 
-		upper_trans_ip(ip, *(pIP->Address.pValue));
+		upper_trans_ip(ip, upper_conv_type32(*(pIP->Address.pValue)));
 
 		if (server_type == LLRP_VersionDownloadServerType_Ftp)
 			sprintf(cmd, "ftpget -u %s -p %s %s %s %s", pVD->UserName.pValue,
@@ -1418,11 +1422,19 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		system(cmd);
 	}
 
-	if (file_get_size(local_file, &filesize) == NO_ERROR && filesize > 0)
+	if (file_get_size(local_file, &filesize) == NO_ERROR && filesize > 0) {
 		status = 0;
+		message = "Download firmware successful.";
+	} else {
+		memset(cmd,  0, sizeof(cmd));
+		sprintf(cmd, "mv /tmp/fw_bak %s", local_file);
+		system(cmd);
+		message = "Download firmware failed.";
+	}
 
   out:
-	pStatus = upper_setup_status(status, NULL);
+	system("sync");
+	pStatus = upper_setup_status(status, message);
 	pAck = LLRP_SetVersionAck_construct();
 	LLRP_SetVersionAck_setStatus(pAck, pStatus);
 
@@ -1448,14 +1460,13 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 	/* TODO: */
 	switch (type) {
 	  case LLRP_VersionType_Device_Boot:
+		  system("reboot");
 		  break;
 	  case LLRP_VersionType_Device_Sys:
 		  break;
 	  case LLRP_VersionType_Security_Module_Sys:
-		  break;
-	  case LLRP_VersionType_Security_Chip_Sys:
 		  ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
-										  info->pXmlConfig->config.security.fw_path);
+						info->pXmlConfig->config.security.fw_path);
 		  if (ret == -ENOENT)
 			  message = "No such file";
 		  else if (ret == -FAILED)
@@ -1463,7 +1474,10 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 		  else
 			  message = "Unknow error";
 		  break;
+	  case LLRP_VersionType_Security_Chip_Sys:
+		  break;
 	  case LLRP_VersionType_Security_Module_Pwd:
+		  printf("Enter Security_Module_Pwd");
 		  ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
 		  break;
 	  default:

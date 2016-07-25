@@ -1,0 +1,27 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          uhf
+# Required-Start:    
+# Required-Stop:     $local_fs
+# Default-Start:     S
+# Default-Stop:      0 6
+# Short-Description: start uhf daemon
+# Description:       start uhf daemon for card read.
+### END INIT INFO
+#
+
+[ ! -x /uhf/uhf ] && exit 0
+
+
+case "$1" in
+        start)
+		/uhf/uhf &
+                ;;
+        stop|restart|reload|force-reload)
+                exit 0
+		;;
+        *)
+                echo "Usage: S99uhf {start|stop|show|reload|restart}" >&2
+                exit 1
+                ;;
+esac

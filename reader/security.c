@@ -36,7 +36,8 @@
 #include <sys/socket.h>
 #include <uhf.h>
 
-//#define DEBUG
+#define DEBUG
+#define PRINT_RECV
 
 static inline int security_open(char *dev)
 {
@@ -320,10 +321,13 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 	if (nwt < 0) {
 		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
-	} else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
+	}
+/*
+	else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
 		ret = -FAILED;
 	}
+*/
 //  printf("%s: ret = %d.\n", __func__, ret);
 	return ret;
 }
@@ -1025,6 +1029,36 @@ int security_send_cert(security_info_t * info, uint8_t * cert, uint16_t len)
 	return ret;
 }
 
+int security_test_mode(security_info_t * info)
+{
+	int ret = NO_ERROR;
+	security_package_t result;
+
+	printf("Enter %s.\n", __func__);
+
+	memset(&result, 0, sizeof(security_package_t));
+
+	lock_security(&info->lock);
+
+	ret = security_write(info, AUTH_TYPE, TEST_MODE, NO_PARAM_SIZE, NULL);
+	if (ret != NO_ERROR) {
+		unlock_security(&info->lock);
+		printf("%s: write failed, ret = %d\n", __func__, ret);
+		return -FAILED;
+	}
+
+	ret = security_wait_result(info, AUTH_TYPE, TEST_MODE, &result);
+
+	unlock_security(&info->lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+	}
+
+	printf("Exit %s.\n", __func__);
+	return ret;
+}
+
 int security_upgrade_firmware(security_info_t * info, char *file)
 {
 	int ret = NO_ERROR;
@@ -1265,7 +1299,7 @@ void *security_read_loop(void *data)
 			printf("%s: the data is too few. ignore it.\n", __func__);
 			continue;
 		}
-#ifdef DEBUG
+#ifdef PRINT_RECV
 		{
 			int i = 0;
 			printf("%s: nrd = %d\n", __func__, nrd);
@@ -1362,7 +1396,7 @@ int start_security(security_info_t * info)
 
 	/* TODO : sequential */
 	/* wait for ready */
-#if 0
+#if 1
 	while (security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);

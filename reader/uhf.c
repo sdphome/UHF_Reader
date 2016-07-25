@@ -35,6 +35,7 @@
 #include <uhf.h>
 
 //#define TEST
+//#define SEC_TEST_MODE
 
 uhf_info_t *g_uhf = NULL;
 
@@ -46,6 +47,10 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 
 	security->uhf = (void *)p_uhf;
 	security->serial = p_uhf->serial;
+
+#ifdef SEC_TEST_MODE
+	ret = security_test_mode(security);
+#endif
 
 	sec_rand = security_request_rand_num(security);
 
@@ -70,7 +75,7 @@ static int uhf_init_radio(uhf_info_t * p_uhf)
 	radio->heartbeats_periodic = p_uhf->xmlConfig.config.radio.heart_peri;
 
 	printf("%s: stop continue check.\n", __func__);
-	ret = radio_stop_conti_check(radio);
+	ret = radio_start_conti_check(radio);
 
 	return ret;
 }
@@ -107,6 +112,7 @@ int uhf_get_uuid(uhf_info_t * info)
 		}
 	}
 
+	printf("%s: serial is %s.\n", __func__, userid);
 	memcpy(&info->serial, userid, 8);
 
 	return ret;

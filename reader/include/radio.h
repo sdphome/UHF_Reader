@@ -226,7 +226,6 @@ typedef struct {
 	radio_result_list_t *result_list;
 	uint8_t data[RADIO_MTU];
 
-	uint8_t fw_path[30];
 	uint32_t heartbeats_periodic;
 
 	uint8_t flashing;

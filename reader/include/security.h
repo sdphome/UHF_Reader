@@ -86,6 +86,7 @@ enum security_status {
 #define USER_INFO						0x3
 #define SEND_AUTH						0x4
 #define SEND_CERT						0x5
+#define TEST_MODE						0x6
 
 // SEND_RAND_NUM errno
 #define AUTH_PASS						0x0
@@ -507,5 +508,6 @@ int inline security_reset(int fd);
 int inline security_get_status(int fd);
 int inline security_get_radio_status(int fd);
 uint16_t security_pack_sign_data(uint64_t serial, uint64_t sec_rand, char *cert_path,
-								 uint8_t ** data);
+							 uint8_t ** data);
+int security_test_mode(security_info_t * info);
 #endif

@@ -371,13 +371,12 @@ int radio_read(radio_info_t * radio_info, radio_result_t * rsp)
 
 	nrd = read(fd, data, RADIO_MTU);
 	temp = data;
-
-/*
+#if 0
 	for (i = 0; i < nrd; i++) {
 		printf("%4x", data[i]);
 	}
 	printf("\n");
-*/
+#endif
 	if (nrd >= RADIO_PACK_HDR_SIZE + RADIO_PACK_END_SIZE) {
 		memcpy(&rsp->hdr, temp, RADIO_PACK_HDR_SIZE);
 		len = conv_type16(rsp->hdr.len);
@@ -656,9 +655,9 @@ int radio_update_firmware(radio_info_t * info)
 		flag = block_size;
 	}
 
-	security_reset_radio(((uhf_info_t *) (info->uhf))->radio->fd);
+	//security_reset_radio(((uhf_info_t *) (info->uhf))->radio->fd);
 	//sleep(1);
-	while (security_get_radio_status(((uhf_info_t *) (info->uhf))->radio->fd)) ;
+	//while (security_get_radio_status(((uhf_info_t *) (info->uhf))->radio->fd)) ;
 
 	lock_radio(&info->c_lock);
 
