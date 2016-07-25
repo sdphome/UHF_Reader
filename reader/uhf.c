@@ -264,6 +264,8 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto alloc_failed;
 
+	uhf_init_upper(p_uhf);
+
 	ret = start_security(p_uhf->security);
 	if (ret != NO_ERROR)
 		goto start_failed;
@@ -274,8 +276,6 @@ int main(int argc, char **argv)
 	if (ret != NO_ERROR)
 		goto start_failed;
 */
-
-	uhf_init_upper(p_uhf);
 
 	ret = start_radio(p_uhf->radio);
 	if (ret != NO_ERROR)

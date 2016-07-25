@@ -36,8 +36,8 @@
 #include <sys/socket.h>
 #include <uhf.h>
 
-#define DEBUG
-#define PRINT_RECV
+//#define DEBUG
+//#define PRINT_RECV
 
 static inline int security_open(char *dev)
 {
@@ -1396,7 +1396,7 @@ int start_security(security_info_t * info)
 
 	/* TODO : sequential */
 	/* wait for ready */
-#if 1
+#if 0
 	while (security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);

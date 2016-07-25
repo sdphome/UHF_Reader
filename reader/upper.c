@@ -556,7 +556,8 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
-				free(((llrp_u8v_t *) part_data)->pValue);
+				if (part_data != NULL)
+					free(((llrp_u8v_t *) part_data)->pValue);
 			}
 			break;
 		}
@@ -746,6 +747,8 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 			strncpy(status, "this spec has exist.", 64);
 			goto ack;
 		}
+	} else {
+		goto ack;
 	}
 
 /*
