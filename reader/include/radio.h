@@ -56,13 +56,12 @@ typedef struct {
 } __attribute__ ((packed)) fhss_enable_param;
 #define FHSS_ENABLE_PARAM_SIZE          1
 
-#define SET_TRANS_FREQ_RANGE            0x0007
-#define GET_TRANS_FREQ_RANGE            0x0008
+#define SET_TRANS_FREQUENCY             0x0007
+#define GET_TRANS_FREQUENCY             0x0008
 typedef struct {
-	uint8_t start_freq;
-	uint8_t stop_freq;
-} __attribute__ ((packed)) trans_freq_range_param;
-#define TRANS_FREQ_RANGE_PARAM_SIZE     2
+	uint8_t freq_no;
+} __attribute__ ((packed)) trans_frequency_param;
+#define TRANS_FREQUENCY_PARAM_SIZE      1
 
 #define SET_REVER_CHAN_RATE             0x0009
 #define GET_REVER_CHAN_RATE             0x000A
@@ -244,5 +243,9 @@ int radio_send_heartbeat(radio_info_t * info);
 int radio_update_firmware(radio_info_t * info);
 int radio_start_conti_check(radio_info_t * radio_info);
 int radio_stop_conti_check(radio_info_t * radio_info);
+int radio_set_power(radio_info_t * info, uint8_t power);
+int radio_set_freq_range(radio_info_t * info, uint8_t freq_no);
+int radio_set_revert_code_mode(radio_info_t * info, uint8_t mode_no);
+int radio_set_revert_link_rate(radio_info_t * info, uint8_t rate_no);
 
 #endif							/* __RADIO_H */

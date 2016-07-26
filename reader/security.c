@@ -1070,6 +1070,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	firmware_data *data;
 	FILE *fp;
 	int i, flag;
+	int wait_cnt = 0;
 
 	if (file == NULL) {
 		printf("%s: file is null.\n", __func__);
@@ -1160,7 +1161,18 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 
 	free(buf);
 
-	printf("%s: Upgrade firmware successful.\n", __func__);
+	security_reset(info->fd);
+	while (security_get_status(info->fd) && wait_cnt ++ <= 30) {
+		sleep(1);
+		printf("%s: wait security module get ready, wait_cnt=%d.\n", __func__, wait_cnt);
+	}
+
+	if (wait_cnt > 30) {
+		ret = -FAILED;
+		printf("%s: Upgrade firmware failed.\n", __func__);
+	} else {
+		printf("%s: Upgrade firmware successful.\n", __func__);
+	}
 
 	return ret;
 }

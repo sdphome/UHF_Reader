@@ -54,9 +54,9 @@ const char *radio_cmd_to_string(uint16_t command)
 		  return "";
 	  case GET_FHSS_ENABLE:
 		  return "";
-	  case SET_TRANS_FREQ_RANGE:
+	  case SET_TRANS_FREQUENCY:
 		  return "";
-	  case GET_TRANS_FREQ_RANGE:
+	  case GET_TRANS_FREQUENCY:
 		  return "";
 	  case SET_REVER_CHAN_RATE:
 		  return "";
@@ -595,6 +595,159 @@ int radio_get_version(radio_info_t * radio_info)
 	return ret;
 }
 
+
+int radio_set_power(radio_info_t * info, uint8_t power)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+
+	printf("%s: Enter\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	if (power > 33) {
+		printf("%s: the power range is 0-33, power = %d\n", __func__, power);
+		return -EINVAL;
+	}
+
+	lock_radio(&info->c_lock);
+
+	ret = radio_write(info, SET_TRANS_POWER, TRANS_POWER_PARAM_SIZE, &power);
+	if (ret != NO_ERROR) {
+		unlock_radio(&info->c_lock);
+		printf("Set power failed!\n");
+		return -FAILED;
+	}
+
+	ret = radio_wait_result(info, SET_TRANS_POWER, &result);
+
+	unlock_radio(&info->c_lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	printf("%s: Exit\n", __func__);
+
+	return ret;
+}
+
+int radio_set_frequency(radio_info_t * info, uint8_t freq_no)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+
+	printf("%s: Enter\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	if (freq_no > 19) {
+		printf("%s: the freq range is 0-19, the No=%d.\n", __func__, freq_no);
+		return -EINVAL;
+	}
+
+	lock_radio(&info->c_lock);
+
+	ret = radio_write(info, SET_TRANS_FREQUENCY, TRANS_FREQUENCY_PARAM_SIZE, &freq_no);
+	if (ret != NO_ERROR) {
+		unlock_radio(&info->c_lock);
+		printf("Set frequency failed!\n");
+		return -FAILED;
+	}
+
+	ret = radio_wait_result(info, SET_TRANS_FREQUENCY, &result);
+
+	unlock_radio(&info->c_lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	printf("%s: Exit\n", __func__);
+
+	return ret;
+}
+
+int radio_set_revert_link_rate(radio_info_t * info, uint8_t rate_no)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+
+	printf("%s: Enter\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	if (rate_no > 7) {
+		printf("%s: the rate range is 0-7, the No=%d.\n", __func__, rate_no);
+		return -EINVAL;
+	}
+
+	lock_radio(&info->c_lock);
+
+	ret = radio_write(info, SET_REVER_CHAN_RATE, REVER_CHAN_RATE_PARAM_SIZE, &rate_no);
+	if (ret != NO_ERROR) {
+		unlock_radio(&info->c_lock);
+		printf("Set frequency failed!\n");
+		return -FAILED;
+	}
+
+	ret = radio_wait_result(info, SET_REVER_CHAN_RATE, &result);
+
+	unlock_radio(&info->c_lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	printf("%s: Exit\n", __func__);
+
+	return ret;
+}
+
+int radio_set_revert_code_mode(radio_info_t * info, uint8_t mode_no)
+{
+	int ret = NO_ERROR;
+	radio_result_t result;
+
+	printf("%s: Enter\n", __func__);
+
+	memset(&result, 0, sizeof(radio_result_t));
+
+	if (mode_no > 3) {
+		printf("%s: the freq range is 0-3, the No=%d.\n", __func__, mode_no);
+		return -EINVAL;
+	}
+
+	lock_radio(&info->c_lock);
+
+	ret = radio_write(info, SET_REVER_CODE_MODE, REVER_CODE_MODE_PARAM_SIZE, &mode_no);
+	if (ret != NO_ERROR) {
+		unlock_radio(&info->c_lock);
+		printf("Set frequency failed!\n");
+		return -FAILED;
+	}
+
+	ret = radio_wait_result(info, SET_REVER_CODE_MODE, &result);
+
+	unlock_radio(&info->c_lock);
+
+	if (result.payload != NULL) {
+		ret = *result.payload;
+		free(result.payload);
+		result.payload = NULL;
+	}
+
+	printf("%s: Exit\n", __func__);
+
+	return ret;
+}
+
 int radio_update_firmware(radio_info_t * info)
 {
 	int ret = NO_ERROR;
@@ -609,6 +762,7 @@ int radio_update_firmware(radio_info_t * info)
 	FILE *fp = NULL;
 	int i;
 	uint16_t flag;
+	//int wait_cnt = 0;
 
 	memset(&result, 0, sizeof(radio_result_t));
 
@@ -720,6 +874,19 @@ int radio_update_firmware(radio_info_t * info)
 		ret = *result.payload;
 		free(result.payload);
 	}
+
+#if 0
+	security_reset_radio(((uhf_info_t *) (info->uhf))->radio->fd);
+	sleep(1);
+	/* FIXME: maybe other condition */
+	while (security_get_radio_status(((uhf_info_t *) (info->uhf))->radio->fd) && wait_cnt++ < 30)
+		sleep(1);
+
+	if (wait_cnt > 30)
+		ret = -FAILED;
+	else
+		ret = NO_ERROR;
+#endif
 
   out:
 	info->flashing = false;

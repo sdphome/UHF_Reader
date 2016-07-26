@@ -1231,9 +1231,20 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 		LLRP_tSIdentification *pID = NULL;
 
 		pID = LLRP_SetDeviceConfig_getIdentification(pThis);
+		if (pID->DeviceName.nValue == 8) {
+			FILE *fp = NULL;
 
-		printf("%s: DeviceName: %s.\n", __func__, pID->DeviceName.pValue);
+			fp = fopen(info->pXmlConfig->config.uuid_path, "w");
+			if (fp) {
+				printf("write uuid to file.\n");
+				file_write_data((uint8_t *) pID->DeviceName.pValue, fp, pID->DeviceName.nValue);
+				fclose(fp);
+			}
+		}
+
+		printf("%s: Device UUID: %s.\n", __func__, pID->DeviceName.pValue);
 	}
+
 	// CommunicationConfiguration Parameter
 	if (pThis->pCommunicationConfiguration != NULL) {
 		LLRP_tSCommunicationConfiguration *pCC = NULL;
@@ -1392,6 +1403,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		goto out;
 	}
 
+	/* backup the old file */
 	sprintf(cmd, "mv %s /tmp/fw_bak", local_file);
 	printf("cmd is %s.", cmd);
 	system(cmd);
@@ -1429,6 +1441,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		status = 0;
 		message = "Download firmware successful.";
 	} else {
+		/* if download failed, restore the old firmware */
 		memset(cmd,  0, sizeof(cmd));
 		sprintf(cmd, "mv /tmp/fw_bak %s", local_file);
 		system(cmd);
@@ -1470,18 +1483,27 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 	  case LLRP_VersionType_Security_Module_Sys:
 		  ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
 						info->pXmlConfig->config.security.fw_path);
-		  if (ret == -ENOENT)
-			  message = "No such file";
+		  if (ret == NO_ERROR) {
+			  ret = uhf_init_security((uhf_info_t *) (info->uhf));
+			  if (ret != NO_ERROR)
+				  message = "upgrade success, but init security failed.";
+			  else
+				  message = "Good, upgrade success.";
+		  } else if (ret == -ENOENT)
+			  message = "No such file.";
 		  else if (ret == -FAILED)
-			  message = "Upgrade failed";
-		  else
-			  message = "Unknow error";
+			  message = "Upgrade failed.";
+		  else if (ret < 0)
+			  message = "Unknow error.";
 		  break;
 	  case LLRP_VersionType_Security_Chip_Sys:
 		  break;
 	  case LLRP_VersionType_Security_Module_Pwd:
 		  printf("Enter Security_Module_Pwd");
 		  ret = radio_update_firmware(((uhf_info_t *) (info->uhf))->radio);
+		  if (ret == NO_ERROR) {
+			  uhf_init_radio((uhf_info_t *) (info->uhf));
+		  }
 		  break;
 	  default:
 		  ret = -FAILED;
@@ -1956,12 +1978,13 @@ void *upper_read_loop(void *data)
 
 	while (true) {
 		/* Need enqueue pMessage into queue */
-		pMessage = LLRP_Conn_recvMessage(pConn, 10000);
+		pMessage = LLRP_Conn_recvMessage(pConn, -1);
 		if (pMessage == NULL) {
 			if (pError->eResultCode == LLRP_RC_RecvIOError ||
-				pError->eResultCode == LLRP_RC_RecvEOF) {
+				pError->eResultCode == LLRP_RC_RecvEOF ||
+				pError->eResultCode == LLRP_RC_MiscError) {
 				info->status = UPPER_DISCONNECTED;
-				printf("%s: error code:%d, error message:%s.\n",
+				printf("%s: error code:%d, error message:%s, will disconnect\n",
 					   __func__, pError->eResultCode, pError->pWhatStr);
 				break;
 			} else {

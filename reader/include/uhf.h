@@ -48,4 +48,6 @@ typedef struct uhf_info {
 	struct xmlConfigInfo xmlConfig;
 } uhf_info_t;
 
+int uhf_init_radio(uhf_info_t * p_uhf);
+int uhf_init_security(uhf_info_t * p_uhf);
 #endif

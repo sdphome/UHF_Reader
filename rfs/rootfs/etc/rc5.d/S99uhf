@@ -1,7 +1,7 @@
 #!/bin/sh
 ### BEGIN INIT INFO
 # Provides:          uhf
-# Required-Start:    
+# Required-Start:
 # Required-Stop:     $local_fs
 # Default-Start:     S
 # Default-Stop:      0 6

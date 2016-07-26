@@ -39,7 +39,7 @@
 
 uhf_info_t *g_uhf = NULL;
 
-static int uhf_init_security(uhf_info_t * p_uhf)
+int uhf_init_security(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	security_info_t *security = p_uhf->security;
@@ -66,7 +66,7 @@ static int uhf_init_security(uhf_info_t * p_uhf)
 	return ret;
 }
 
-static int uhf_init_radio(uhf_info_t * p_uhf)
+int uhf_init_radio(uhf_info_t * p_uhf)
 {
 	int ret = NO_ERROR;
 	radio_info_t *radio = p_uhf->radio;
