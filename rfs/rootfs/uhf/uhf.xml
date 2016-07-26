@@ -29,7 +29,7 @@
 		<LogLevel>1</LogLevel>
 		<DevLink>/dev/ttymxc1</DevLink>
 		<FWPath>/uhf/fw/radio_fw.bin</FWPath>
-		<Timeout>5</Timeout>
+		<Timeout>2</Timeout>
 		<HeartBeatPeri>1000</HeartBeatPeri>
 	</Radio>
 	<Security>
@@ -37,7 +37,7 @@
 		<DevLink>/dev/uhf_security</DevLink>
 		<FWPath>/uhf/fw/security_fw.bin</FWPath>
 		<AuthX509Path>/uhf/cert/ReaderCert.cer</AuthX509Path>
-		<Timeout>5</Timeout>
+		<Timeout>2</Timeout>
 	</Security>
 	<Upper>
 		<LogLevel>1</LogLevel>
