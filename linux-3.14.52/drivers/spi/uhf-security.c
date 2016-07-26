@@ -493,9 +493,9 @@ static int us_stress_func(void *data)
 	/* hardcode for stress test */
 	us_data_1.data[index++] = 0xAB;
 	us_data_1.data[index++] = 0x51;
-	us_data_1.data[index++] = 0x13;
+	us_data_1.data[index++] = 0x69;
 	us_data_1.data[index++] = 0x00;
-	us_data_1.data[index++] = 0x01;
+	us_data_1.data[index++] = 0x03;
 	us_data_1.data[index++] = 0x00; /* error type */
 	data2_index = index;
 	us_data_1.data[index++] = 0x11;
@@ -506,7 +506,107 @@ static int us_stress_func(void *data)
 	us_data_1.data[index++] = 0x66;
 	us_data_1.data[index++] = 0x77;
 	us_data_1.data[index++] = 0x00;
-	us_data_1.data[index++] = 0x03; /* antenn id */
+	us_data_1.data[index++] = 0x2B; /* antenn id */
+
+	do_gettimeofday(&tv);
+	time = ((uint64_t) tv.tv_sec) * (uint64_t)1000 +  (uint64_t)(tv.tv_usec / 1000);
+	*((uint64_t *)(us_data_1.data + index)) = time;
+	index += 8;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8801;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 5;
+	index += 2;
+	us_data_1.data[index++] = 0x00;
+	us_data_1.data[index++] = 0x40;
+	us_data_1.data[index++] = 0x00;
+	us_data_1.data[index++] = 0x00;
+	us_data_1.data[index++] = 0x00;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8802;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x2;
+	us_data_1.data[index++] = 0x1;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8803;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 1;
+	index += 2;
+	us_data_1.data[index++] = 0x2;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8804;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x1;
+	us_data_1.data[index++] = 0x38;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8805;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x0;
+	us_data_1.data[index++] = 0x18;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8806;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x0;
+	us_data_1.data[index++] = 0xFF;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8807;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x0;
+	us_data_1.data[index++] = 0x0F;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8808;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 1;
+	index += 2;
+	us_data_1.data[index++] = 0x5;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x8809;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 5;
+	index += 2;
+	us_data_1.data[index++] = 0x15;
+	us_data_1.data[index++] = 0x1F;
+	us_data_1.data[index++] = 0x1F;
+	us_data_1.data[index++] = 0x23;
+	us_data_1.data[index++] = 0x15;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x880A;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x1;
+	us_data_1.data[index++] = 0x38;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x880B;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 1;
+	index += 2;
+	us_data_1.data[index++] = 0x4;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x880C;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 2;
+	index += 2;
+	us_data_1.data[index++] = 0x0;
+	us_data_1.data[index++] = 0xFF;
+
+	*(uint16_t *)(us_data_1.data + index) = 0x880D;
+	index += 2;
+	*(uint16_t *)(us_data_1.data + index) = 1;
+	index += 2;
+	us_data_1.data[index++] = 0x3;
+
+	index += 6;
 
 	memcpy(&us_data_2, &us_data_1, sizeof(struct uhf_security_data));
 	us_data_2.data[data2_index++] = 0x99;
@@ -519,22 +619,16 @@ static int us_stress_func(void *data)
 	us_data_2.data[data2_index++] = 0x00;
 	us_data_2.data[data2_index++] = 0x01; /* antenn id */
 
-	us_data_1.len = 24;
-	us_data_2.len = 24;
+	us_data_1.len = index;
+	us_data_2.len = index;
 
 	while (!kthread_should_stop()) {
 		mdelay(uhf->stress_interval);
 
 		if (count ++ % 3) {
-			do_gettimeofday(&tv);
-			time = ((uint64_t) tv.tv_sec) * (uint64_t)1000 +  (uint64_t)(tv.tv_usec / 1000);
-			*((uint64_t *)(us_data_1.data + index)) = time;
 			us_calc_crc(&us_data_1);
 			us_copy_to_cache(uhf, us_data_1);
 		} else {
-			do_gettimeofday(&tv);
-			time = ((uint64_t) tv.tv_sec) * (uint64_t)1000 +  (uint64_t)(tv.tv_usec / 1000);
-			*((uint64_t *)(us_data_2.data + index)) = time;
 			us_calc_crc(&us_data_2);
 			us_copy_to_cache(uhf, us_data_2);
 		}
