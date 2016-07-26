@@ -67,9 +67,9 @@ static void upper_show_report_speed(upper_info_t * info)
 
 	info->tid_count++;
 
-	if (diff > 1000) {
+	if (diff > 5000) {
 		speed = (((double)(info->tid_count - info->last_tid_count)) *
-				 (double)(1000)) / (double)diff;
+				 (double)(5000)) / (double)diff;
 		printf("%s:tid_diff=%lld, time_diff=%lld, speed is %.4f TIDs/sec.\n",
 			   __func__, info->tid_count - info->last_tid_count, diff, speed);
 		info->last_tid_count = info->tid_count;
@@ -514,6 +514,8 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	tag_list_t *tag_list_prev = NULL;
 	int new_tag = true;
 	int need_notify = true;		/* TODO: re-check this condition */
+	llrp_u64_t curr_timestamp;
+	struct timeval now;
 
 	if (info == NULL) {
 		printf("info is null.\n");
@@ -524,16 +526,17 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 
 	upper_show_report_speed(info);
 
+	gettimeofday(&now, NULL);
+	curr_timestamp = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
+
 	if (info->status < UPPER_CONNECTED) {
-		printf("%s: upper hasn't ready, status = %d, store tag info into db.\n", __func__,
-			   info->status);
 		tag_info_t tag;
 		tag.TID = tid;
 		tag.SelectSpecID = info->select_spec->SelectSpecID;
 		tag.RfSpecID = info->select_spec->RfSpec.RfSpecId;
 		tag.AntennalID = anten_no;
-		tag.FirstSeenTimestampUTC = timestamp;
-		tag.LastSeenTimestampUTC = timestamp;
+		tag.FirstSeenTimestampUTC = curr_timestamp;
+		tag.LastSeenTimestampUTC = curr_timestamp;
 		tag.AccessSpecID = 1;	/* FIXME */
 		tag.TagSeenCount = 1;
 		info->db_valid = true;
@@ -549,15 +552,13 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		if (tag_list->tag.TID == tid) {
 			new_tag = false;
 			tag_list->tag.TagSeenCount += 1;
-			tag_list->tag.LastSeenTimestampUTC = timestamp;
+			tag_list->tag.LastSeenTimestampUTC = curr_timestamp;
 			/* if this tag first time have part data, then report it */
 			if (tag_list->tag.PartData.nValue == 0 && part_data != NULL) {
 				tag_list->tag.PartData = *(llrp_u8v_t *) part_data;
 				tag_list->tag.FirstTime = true;
 			} else {
 				tag_list->tag.FirstTime = false;
-				if (part_data != NULL)
-					free(((llrp_u8v_t *) part_data)->pValue);
 			}
 			break;
 		}
@@ -575,13 +576,20 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.SpecIndex = 0;
 		curr_list->tag.RfSpecID = info->select_spec->RfSpec.RfSpecId;
 		curr_list->tag.AntennalID = anten_no;
-		curr_list->tag.FirstSeenTimestampUTC = timestamp;
-		curr_list->tag.LastSeenTimestampUTC = timestamp;
+		curr_list->tag.FirstSeenTimestampUTC = curr_timestamp;
+		curr_list->tag.LastSeenTimestampUTC = curr_timestamp;
 		curr_list->tag.AccessSpecID = 1;
 		curr_list->tag.TagSeenCount = 1;
 		curr_list->tag.FirstTime = true;
 		if (part_data != NULL) {
 			curr_list->tag.PartData = *(llrp_u8v_t *) part_data;
+			/* Just new tag malloc memory for PartData */
+			curr_list->tag.PartData.pValue = malloc(curr_list->tag.PartData.nValue);
+			if (curr_list->tag.PartData.pValue == NULL)
+				curr_list->tag.PartData.nValue = 0;
+			else
+				memcpy(curr_list->tag.PartData.pValue, ((llrp_u8v_t *) part_data)->pValue,
+						curr_list->tag.PartData.nValue);
 		}
 
 		if (tag_list_prev == NULL)
@@ -1689,8 +1697,8 @@ void *upper_upload_loop(void *data)
 					llrp_u8v_t Tid;
 
 					found = true;
-					tag_info->TagSeenCount = 0;
 
+					tag_info->FirstTime = false;
 					pTRD = LLRP_TagReportData_construct();
 					Tid.nValue = 8;
 					Tid.pValue = (llrp_u8_t *) malloc(Tid.nValue);
@@ -1749,27 +1757,30 @@ void *upper_upload_loop(void *data)
 						LLRP_TagReportData_setTagSeenCount(pTRD, pTSC);
 					}
 
+					tag_info->TagSeenCount = 0;
+
 					if (tag_info->PartData.nValue) {
 						LLRP_tSCustomizedSelectSpecResult *pCSSR = NULL;
 						LLRP_tSReadDataInfo *pRDI = NULL;
 						data_param_t *data = NULL;
 						llrp_u8v_t tmp;
 						uint16_t pos = 0;
+						uint16_t real_len = 0;
 
 						pCSSR = LLRP_CustomizedSelectSpecResult_construct();
 						LLRP_CustomizedSelectSpecResult_setResult(pCSSR, 0);
 
 						pRDI = LLRP_ReadDataInfo_construct();
 
-						tag_info->PartData.nValue -= 5;
-						for (; tag_info->PartData.nValue - pos >= 4; pos += (data->len + 4)) {
+						real_len = tag_info->PartData.nValue - 6;
+						for (; real_len - pos >= 4; pos += (data->len + 4)) {
 							memset(&tmp, 0, sizeof(llrp_u8v_t));
 							data = (data_param_t *) (tag_info->PartData.pValue + pos);
 							tmp.nValue = data->len;
 							tmp.pValue = malloc(tmp.nValue);
 							memcpy(tmp.pValue, data->payload, tmp.nValue);
 
-							if (tag_info->PartData.nValue < pos + data->len)
+							if (real_len < pos + data->len)
 								break;
 
 							switch (data->type_code) {
@@ -1898,15 +1909,15 @@ void *upper_upload_loop(void *data)
 						}
 						LLRP_CustomizedSelectSpecResult_setReadDataInfo(pCSSR, pRDI);
 						LLRP_TagReportData_setSelectSpecResult(pTRD, (LLRP_tSParameter *) pCSSR);
-						free(tag_info->PartData.pValue);
 					}
 
 					LLRP_TagSelectAccessReport_addTagReportData(pTSAR, pTRD);
 				}
-				//printf("curr_timestamp=%lld, LastSeenTimestampUTC=%lld., count=%u\n", curr_timestamp,
-				//                                  tag_info->LastSeenTimestampUTC, tag_info->TagSeenCount);
 				/* FIXME: maybe other time */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000) {
+					/* free the part data memory */
+					free(tag_info->PartData.pValue);
+					tag_info->PartData.pValue = NULL;
 					if (info->tag_list == tag_list) {
 						info->tag_list = tag_list->next;
 						tag_list_prev = info->tag_list;
@@ -2160,7 +2171,7 @@ int alloc_upper(upper_info_t ** info, struct xmlConfigInfo *pXmlConfig)
 		return -FAILED;
 	}
 
-	(*info)->verbose = 1;
+	(*info)->verbose = 0;
 	(*info)->next_msg_id = 1;
 	(*info)->tag_list = NULL;
 

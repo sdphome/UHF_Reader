@@ -1203,8 +1203,9 @@ static void security_upload_part(security_info_t * info, security_package_t * up
 													  (void *)&part_data);
 			  }
 
-			  free(upload->payload);
-			  upload->payload = NULL;
+			  if (part_data.pValue != NULL)
+				  free(part_data.pValue);
+			  part_data.pValue = NULL;
 			  break;
 		  }
 	  case TID_DECIP_FAILED:

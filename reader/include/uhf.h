@@ -34,6 +34,16 @@
 #define NO_ERROR		0
 #define FAILED			1
 
+//#define DEBUG_POINTER
+#ifdef DEBUG_POINTER
+#define free(p) \
+        { \
+            printf("%s:%d:%s:free(0x%lx)\n", __FILE__, __LINE__, \
+            __func__, (unsigned long)p); \
+            free(p); \
+        }
+#endif
+
 typedef struct uhf_info {
 	int status;
 	int sec_auth_status;
