@@ -69,7 +69,7 @@ static void upper_show_report_speed(upper_info_t * info)
 
 	if (diff > 5000) {
 		speed = (((double)(info->tid_count - info->last_tid_count)) *
-				 (double)(5000)) / (double)diff;
+				 (double)(1000)) / (double)diff;
 		printf("%s:tid_diff=%lld, time_diff=%lld, speed is %.4f TIDs/sec.\n",
 			   __func__, info->tid_count - info->last_tid_count, diff, speed);
 		info->last_tid_count = info->tid_count;
@@ -555,10 +555,16 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 			tag_list->tag.LastSeenTimestampUTC = curr_timestamp;
 			/* if this tag first time have part data, then report it */
 			if (tag_list->tag.PartData.nValue == 0 && part_data != NULL) {
+				tag_list->tag.ForceReport = true;
 				tag_list->tag.PartData = *(llrp_u8v_t *) part_data;
-				tag_list->tag.FirstTime = true;
+				tag_list->tag.PartData.pValue = malloc(tag_list->tag.PartData.nValue);
+				if (tag_list->tag.PartData.pValue == NULL)
+					tag_list->tag.PartData.nValue = 0;
+				else
+					memcpy(tag_list->tag.PartData.pValue, ((llrp_u8v_t *) part_data)->pValue,
+							tag_list->tag.PartData.nValue);
 			} else {
-				tag_list->tag.FirstTime = false;
+				tag_list->tag.ForceReport = false;
 			}
 			break;
 		}
@@ -580,10 +586,10 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 		curr_list->tag.LastSeenTimestampUTC = curr_timestamp;
 		curr_list->tag.AccessSpecID = 1;
 		curr_list->tag.TagSeenCount = 1;
-		curr_list->tag.FirstTime = true;
+		curr_list->tag.ForceReport = true;
 		if (part_data != NULL) {
 			curr_list->tag.PartData = *(llrp_u8v_t *) part_data;
-			/* Just new tag malloc memory for PartData */
+			/* Just new tag and first time see part data can malloc memory for PartData */
 			curr_list->tag.PartData.pValue = malloc(curr_list->tag.PartData.nValue);
 			if (curr_list->tag.PartData.pValue == NULL)
 				curr_list->tag.PartData.nValue = 0;
@@ -1692,13 +1698,13 @@ void *upper_upload_loop(void *data)
 				/* FIXME: maybe other condiction */
 				if (curr_timestamp - tag_info->LastSeenTimestampUTC > 5000 ||
 					tag_info->TagSeenCount >= info->report_spec->NValue ||
-					tag_info->FirstTime == true) {
+					tag_info->ForceReport == true) {
 					LLRP_tSTagReportData *pTRD = NULL;
 					llrp_u8v_t Tid;
 
 					found = true;
 
-					tag_info->FirstTime = false;
+					tag_info->ForceReport = false;
 					pTRD = LLRP_TagReportData_construct();
 					Tid.nValue = 8;
 					Tid.pValue = (llrp_u8_t *) malloc(Tid.nValue);
