@@ -322,6 +322,7 @@ int security_write(security_info_t * info, uint8_t type, uint8_t cmd, uint16_t l
 		printf("%s:write failed, ret = %d\n", __func__, nwt);
 		ret = nwt;
 	}
+
 /*
 	else if (nwt != SECURITY_PACK_HDR_SIZE + len) {
 		printf("write failed, nwt=%d, total_len=%d\n", nwt, SECURITY_PACK_HDR_SIZE + len);
@@ -1162,7 +1163,7 @@ int security_upgrade_firmware(security_info_t * info, char *file)
 	free(buf);
 
 	security_reset(info->fd);
-	while (security_get_status(info->fd) && wait_cnt ++ <= 30) {
+	while (security_get_status(info->fd) && wait_cnt++ <= 30) {
 		sleep(1);
 		printf("%s: wait security module get ready, wait_cnt=%d.\n", __func__, wait_cnt);
 	}

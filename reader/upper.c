@@ -562,7 +562,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 					tag_list->tag.PartData.nValue = 0;
 				else
 					memcpy(tag_list->tag.PartData.pValue, ((llrp_u8v_t *) part_data)->pValue,
-							tag_list->tag.PartData.nValue);
+						   tag_list->tag.PartData.nValue);
 			} else {
 				tag_list->tag.ForceReport = false;
 			}
@@ -595,7 +595,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 				curr_list->tag.PartData.nValue = 0;
 			else
 				memcpy(curr_list->tag.PartData.pValue, ((llrp_u8v_t *) part_data)->pValue,
-						curr_list->tag.PartData.nValue);
+					   curr_list->tag.PartData.nValue);
 		}
 
 		if (tag_list_prev == NULL)
@@ -753,10 +753,11 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	/* process select spec start trigger */
 	if (info->select_spec != NULL) {
 		if (info->select_spec->Priority < LLRP_SelectSpec_getPriority(pSS)) {
-			printf("this spec Priority is lower than current, old SelectSpecID = %u, new SelectSpecID=%u,"
-				   "old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,
-				   LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,
-				   LLRP_SelectSpec_getPriority(pSS));
+			printf
+				("this spec Priority is lower than current, old SelectSpecID = %u, new SelectSpecID=%u,"
+				 "old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,
+				 LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,
+				 LLRP_SelectSpec_getPriority(pSS));
 			ret = -2;
 			strncpy(status, "this spec has exist.", 64);
 			goto ack;
@@ -819,7 +820,8 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		radio_set_power(((uhf_info_t *) (info->uhf))->radio, pxml_ac->TransmitPowerIndex);
 		radio_set_frequency(((uhf_info_t *) (info->uhf))->radio, pxml_ac->FrequencyIndex);
 		radio_set_revert_link_rate(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataRateIndex);
-		radio_set_revert_code_mode(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataEncodingIndex);
+		radio_set_revert_code_mode(((uhf_info_t *) (info->uhf))->radio,
+								   pxml_ac->RevDataEncodingIndex);
 	}
 
 	/* process report spec */
@@ -1264,7 +1266,6 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 
 		printf("%s: Device UUID: %s.\n", __func__, pID->DeviceName.pValue);
 	}
-
 	// CommunicationConfiguration Parameter
 	if (pThis->pCommunicationConfiguration != NULL) {
 		LLRP_tSCommunicationConfiguration *pCC = NULL;
@@ -1462,7 +1463,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 		message = "Download firmware successful.";
 	} else {
 		/* if download failed, restore the old firmware */
-		memset(cmd,  0, sizeof(cmd));
+		memset(cmd, 0, sizeof(cmd));
 		sprintf(cmd, "mv /tmp/fw_bak %s", local_file);
 		system(cmd);
 		message = "Download firmware failed.";
@@ -1502,7 +1503,7 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 		  break;
 	  case LLRP_VersionType_Security_Module_Sys:
 		  ret = security_upgrade_firmware(((uhf_info_t *) (info->uhf))->security,
-						info->pXmlConfig->config.security.fw_path);
+										  info->pXmlConfig->config.security.fw_path);
 		  if (ret == NO_ERROR) {
 			  ret = uhf_init_security((uhf_info_t *) (info->uhf));
 			  if (ret != NO_ERROR)

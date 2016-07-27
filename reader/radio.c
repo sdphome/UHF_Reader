@@ -595,7 +595,6 @@ int radio_get_version(radio_info_t * radio_info)
 	return ret;
 }
 
-
 int radio_set_power(radio_info_t * info, uint8_t power)
 {
 	int ret = NO_ERROR;
@@ -874,7 +873,6 @@ int radio_update_firmware(radio_info_t * info)
 		ret = *result.payload;
 		free(result.payload);
 	}
-
 #if 0
 	security_reset_radio(((uhf_info_t *) (info->uhf))->radio->fd);
 	sleep(1);
