@@ -656,7 +656,7 @@ static int upper_request_DeviceBinding(upper_info_t * info, uint8_t * binding, u
 
 	if (pAck != NULL) {
 		llrp_u8v_t binding_result;
-		LLRP_tSStatus *pStatus;
+		LLRP_tSStatus *pStatus = NULL;
 
 		binding_result = LLRP_DeviceBindingAck_getBindingResultData(pAck);
 		pStatus = LLRP_DeviceBindingAck_getStatus(pAck);
@@ -898,7 +898,7 @@ static int upper_process_DeleteSelectSpec(upper_info_t * info, LLRP_tSDeleteSele
 	if (info->select_spec != NULL) {
 		if (info->select_spec->SelectSpecID == LLRP_DeleteSelectSpec_getSelectSpecID(pDSS)) {
 			/* FIXME : setup as default spec */
-			info->select_spec->SelectSpecID = 234;
+			info->select_spec->SelectSpecID = 0;
 			info->select_spec->Priority = 7;
 		}
 	}
@@ -997,6 +997,136 @@ static int upper_process_DisableSelectSpec(upper_info_t * info, LLRP_tSDisableSe
 		LLRP_DisableSelectSpec_destruct(pDSS);
 	if (pDSS_Ack != NULL)
 		LLRP_DisableSelectSpecAck_destruct(pDSS_Ack);
+
+	return ret;
+}
+
+// 412
+static int upper_process_GetSelectSpec(upper_info_t * info, LLRP_tSGetSelectSpec * pGSS)
+{
+	int ret = NO_ERROR;
+	llrp_u8v_t AntennaIDs;
+	llrp_u16v_t FrequencyIndexes;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tSGetSelectSpecAck *pGSS_Ack = NULL;
+	LLRP_tSSelectSpec *pSS = NULL;
+	LLRP_tSSelectSpecStartTrigger *pSSStartT = NULL;
+	LLRP_tSSelectSpecStopTrigger *pSSStopT = NULL;
+	LLRP_tSAntennaSpec *pAS = NULL;
+	LLRP_tSAntennaSpecStopTrigger *pASST = NULL;
+	LLRP_tSRfSpec *pRS = NULL;
+	LLRP_tSMemoryBank *pMB = NULL;
+	LLRP_tSAntennaConfiguration *pAC = NULL;
+	LLRP_tSSelectReportSpec *pSRS = NULL;
+	upper_config_t *pXml_upper = &info->pXmlConfig->config.upper;
+
+	pGSS_Ack = LLRP_GetSelectSpecAck_construct();
+	if (pGSS_Ack == NULL)
+		goto out;
+
+	pSS = LLRP_SelectSpec_construct();
+	if (pSS == NULL)
+		goto out;
+
+	LLRP_SelectSpec_setSelectSpecID(pSS, pXml_upper->select_spec.SelectSpecID);
+	LLRP_SelectSpec_setPriority(pSS, pXml_upper->select_spec.Priority);
+	LLRP_SelectSpec_setCurrentState(pSS, pXml_upper->select_spec.CurrentState);
+	LLRP_SelectSpec_setPersistence(pSS, pXml_upper->select_spec.Persistence);
+
+	pSSStartT = LLRP_SelectSpecStartTrigger_construct();
+	pSSStopT = LLRP_SelectSpecStopTrigger_construct();
+	LLRP_SelectSpecStartTrigger_setSelectSpecStartTriggerType(pSSStartT,
+															  pXml_upper->select_spec.
+															  SelectSpecStart.type);
+	LLRP_SelectSpecStopTrigger_setSelectSpecStopTriggerType(pSSStopT,
+															LLRP_SelectSpecStopTriggerType_Null);
+	LLRP_SelectSpec_setSelectSpecStartTrigger(pSS, pSSStartT);
+	LLRP_SelectSpec_setSelectSpecStopTrigger(pSS, pSSStopT);
+
+	pAS = LLRP_AntennaSpec_construct();
+	pASST = LLRP_AntennaSpecStopTrigger_construct();
+	pRS = LLRP_RfSpec_construct();
+	AntennaIDs.nValue = 1;
+	AntennaIDs.pValue = malloc(AntennaIDs.nValue);
+	*AntennaIDs.pValue = 0;
+	LLRP_AntennaSpec_setAntennaIDs(pAS, AntennaIDs);
+	LLRP_AntennaSpecStopTrigger_setAntennaSpecStopTriggerType(pASST,
+															  LLRP_AntennaSpecStopTriggerType_Null);
+	LLRP_AntennaSpec_setAntennaSpecStopTrigger(pAS, pASST);
+	LLRP_RfSpec_setRfSpecID(pRS, pXml_upper->select_spec.RfSpec.RfSpecId);
+	LLRP_RfSpec_setSelectType(pRS, pXml_upper->select_spec.RfSpec.SelectType);
+	pMB = LLRP_MemoryBank_construct();
+	pAC = LLRP_AntennaConfiguration_construct();
+	LLRP_MemoryBank_setMemoryBankID(pMB, pXml_upper->select_spec.RfSpec.MemoryBankId);
+	LLRP_MemoryBank_setBankType(pMB, pXml_upper->select_spec.RfSpec.BankType);
+	LLRP_RfSpec_setMemoryBank(pRS, pMB);
+	LLRP_AntennaConfiguration_setAntennaID(pAC,
+										   pXml_upper->select_spec.AntennaConfiguration.AntennaID);
+	LLRP_AntennaConfiguration_setTransmitPowerIndex(pAC,
+													pXml_upper->select_spec.AntennaConfiguration.
+													TransmitPowerIndex);
+	FrequencyIndexes.nValue = 1;
+	FrequencyIndexes.pValue = malloc(FrequencyIndexes.nValue * sizeof(llrp_u16_t));
+	*FrequencyIndexes.pValue = pXml_upper->select_spec.AntennaConfiguration.FrequencyIndex;
+	LLRP_AntennaConfiguration_setFrequencyIndexes(pAC, FrequencyIndexes);
+	LLRP_AntennaConfiguration_setForDataRateIndex(pAC,
+												  pXml_upper->select_spec.AntennaConfiguration.
+												  ForDataRateIndex);
+	LLRP_AntennaConfiguration_setRevDataRateIndex(pAC,
+												  pXml_upper->select_spec.AntennaConfiguration.
+												  RevDataRateIndex);
+	LLRP_AntennaConfiguration_setForModulationIndex(pAC,
+													pXml_upper->select_spec.AntennaConfiguration.
+													ForModulationIndex);
+	LLRP_AntennaConfiguration_setRevDataEncodingIndex(pAC,
+													  pXml_upper->select_spec.AntennaConfiguration.
+													  RevDataEncodingIndex);
+	LLRP_RfSpec_addAntennaConfiguration(pRS, pAC);
+	LLRP_AntennaSpec_addRfSpec(pAS, pRS);
+	LLRP_SelectSpec_addSpecParameter(pSS, (LLRP_tSParameter *) pAS);
+
+	pSRS = LLRP_SelectReportSpec_construct();
+	LLRP_SelectReportSpec_setSelectReportTrigger(pSRS, pXml_upper->report_spec.SelectReportTrigger);
+	LLRP_SelectReportSpec_setNValue(pSRS, pXml_upper->report_spec.NValue);
+	LLRP_SelectReportSpec_setEnableSelectSpecID(pSRS,
+												! !(pXml_upper->report_spec.
+													mask & ENABLE_SELECT_SPEC_ID));
+	LLRP_SelectReportSpec_setEnableSpecIndex(pSRS,
+											 ! !(pXml_upper->report_spec.mask & ENABLE_SPEC_INDEX));
+	LLRP_SelectReportSpec_setEnableRfSpecID(pSRS,
+											! !(pXml_upper->report_spec.mask & ENABLE_RF_SPEC_ID));
+	LLRP_SelectReportSpec_setEnableAntennaID(pSRS,
+											 ! !(pXml_upper->report_spec.
+												 mask & ENABLE_ANTENNAL_ID));
+	LLRP_SelectReportSpec_setEnablePeakRSSI(pSRS,
+											! !(pXml_upper->report_spec.mask & ENABLE_PEAK_RSSI));
+	LLRP_SelectReportSpec_setEnableFirstSeenTimestamp(pSRS,
+													  ! !(pXml_upper->report_spec.
+														  mask & ENABLE_FST));
+	LLRP_SelectReportSpec_setEnableLastSeenTimestamp(pSRS,
+													 ! !(pXml_upper->report_spec.
+														 mask & ENABLE_LST));
+	LLRP_SelectReportSpec_setEnableTagSeenCount(pSRS,
+												! !(pXml_upper->report_spec.mask & ENABLE_TSC));
+	LLRP_SelectReportSpec_setEnableAccessSpecID(pSRS,
+												! !(pXml_upper->report_spec.
+													mask & ENABLE_ACCESS_SPEC_ID));
+	LLRP_SelectSpec_setSelectReportSpec(pSS, pSRS);
+
+	pStatus = upper_setup_status(0, NULL);
+
+	LLRP_GetSelectSpecAck_setStatus(pGSS_Ack, pStatus);
+	LLRP_GetSelectSpecAck_addSelectSpec(pGSS_Ack, pSS);
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pGSS_Ack->hdr);
+	unlock_upper(&info->lock);
+
+  out:
+	if (pGSS != NULL)
+		LLRP_GetSelectSpec_destruct(pGSS);
+	if (pGSS_Ack != NULL)
+		LLRP_GetSelectSpecAck_destruct(pGSS_Ack);
 
 	return ret;
 }
@@ -1422,7 +1552,7 @@ static void upper_process_SetVersion(upper_info_t * info, LLRP_tSSetVersion * pT
 	} else if (pThis->eVerType == LLRP_VersionType_Security_Module_Pwd) {
 		local_file = info->pXmlConfig->config.radio.fw_path;
 	} else {
-		message = "Doesn't support download this type firmware.";
+		message = "Don't support download this type firmware.";
 		goto out;
 	}
 
@@ -1599,6 +1729,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_DisableSelectSpec(info, (LLRP_tSDisableSelectSpec *) pRequest);
 		  break;
 	  case 412:				//GetSelectSpec
+		  upper_process_GetSelectSpec(info, (LLRP_tSGetSelectSpec *) pRequest);
 		  break;
 	  case 450:				//AddAccessSpec
 		  upper_process_AddAccessSpec(info, (LLRP_tSAddAccessSpec *) pRequest);
@@ -1660,7 +1791,20 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 
 void upper_check_local_spec(upper_info_t * info)
 {
+	antenna_configuration_t *pxml_ac = &info->select_spec->AntennaConfiguration;
 
+	radio_set_power(((uhf_info_t *) (info->uhf))->radio, pxml_ac->TransmitPowerIndex);
+	radio_set_frequency(((uhf_info_t *) (info->uhf))->radio, pxml_ac->FrequencyIndex);
+	radio_set_revert_link_rate(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataRateIndex);
+	radio_set_revert_code_mode(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataEncodingIndex);
+
+	rf_spec_t *rf_spec = &info->select_spec->RfSpec;
+	/* setup security work mode */
+	security_set_work_mode_helper(((uhf_info_t *) (info->uhf))->security, rf_spec->MemoryBankId,
+								  rf_spec->BankType);
+
+	/* start radio continue check */
+	radio_start_conti_check(((uhf_info_t *) (info->uhf))->radio);
 }
 
 int upper_send_heartbeat(upper_info_t * info)
