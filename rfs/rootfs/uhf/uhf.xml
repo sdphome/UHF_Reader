@@ -60,6 +60,15 @@
 				<MemoryBankId>0</MemoryBankId>
 				<BankType>2</BankType>
 			</RfSpec>
+			<AntennaConfiguration>
+				<AntennaID>0</AntennaID>
+				<TransmitPowerIndex>0</TransmitPowerIndex>
+				<FrequencyIndex>0</FrequencyIndex>
+				<ForDataRateIndex>0</ForDataRateIndex>
+				<RevDataRateIndex>0</RevDataRateIndex>
+				<ForModulationIndex>0</ForModulationIndex>
+				<RevDataEncodingIndex>0</RevDataEncodingIndex>
+			</AntennaConfiguration>
 		</SelectSpec>
 		<ReportSpec>
 			<SelectReportTrigger>0</SelectReportTrigger>

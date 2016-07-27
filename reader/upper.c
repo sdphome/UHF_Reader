@@ -739,6 +739,7 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 	LLRP_tSAntennaSpec *pAS = NULL;
 	LLRP_tSRfSpec *pRS = NULL;
 	LLRP_tSMemoryBank *pMB = NULL;
+	LLRP_tSAntennaConfiguration *pAC = NULL;
 
 	if (pASS == NULL)
 		goto out;
@@ -751,9 +752,8 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 
 	/* process select spec start trigger */
 	if (info->select_spec != NULL) {
-		if (info->select_spec->SelectSpecID == LLRP_SelectSpec_getSelectSpecID(pSS) ||
-			info->select_spec->Priority < LLRP_SelectSpec_getPriority(pSS)) {
-			printf("this spec has exist, old SelectSpecID = %u, new SelectSpecID=%u,"
+		if (info->select_spec->Priority < LLRP_SelectSpec_getPriority(pSS)) {
+			printf("this spec Priority is lower than current, old SelectSpecID = %u, new SelectSpecID=%u,"
 				   "old Priority = %u, new Priority = %u.\n", info->select_spec->SelectSpecID,
 				   LLRP_SelectSpec_getSelectSpecID(pSS), info->select_spec->Priority,
 				   LLRP_SelectSpec_getPriority(pSS));
@@ -765,18 +765,6 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		goto ack;
 	}
 
-/*
-	else {
-		info->select_spec = (select_spec_t *) malloc(sizeof(select_spec_t));
-		if (info->select_spec == NULL) {
-			printf("malloc for select_spec failed.\n");
-			ret = -3;
-			strncpy(status, "malloc memory for select spec failed.", 64);
-			goto ack;
-		}
-		memset(info->select_spec, 0, sizeof(select_spec_t));
-	}
-*/
 	info->select_spec->SelectSpecID = LLRP_SelectSpec_getSelectSpecID(pSS);
 	info->select_spec->Priority = LLRP_SelectSpec_getPriority(pSS);
 	info->select_spec->CurrentState = LLRP_SelectSpec_getCurrentState(pSS);
@@ -795,6 +783,7 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 		info->select_spec->RfSpec.MemoryBankId = LLRP_MemoryBank_getMemoryBankID(pMB);
 		info->select_spec->RfSpec.BankType = LLRP_MemoryBank_getBankType(pMB);
 	} else {
+		/* Default security work mode */
 		info->select_spec->RfSpec.MemoryBankId = LLRP_HbSpecMemoryBankIDType_User_0;
 		info->select_spec->RfSpec.BankType = LLRP_HbBankType_Full;
 	}
@@ -814,6 +803,23 @@ static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec
 
 		/* start radio continue check */
 		radio_start_conti_check(((uhf_info_t *) (info->uhf))->radio);
+	}
+
+	pAC = LLRP_RfSpec_beginAntennaConfiguration(pRS);
+	if (pAC != NULL) {
+		antenna_configuration_t *pxml_ac = &info->select_spec->AntennaConfiguration;
+		pxml_ac->AntennaID = LLRP_AntennaConfiguration_getAntennaID(pAC);
+		pxml_ac->TransmitPowerIndex = LLRP_AntennaConfiguration_getTransmitPowerIndex(pAC);
+		pxml_ac->FrequencyIndex = *(LLRP_AntennaConfiguration_getFrequencyIndexes(pAC).pValue);
+		pxml_ac->ForDataRateIndex = LLRP_AntennaConfiguration_getForDataRateIndex(pAC);
+		pxml_ac->RevDataRateIndex = LLRP_AntennaConfiguration_getRevDataRateIndex(pAC);
+		pxml_ac->ForModulationIndex = LLRP_AntennaConfiguration_getForModulationIndex(pAC);
+		pxml_ac->RevDataEncodingIndex = LLRP_AntennaConfiguration_getRevDataEncodingIndex(pAC);
+		/* setup the radio configuration */
+		radio_set_power(((uhf_info_t *) (info->uhf))->radio, pxml_ac->TransmitPowerIndex);
+		radio_set_frequency(((uhf_info_t *) (info->uhf))->radio, pxml_ac->FrequencyIndex);
+		radio_set_revert_link_rate(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataRateIndex);
+		radio_set_revert_code_mode(((uhf_info_t *) (info->uhf))->radio, pxml_ac->RevDataEncodingIndex);
 	}
 
 	/* process report spec */
@@ -2177,7 +2183,7 @@ int alloc_upper(upper_info_t ** info, struct xmlConfigInfo *pXmlConfig)
 		return -FAILED;
 	}
 
-	(*info)->verbose = 0;
+	(*info)->verbose = 1;
 	(*info)->next_msg_id = 1;
 	(*info)->tag_list = NULL;
 

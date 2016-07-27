@@ -580,6 +580,134 @@ static int xml_set_rf_spec_config(struct xmlConfigInfo *pXmlConfig)
 	return 0;
 }
 
+static int xml_get_antenna_configuration_config(struct xmlConfigInfo *pXmlConfig)
+{
+	xmlDocPtr docPtr = pXmlConfig->docPtr;
+	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
+	uint32_t num_pairs = 0;
+	struct xmlKeyValuePair key_value_pair[7];
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "AntennaID", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.AntennaID;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "TransmitPowerIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.TransmitPowerIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "FrequencyIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.FrequencyIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "ForDataRateIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "RevDataRateIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "ForModulationIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForModulationIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "RevDataEncodingIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.RevDataEncodingIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	RETURN_ON_FAILED(xml_get_node_data(docPtr, nodePtr, "AntennaConfiguration", key_value_pair, num_pairs, 0));
+
+	printf("---------------------------------------------------[%s]\n", __func__);
+	printf("antenna configuration AntennaID = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.AntennaID);
+	printf("antenna configuration TransmitPowerIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.TransmitPowerIndex);
+	printf("antenna configuration FrequencyIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.FrequencyIndex);
+	printf("antenna configuration ForDataRateIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex);
+	printf("antenna configuration RevDataRateIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.RevDataRateIndex);
+	printf("antenna configuration ForModulationIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.ForModulationIndex);
+	printf("antenna configuration RevDataEncodingIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.RevDataEncodingIndex);
+
+	return 0;
+}
+
+static int xml_set_antenna_configuration_config(struct xmlConfigInfo *pXmlConfig)
+{
+	xmlDocPtr docPtr = pXmlConfig->docPtr;
+	xmlNodePtr nodePtr = pXmlConfig->nodePtr;
+	uhf_config_t *configPtr = &pXmlConfig->config;
+	uint32_t num_pairs = 0;
+	struct xmlKeyValuePair key_value_pair[7];
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "AntennaID", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.AntennaID;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT8;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "TransmitPowerIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.TransmitPowerIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "FrequencyIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.FrequencyIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "ForDataRateIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "RevDataRateIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "ForModulationIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.ForModulationIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	xml_strlcpy(key_value_pair[num_pairs].key, "RevDataEncodingIndex", MAX_KEY_SIZE);
+	key_value_pair[num_pairs].value = &configPtr->upper.select_spec.AntennaConfiguration.RevDataEncodingIndex;
+	key_value_pair[num_pairs].value_type = XML_VALUE_UINT16;
+	key_value_pair[num_pairs].nodeType = XML_ELEMENT_NODE;
+	num_pairs++;
+
+	RETURN_ON_FAILED(xml_set_node_data(docPtr, nodePtr, "AntennaConfiguration", key_value_pair, num_pairs, 0));
+
+	printf("---------------------------------------------------[%s]\n", __func__);
+	printf("antenna configuration AntennaID = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.AntennaID);
+	printf("antenna configuration TransmitPowerIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.TransmitPowerIndex);
+	printf("antenna configuration FrequencyIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.FrequencyIndex);
+	printf("antenna configuration ForDataRateIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.ForDataRateIndex);
+	printf("antenna configuration RevDataRateIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.RevDataRateIndex);
+	printf("antenna configuration ForModulationIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.ForModulationIndex);
+	printf("antenna configuration RevDataEncodingIndex = %d.\n", configPtr->upper.select_spec.AntennaConfiguration.RevDataEncodingIndex);
+
+	return 0;
+}
+
 static int xml_get_select_spec_start_config(struct xmlConfigInfo *pXmlConfig)
 {
 	xmlDocPtr docPtr = pXmlConfig->docPtr;
@@ -697,6 +825,7 @@ static int xml_get_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 
 	xml_get_select_spec_start_config(pXmlConfig);
 	xml_get_rf_spec_config(pXmlConfig);
+	xml_get_antenna_configuration_config(pXmlConfig);
 
 	return 0;
 }
@@ -744,6 +873,7 @@ static int xml_set_select_spec_config(struct xmlConfigInfo *pXmlConfig)
 
 	xml_set_select_spec_start_config(pXmlConfig);
 	xml_set_rf_spec_config(pXmlConfig);
+	xml_set_antenna_configuration_config(pXmlConfig);
 
 	return 0;
 }

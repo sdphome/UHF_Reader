@@ -120,6 +120,16 @@ typedef struct rf_spec {
 	uint8_t BankType;
 } rf_spec_t;
 
+typedef struct antenna_configuration {
+	uint8_t AntennaID;
+	uint16_t TransmitPowerIndex;
+	uint16_t FrequencyIndex;
+	uint16_t ForDataRateIndex;
+	uint16_t RevDataRateIndex;
+	uint16_t ForModulationIndex;
+	uint16_t RevDataEncodingIndex;
+} antenna_configuration_t;
+
 typedef struct select_spec {
 	uint32_t SelectSpecID;
 	uint8_t Priority;
@@ -127,6 +137,7 @@ typedef struct select_spec {
 	uint8_t Persistence;
 	select_spec_start_trigger_t SelectSpecStart;
 	rf_spec_t RfSpec;
+	antenna_configuration_t AntennaConfiguration;
 } select_spec_t;
 
 typedef struct {

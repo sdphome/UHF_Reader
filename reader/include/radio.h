@@ -244,7 +244,7 @@ int radio_update_firmware(radio_info_t * info);
 int radio_start_conti_check(radio_info_t * radio_info);
 int radio_stop_conti_check(radio_info_t * radio_info);
 int radio_set_power(radio_info_t * info, uint8_t power);
-int radio_set_freq_range(radio_info_t * info, uint8_t freq_no);
+int radio_set_frequency(radio_info_t * info, uint8_t freq_no);
 int radio_set_revert_code_mode(radio_info_t * info, uint8_t mode_no);
 int radio_set_revert_link_rate(radio_info_t * info, uint8_t rate_no);
 
