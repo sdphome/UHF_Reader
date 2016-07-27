@@ -1372,6 +1372,8 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 					fclose(fp);
 				}
 			}
+
+			system("ps -ef | grep ntpd | awk '{print $1}' | xargs kill -9");
 			system("ntpd");
 		}
 	}

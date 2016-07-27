@@ -236,6 +236,7 @@ int main(int argc, char **argv)
 	signal(SIGSEGV, uhf_print_trace);
 	signal(SIGABRT, uhf_print_trace);
 
+	system("ps -ef | grep ntpd | awk '{print $1}' | xargs kill -9");
 	system("ntpd");
 
 	p_uhf = (uhf_info_t *) malloc(sizeof(uhf_info_t));
