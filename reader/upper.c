@@ -1802,7 +1802,6 @@ void upper_check_local_spec(upper_info_t * info)
 	/* setup security work mode */
 	security_set_work_mode_helper(((uhf_info_t *) (info->uhf))->security, rf_spec->MemoryBankId,
 								  rf_spec->BankType);
-
 	/* start radio continue check */
 	radio_start_conti_check(((uhf_info_t *) (info->uhf))->radio);
 }

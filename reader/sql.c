@@ -47,7 +47,7 @@ static uint8_t sql_atou8(const char *nptr)
 	while (sql_isspace((int)(uint8_t) * nptr))
 		++nptr;
 
-	return (uint8_t) * nptr;
+	return (uint8_t) * nptr - '0';
 }
 
 static uint16_t sql_atou16(const char *nptr)
@@ -289,6 +289,7 @@ int sql_get_tag_info(char *path, tag_list_t ** list)
 		curr->tag.SpecIndex = sql_atou16(dbResult[index++]);
 		curr->tag.RfSpecID = sql_atou16(dbResult[index++]);
 		curr->tag.AntennalID = sql_atou8(dbResult[index++]);
+		printf("%s: %u", __func__, curr->tag.AntennalID);
 		curr->tag.FirstSeenTimestampUTC = sql_atou64(dbResult[index++]);
 		curr->tag.LastSeenTimestampUTC = sql_atou64(dbResult[index++]);
 		curr->tag.TagSeenCount = sql_atou16(dbResult[index++]);

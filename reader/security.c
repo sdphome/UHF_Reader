@@ -1380,13 +1380,6 @@ int start_security(security_info_t * info)
 		return -FAILED;
 	}
 
-	security_get_status(info->fd);
-
-	security_reset(info->fd);
-	security_get_status(info->fd);
-	security_get_status(info->fd);
-	sleep(6);
-
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
@@ -1406,11 +1399,11 @@ int start_security(security_info_t * info)
 	security_get_status(info->fd);
 	security_reset_radio(info->fd);
 	security_get_status(info->fd);
-	sleep(6);
+	sleep(15);
 
 	/* TODO : sequential */
 	/* wait for ready */
-#if 0
+#if 1
 	while (security_get_status(info->fd) == BUSY) {
 		printf("%s: wait security module get ready.\n", __func__);
 		sleep(1);

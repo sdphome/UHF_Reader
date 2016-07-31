@@ -230,7 +230,7 @@ int radio_wait_result(radio_info_t * radio_info, uint8_t cmd, radio_result_t * r
 		outtime.tv_nsec = now.tv_usec * 1000;
 		ret = pthread_cond_timedwait(&radio_info->c_cond, &radio_info->c_lock, &outtime);
 		if (ret == ETIMEDOUT) {
-			//printf("%s: timeout for cmd %x\n", __func__, cmd);
+			printf("%s: timeout for cmd %x\n", __func__, cmd);
 			return ret;
 		} else
 			ret = NO_ERROR;

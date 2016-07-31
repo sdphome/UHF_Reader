@@ -75,7 +75,7 @@ int uhf_init_radio(uhf_info_t * p_uhf)
 	radio->heartbeats_periodic = p_uhf->xmlConfig.config.radio.heart_peri;
 
 	printf("%s: stop continue check.\n", __func__);
-	ret = radio_start_conti_check(radio);
+	ret = radio_stop_conti_check(radio);
 
 	return ret;
 }
@@ -92,7 +92,6 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 	upper->report_spec = &p_uhf->xmlConfig.config.upper.report_spec;
 	upper->select_spec = &p_uhf->xmlConfig.config.upper.select_spec;
 
-	upper_check_local_spec(upper);
 }
 
 int uhf_get_uuid(uhf_info_t * info)
@@ -288,6 +287,7 @@ int main(int argc, char **argv)
 
 	printf("Let's start the upper loop............\n");
 
+	upper_check_local_spec(upper);
 	ret = start_upper(p_uhf->upper);
 	if (ret != NO_ERROR)
 		goto start_failed;
