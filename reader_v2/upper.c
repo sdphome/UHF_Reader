@@ -480,6 +480,7 @@ static int upper_request_Disconnect(upper_info_t * info)
 static int upper_request_Keepalive(upper_info_t * info)
 {
 	int ret = NO_ERROR;
+	static uint8_t unrsp_cnt = 0;
 	LLRP_tSKeepalive *pKA = NULL;
 	LLRP_tSKeepaliveAck *pAck = NULL;
 
@@ -499,7 +500,16 @@ static int upper_request_Keepalive(upper_info_t * info)
 
 	LLRP_Keepalive_destruct(pKA);
 	if (pAck != NULL) {
+		unrsp_cnt = 0;
 		LLRP_Element_destruct(&pAck->hdr.elementHdr);
+	} else {
+		unrsp_cnt ++;
+	}
+
+	if (unrsp_cnt == 3) {
+		lock_upper(&info->disconnect_lock);
+		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
+		unlock_upper(&info->disconnect_lock);
 	}
 
 	return ret;
