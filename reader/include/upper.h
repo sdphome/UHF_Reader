@@ -71,6 +71,7 @@ typedef struct upper_info {
 	int sock;
 	int retry;
 	int status;
+	int sec_bind_status;
 	int verbose;
 	int db_valid;
 

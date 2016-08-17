@@ -91,6 +91,7 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 
 	upper->report_spec = &p_uhf->xmlConfig.config.upper.report_spec;
 	upper->select_spec = &p_uhf->xmlConfig.config.upper.select_spec;
+	upper->sec_bind_status = p_uhf->sec_auth_status;
 
 }
 

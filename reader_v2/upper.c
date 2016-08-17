@@ -737,6 +737,132 @@ static int upper_process_Disconnect(upper_info_t * info, LLRP_tSDisconnect * pDi
 	return ret;
 }
 
+// 350
+static int upper_process_GetDeviceCapabilities(upper_info_t * info, LLRP_tSGetDeviceCapabilities * pGDC)
+{
+	int ret = NO_ERROR;
+	llrp_u8_t RequestedData = 0;
+	llrp_u8_t mask = 0;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tSGetDeviceCapabilitiesAck * pGDC_Ack = NULL;
+
+	if (pGDC == NULL)
+		goto out;
+
+	pGDC_Ack = LLRP_GetDeviceCapabilitiesAck_construct();
+	if (pGDC_Ack == NULL)
+		goto out;
+
+	RequestedData = LLRP_GetDeviceCapabilities_getRequestedData(pGDC);
+
+	switch (RequestedData) {
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_All:
+		mask = 0x1F;
+		break;
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_Genaral_Capabilities:
+		mask = 0x01;
+		break;
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_Communication_Capabilities:
+		mask = 0x02;
+		break;
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_Spec_Capabilities:
+		mask = 0x04;
+		break;
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_Rf_Capabilities:
+		mask = 0x08;
+		break;
+	  case LLRP_GetDeviceCapabilitiesRequestedDataType_Air_Protocol_Capabilities:
+		mask = 0x10;
+		break;
+	  default:
+		break;
+	}
+
+	if (mask & 0x01) {
+		LLRP_tSGenaralCapabilities * pGC = NULL;
+		LLRP_tSGPIOCapabilities * pGPIO = NULL;
+		llrp_utf8v_t DeviceManufacturerName;
+		llrp_u8v_t DeviceSN;
+
+		pGC = LLRP_GenaralCapabilities_construct();
+		pGPIO = LLRP_GPIOCapabilities_construct();
+
+		DeviceManufacturerName.nValue = 3;
+		DeviceManufacturerName.pValue = malloc(DeviceManufacturerName.nValue);
+		memcpy(DeviceManufacturerName.pValue, "JZT", 3);
+		LLRP_GenaralCapabilities_setDeviceManufacturerName(pGC, DeviceManufacturerName);
+
+		DeviceSN.nValue = 8;
+		DeviceSN.pValue = malloc(DeviceSN.nValue);
+		memcpy(DeviceSN.pValue, &info->serial, 8);
+		LLRP_GenaralCapabilities_setDeviceSN(pGC, DeviceSN);
+
+		LLRP_GenaralCapabilities_setDeviceModelType(pGC, 0);
+		LLRP_GenaralCapabilities_setDeviceSpecificationType(pGC, 0);
+		LLRP_GenaralCapabilities_setMaxNumberOfAntennaSupported(pGC, 4);
+		LLRP_GenaralCapabilities_setHasUTCClockCapability(pGC, 1);
+		LLRP_GenaralCapabilities_setHasLocationCapability(pGC, 0);
+		LLRP_GenaralCapabilities_setIsDeviceBinded(pGC, info->sec_bind_status);
+		LLRP_GPIOCapabilities_setNumGPIs(pGPIO, 0);
+		LLRP_GPIOCapabilities_setNumGPOs(pGPIO, 0);
+		LLRP_GenaralCapabilities_setGPIOCapabilities(pGC, pGPIO);
+
+		LLRP_GetDeviceCapabilitiesAck_setGenaralCapabilities(pGDC_Ack, pGC);
+	} else if (mask & 0x02) {
+		LLRP_tSCommunicationCapabilities * pCC = NULL;
+
+		pCC = LLRP_CommunicationCapabilities_construct();
+
+		LLRP_CommunicationCapabilities_setSupportEthernet(pCC, true);
+		LLRP_CommunicationCapabilities_setSupportWIFI(pCC, false);
+		LLRP_CommunicationCapabilities_setSupportMobile(pCC, false);
+		LLRP_CommunicationCapabilities_setSupportUSB(pCC, true);
+		LLRP_CommunicationCapabilities_setSupportHttpLink(pCC, false);
+		LLRP_CommunicationCapabilities_setSupportIPV6(pCC, false);
+		LLRP_CommunicationCapabilities_setSupportSSL(pCC, false);
+		LLRP_CommunicationCapabilities_setSupportTcpLinkNum(pCC, 1);
+
+		LLRP_GetDeviceCapabilitiesAck_setCommunicationCapabilities(pGDC_Ack, pCC);
+	} else if (mask & 0x04) {
+		LLRP_tSSpecCapabilities * pSC = NULL;
+
+		pSC = LLRP_SpecCapabilities_construct();
+
+		LLRP_SpecCapabilities_setSupportsClientRequestOpSpec(pSC, false);
+		LLRP_SpecCapabilities_setSupportsEventAndReportHolding(pSC, true);
+		LLRP_SpecCapabilities_setClientRequestOpSpecTimeout(pSC, 0);
+		LLRP_SpecCapabilities_setMaxPriorityLevelSupported(pSC, 7);
+		LLRP_SpecCapabilities_setMaxNumSelectSpecs(pSC, 1);
+		LLRP_SpecCapabilities_setMaxNumAntennaSpecsPerSelectSpec(pSC, 1);
+		LLRP_SpecCapabilities_setMaxNumRfSpecsPerAntennaSpec(pSC, 1);
+		LLRP_SpecCapabilities_setMaxNumAccessSpecs(pSC, 1);
+		LLRP_SpecCapabilities_setMaxNumOperationSpecsPerAccessSpec(pSC, 1);
+
+		LLRP_GetDeviceCapabilitiesAck_setSpecCapabilities(pGDC_Ack, pSC);
+	} else if (mask & 0x08) {
+		printf("Rf_Capabilities\n");
+	} else if (mask & 0x10) {
+		printf("Air_Protocol_Capabilities\n");
+	}
+
+	pStatus = upper_setup_status(-ret, NULL);
+	LLRP_GetDeviceCapabilitiesAck_setStatus(pGDC_Ack, pStatus);
+	pGDC_Ack->hdr.MessageID = pGDC->hdr.MessageID;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pGDC_Ack->hdr);
+	unlock_upper(&info->lock);
+
+  out:
+	if (pGDC != NULL)
+		LLRP_GetDeviceCapabilities_destruct(pGDC);
+
+	if (pGDC_Ack != NULL)
+		LLRP_GetDeviceCapabilitiesAck_destruct(pGDC_Ack);
+
+	return ret;
+}
+
 // 400
 static int upper_process_AddSelectSpec(upper_info_t * info, LLRP_tSAddSelectSpec * pASS)
 {
@@ -1380,6 +1506,227 @@ static int upper_process_ClearDeviceLog(upper_info_t * info, LLRP_tSClearDeviceL
 	return ret;
 }
 
+// 660
+static int upper_process_GetDeviceConfig(upper_info_t * info, LLRP_tSGetDeviceConfig * pGDC)
+{
+	int ret = NO_ERROR;
+	llrp_u16_t mask = 0;
+	LLRP_tSStatus *pStatus = NULL;
+	LLRP_tEGetDeviceConfigRequestedDataType RequestedData = 0;
+	LLRP_tSGetDeviceConfigAck *pGDC_Ack = NULL;
+
+	if (pGDC == NULL)
+		goto out;
+
+	RequestedData = LLRP_GetDeviceConfig_getRequestedData(pGDC);
+	if (RequestedData == LLRP_GetDeviceConfigRequestedDataType_All)
+		mask = 0x7FF;
+	else
+		mask = 1 << (RequestedData - 1);
+
+	if (mask & 0x1) {
+		llrp_utf8v_t DeviceName;
+		LLRP_tSIdentification *pI = NULL;
+
+		DeviceName.nValue = 8;
+		DeviceName.pValue = malloc(DeviceName.nValue);
+		memcpy(DeviceName.pValue, &info->serial, DeviceName.nValue);
+
+		LLRP_Identification_setDeviceName(pI, DeviceName);
+		LLRP_GetDeviceConfigAck_setIdentification(pGDC_Ack, pI);
+	} else if (mask & 0x2) {
+		LLRP_tSDeviceEventNotificationSpec *pDENS = NULL;
+		LLRP_tSEventNotificationState *pENS = NULL;
+
+		pDENS = LLRP_DeviceEventNotificationSpec_construct();
+		pENS = LLRP_EventNotificationState_construct();
+
+		LLRP_EventNotificationState_setEventType(pENS, LLRP_EventNotificationType_SelectSpec_Event);
+		LLRP_EventNotificationState_setNotificationState(pENS, true);
+
+		LLRP_DeviceEventNotificationSpec_addEventNotificationState(pDENS, pENS);
+		LLRP_GetDeviceConfigAck_setDeviceEventNotificationSpec(pGDC_Ack, pDENS);
+	} else if (mask & 0x4) {
+		LLRP_tSAlarmConfiguration *pAC = NULL;
+
+		pAC = LLRP_AlarmConfiguration_construct();
+
+		LLRP_AlarmConfiguration_setAlarmMask(pAC, 0x0);
+		LLRP_GetDeviceConfigAck_setAlarmConfiguration(pGDC_Ack, pAC);
+	} else if (mask & 0x8) {
+		LLRP_tSAntennaProperties *pAP1 = NULL;
+		LLRP_tSAntennaProperties *pAP2 = NULL;
+		LLRP_tSAntennaProperties *pAP3 = NULL;
+		LLRP_tSAntennaProperties *pAP4 = NULL;
+
+		pAP1 = LLRP_AntennaProperties_construct();
+		pAP2 = LLRP_AntennaProperties_construct();
+		pAP3 = LLRP_AntennaProperties_construct();
+		pAP4 = LLRP_AntennaProperties_construct();
+
+		LLRP_AntennaProperties_setAntennaConnected(pAP1, true);
+		LLRP_AntennaProperties_setAntennaConnected(pAP2, true);
+		LLRP_AntennaProperties_setAntennaConnected(pAP3, true);
+		LLRP_AntennaProperties_setAntennaConnected(pAP4, true);
+
+		LLRP_AntennaProperties_setAntennaID(pAP1, 1);
+		LLRP_AntennaProperties_setAntennaID(pAP2, 2);
+		LLRP_AntennaProperties_setAntennaID(pAP3, 3);
+		LLRP_AntennaProperties_setAntennaID(pAP4, 4);
+
+		LLRP_GetDeviceConfigAck_addAntennaProperties(pGDC_Ack, pAP1);
+		LLRP_GetDeviceConfigAck_addAntennaProperties(pGDC_Ack, pAP2);
+		LLRP_GetDeviceConfigAck_addAntennaProperties(pGDC_Ack, pAP3);
+		LLRP_GetDeviceConfigAck_addAntennaProperties(pGDC_Ack, pAP4);
+	} else if (mask & 0x10) {
+		llrp_u16_t tmp = 0;
+		llrp_u16v_t Freq;
+		LLRP_tSAntennaConfiguration *pAC = NULL;
+
+		pAC = LLRP_AntennaConfiguration_construct();
+
+		LLRP_AntennaConfiguration_setAntennaID(pAC, 0);
+		tmp = info->select_spec->AntennaConfiguration.TransmitPowerIndex;
+		LLRP_AntennaConfiguration_setTransmitPowerIndex(pAC, tmp);
+
+		Freq.nValue = 1;
+		Freq.pValue = malloc(Freq.nValue);
+		*Freq.pValue = info->select_spec->AntennaConfiguration.FrequencyIndex;
+		LLRP_AntennaConfiguration_setFrequencyIndexes(pAC, Freq);
+
+		tmp = info->select_spec->AntennaConfiguration.ForDataRateIndex;
+		LLRP_AntennaConfiguration_setForDataRateIndex(pAC, tmp);
+
+		tmp = info->select_spec->AntennaConfiguration.RevDataRateIndex;
+		LLRP_AntennaConfiguration_setRevDataRateIndex(pAC, tmp);
+
+		tmp = info->select_spec->AntennaConfiguration.ForModulationIndex;
+		LLRP_AntennaConfiguration_setForModulationIndex(pAC, tmp);
+
+		tmp = info->select_spec->AntennaConfiguration.RevDataEncodingIndex;
+		LLRP_AntennaConfiguration_setRevDataEncodingIndex(pAC, tmp);
+
+		LLRP_GetDeviceConfigAck_addAntennaConfiguration(pGDC_Ack, pAC);
+	} else if (mask & 0x20) {
+		LLRP_tSModuleDepth *pMD = NULL;
+
+		LLRP_ModuleDepth_construct();
+		LLRP_ModuleDepth_setIndex(pMD, 0);
+
+		LLRP_GetDeviceConfigAck_setModuleDepth(pGDC_Ack, pMD);
+	} else if (mask & 0x40) {
+		LLRP_tSSelectReportSpec *pSRS = NULL;
+		llrp_u16_t tmp = 0;
+
+		pSRS = LLRP_SelectReportSpec_construct();
+
+		tmp = info->report_spec->SelectReportTrigger;
+		LLRP_SelectReportSpec_setSelectReportTrigger(pSRS, tmp);
+
+		tmp = info->report_spec->NValue;
+		LLRP_SelectReportSpec_setNValue(pSRS, tmp);
+
+		tmp = info->report_spec->mask;
+
+		LLRP_SelectReportSpec_setEnableSelectSpecID(pSRS, !!(tmp & ENABLE_SELECT_SPEC_ID));
+		LLRP_SelectReportSpec_setEnableSpecIndex(pSRS, !!(tmp & ENABLE_SPEC_INDEX));
+		LLRP_SelectReportSpec_setEnableRfSpecID(pSRS, !!(tmp & ENABLE_RF_SPEC_ID));
+		LLRP_SelectReportSpec_setEnableAntennaID(pSRS, !!(tmp & ENABLE_ANTENNAL_ID));
+		LLRP_SelectReportSpec_setEnablePeakRSSI(pSRS, !!(tmp & ENABLE_PEAK_RSSI));
+		LLRP_SelectReportSpec_setEnableFirstSeenTimestamp(pSRS, !!(tmp & ENABLE_FST));
+		LLRP_SelectReportSpec_setEnableLastSeenTimestamp(pSRS, !!(tmp & ENABLE_LST));
+		LLRP_SelectReportSpec_setEnableTagSeenCount(pSRS, !!(tmp & ENABLE_TSC));
+		LLRP_SelectReportSpec_setEnableAccessSpecID(pSRS, !!(tmp & ENABLE_ACCESS_SPEC_ID));
+
+		LLRP_GetDeviceConfigAck_setSelectReportSpec(pGDC_Ack, pSRS);
+	} else if (mask & 0x80) {
+		LLRP_tSAccessReportSpec *pARS = NULL;
+
+		pARS = LLRP_AccessReportSpec_construct();
+
+		LLRP_AccessReportSpec_setAccessReportTrigger(pARS,
+			LLRP_AccessReportTriggerType_Whenever_SelectReport_Is_Generated);
+
+		LLRP_GetDeviceConfigAck_setAccessReportSpec(pGDC_Ack, pARS);
+	} else if (mask & 0x100) {
+		LLRP_tSCommunicationConfiguration *pCC = NULL;
+		LLRP_tSCommLinkConfiguration *pCLC = NULL;
+		LLRP_tSEthernetIpv4Configuration *pEIC = NULL;
+
+		pCC = LLRP_CommunicationConfiguration_construct();
+
+		if (pCC != NULL) {
+			pCLC = LLRP_CommLinkConfiguration_construct();
+			pEIC = LLRP_EthernetIpv4Configuration_construct();
+		}
+
+		if (pCLC != NULL) {
+			LLRP_tSKeepaliveSpec *pKS = NULL;
+			LLRP_tSTcpLinkConfiguration *pTLC = NULL;
+			LLRP_tSServerModeConfiguration *pSMC = NULL;
+
+			pKS = LLRP_KeepaliveSpec_construct();
+			pTLC = LLRP_TcpLinkConfiguration_construct();
+
+			LLRP_CommLinkConfiguration_setLinkType(pCLC, LLRP_CommLinkType_Tcp);
+			LLRP_KeepaliveSpec_setKeepaliveTriggerType(pKS, LLRP_KeepaliveTriggerType_Periodic);
+			LLRP_KeepaliveSpec_setPeriodicTriggerValue(pKS, info->heartbeats_periodic);
+			LLRP_CommLinkConfiguration_setKeepaliveSpec(pCLC, pKS);
+
+			LLRP_TcpLinkConfiguration_setCommMode(pTLC, LLRP_TcpLinkCommMode_Server);
+			LLRP_TcpLinkConfiguration_setIsSSL(pTLC, false);
+
+			pSMC = LLRP_ServerModeConfiguration_construct();
+			LLRP_ServerModeConfiguration_setPort(pSMC, 5084);
+
+			LLRP_TcpLinkConfiguration_setServerModeConfiguration(pTLC, pSMC);
+			LLRP_CommLinkConfiguration_setTcpLinkConfiguration(pCLC, pTLC);
+			LLRP_CommunicationConfiguration_addCommLinkConfiguration(pCC, pCLC);
+		}
+
+		if (pEIC != NULL) {
+			/* FIXME */
+			LLRP_CommunicationConfiguration_addEthernetConfiguration(pCC, &pEIC->hdr);
+		}
+
+		LLRP_GetDeviceConfigAck_setCommunicationConfiguration(pGDC_Ack, pCC);
+	} else if (mask & 0x200) {
+		LLRP_tSLocationConfiguration *pLC = NULL;
+		LLRP_tSGpsLocation *pGL = NULL;
+
+		pLC = LLRP_LocationConfiguration_construct();
+		pGL = LLRP_GpsLocation_construct();
+
+		/* FIXME: add gps location information */
+		LLRP_LocationConfiguration_setLocationType(pLC, LLRP_ReaderLocationType_Location_GPS);
+		LLRP_LocationConfiguration_setLocationInfo(pLC, &pGL->hdr);
+
+		LLRP_GetDeviceConfigAck_setLocationConfiguration(pGDC_Ack, pLC);
+	} else if (mask & 0x400) {
+		LLRP_tSSecurityModuleConfiguration *pSMC = NULL;
+
+		pSMC = LLRP_SecurityModuleConfiguration_construct();
+
+		LLRP_GetDeviceConfigAck_setSecurityModuleConfiguration(pGDC_Ack, pSMC);
+	}
+
+	pStatus = upper_setup_status(-ret, NULL);
+	LLRP_GetDeviceConfigAck_setStatus(pGDC_Ack, pStatus);
+	pGDC_Ack->hdr.MessageID = pGDC->hdr.MessageID;
+
+	lock_upper(&info->lock);
+	ret = upper_send_message(info, &pGDC_Ack->hdr);
+	unlock_upper(&info->lock);
+
+  out:
+	if (pGDC != NULL)
+		LLRP_GetDeviceConfig_destruct(pGDC);
+	if (pGDC_Ack != NULL)
+		LLRP_GetDeviceConfigAck_destruct(pGDC_Ack);
+
+	return ret;
+}
+
 // 662
 static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceConfig * pThis)
 {
@@ -1696,6 +2043,14 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 		LLRP_ActiveVersionAck_destruct(pAck);
 }
 
+// 706
+static int upper_process_UnAciveVersion(upper_info_t * info, LLRP_tSUnActiveVersion * pUAV)
+{
+	int ret = NO_ERROR;
+
+	return ret;
+}
+
 // 760
 static void upper_process_ResetDevice(upper_info_t * info)
 {
@@ -1719,6 +2074,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_Disconnect(info, (LLRP_tSDisconnect *) pRequest);
 		  break;
 	  case 350:				//GetDeviceCapabilities
+		  upper_process_GetDeviceCapabilities(info, (LLRP_tSGetDeviceCapabilities *) pRequest);
 		  break;
 	  case 400:				//AddSelectSpec
 		  upper_process_AddSelectSpec(info, (LLRP_tSAddSelectSpec *) pRequest);
@@ -1773,6 +2129,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_ClearDeviceLog(info, (LLRP_tSClearDeviceLog *) pRequest);
 		  break;
 	  case 660:				//GetDeviceConfig
+		  upper_process_GetDeviceConfig(info, (LLRP_tSGetDeviceConfig *) pRequest);
 		  break;
 	  case 662:				//SetDeviceConfig
 		  upper_process_SetDeviceConfig(info, (LLRP_tSSetDeviceConfig *) pRequest);
@@ -1786,6 +2143,7 @@ static void upper_process_request(upper_info_t * info, LLRP_tSMessage * pRequest
 		  upper_process_ActiveVersion(info, (LLRP_tSActiveVersion *) pRequest);
 		  break;
 	  case 706:				//UnAciveVersion
+		  upper_process_UnAciveVersion(info, (LLRP_tSUnActiveVersion *) pRequest);
 		  break;
 	  case 760:				//ResetDevice
 		  upper_process_ResetDevice(info);
