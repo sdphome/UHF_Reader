@@ -539,7 +539,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	gettimeofday(&now, NULL);
 	curr_timestamp = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
 
-	if (info->status < UPPER_CONNECTED) {
+	if (info->status != UPPER_READY) {
 		tag_info_t tag;
 		tag.TID = tid;
 		tag.SelectSpecID = info->select_spec->SelectSpecID;
@@ -1873,9 +1873,9 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	LLRP_SetDeviceConfigAck_setStatus(pSDC_Ack, pStatus);
 
   out:
-	lock_upper(&info->upload_lock);
+	lock_upper(&info->lock);
 	upper_send_message(info, &pSDC_Ack->hdr);
-	unlock_upper(&info->upload_lock);
+	unlock_upper(&info->lock);
 
 	if (pThis != NULL)
 		LLRP_SetDeviceConfig_destruct(pThis);
@@ -2031,9 +2031,9 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 
 	LLRP_ActiveVersionAck_setStatus(pAck, pStatus);
 
-	lock_upper(&info->upload_lock);
+	lock_upper(&info->lock);
 	upper_send_message(info, &pAck->hdr);
-	unlock_upper(&info->upload_lock);
+	unlock_upper(&info->lock);
 
   out:
 	if (pThis != NULL)
@@ -2515,7 +2515,7 @@ void *upper_read_loop(void *data)
 
 	while (true) {
 		/* Need enqueue pMessage into queue */
-		pMessage = LLRP_Conn_recvMessage(pConn, -1);
+		pMessage = LLRP_Conn_recvMessage(pConn, 1000);
 		if (pMessage == NULL) {
 			if (pError->eResultCode == LLRP_RC_RecvIOError ||
 				pError->eResultCode == LLRP_RC_RecvEOF ||

@@ -97,7 +97,7 @@ static void uhf_init_upper(uhf_info_t * p_uhf)
 
 int uhf_get_uuid(uhf_info_t * info)
 {
-	uint8_t userid[8] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31 };	// "03000001"
+	uint8_t userid[9] = { 0x30, 0x33, 0x30, 0x30, 0x30, 0x30, 0x30, 0x31, '\0' };	// "03000001"
 	FILE *fp = NULL;
 	int ret = NO_ERROR;
 	unsigned long size = -1;
