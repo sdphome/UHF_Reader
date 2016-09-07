@@ -161,7 +161,7 @@ int sql_create_tag_table(char *path)
 		return -FAILED;
 	}
 
-	sql = "CREATE TABLE TAG(" "TID TEXT PRIMARY KEY NOT NULL,"	// TID
+	sql = "CREATE TABLE IF NOT EXISTS TAG(" "TID TEXT PRIMARY KEY NOT NULL,"	// TID
 		"SSID INTEGER NOT NULL,"	// SelectSpecID
 		"SI INTEGER NOT NULL,"	// SpecIndex
 		"RFSID INTEGER NOT NULL,"	// RfSpecID

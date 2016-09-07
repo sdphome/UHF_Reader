@@ -305,7 +305,7 @@ int main(int argc, char **argv)
 	release_radio(&p_uhf->radio);
   failed:
 	free(p_uhf);
-	//system("reboot");
+	system("reboot");
 	return ret;
 }
 #else							// TEST
