@@ -74,6 +74,7 @@ typedef struct upper_info {
 	int sec_bind_status;
 	int verbose;
 	int db_valid;
+	uint8_t unrsp_cnt;
 
 	uint64_t next_msg_id;
 	uint64_t serial;

@@ -179,7 +179,6 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 			 * the xml doesn't contains ack type now which get from tmri,  so can't use
 			 * this method to check response.
 			 */
-
 /*
 			if (pResponseType != pResponse->elementHdr.pType) {
 				pPrev = pResponse;
@@ -187,7 +186,6 @@ static LLRP_tSMessage *upper_wait_response(upper_info_t * info, LLRP_tSMessage *
 			}
 */
 			pPrev = pResponse;
-			break;
 		}
 	}
 
@@ -480,7 +478,6 @@ static int upper_request_Disconnect(upper_info_t * info)
 static int upper_request_Keepalive(upper_info_t * info)
 {
 	int ret = NO_ERROR;
-	static uint8_t unrsp_cnt = 0;
 	LLRP_tSKeepalive *pKA = NULL;
 	LLRP_tSKeepaliveAck *pAck = NULL;
 
@@ -500,15 +497,15 @@ static int upper_request_Keepalive(upper_info_t * info)
 
 	LLRP_Keepalive_destruct(pKA);
 	if (pAck != NULL) {
-		unrsp_cnt = 0;
+		info->unrsp_cnt = 0;
 		LLRP_Element_destruct(&pAck->hdr.elementHdr);
 	} else {
-		unrsp_cnt ++;
+		info->unrsp_cnt ++;
 	}
 
-	if (unrsp_cnt == 3) {
+	if (info->unrsp_cnt == 5) {
 		lock_upper(&info->disconnect_lock);
-		pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
+		pthread_cond_broadcast(&info->disconnect_cond);
 		unlock_upper(&info->disconnect_lock);
 	}
 
@@ -539,7 +536,7 @@ int upper_request_TagSelectAccessReport(upper_info_t * info, llrp_u64_t tid,
 	gettimeofday(&now, NULL);
 	curr_timestamp = ((uint64_t) now.tv_sec) * 1000 + ((uint64_t) now.tv_usec) / 1000;
 
-	if (info->status < UPPER_CONNECTED) {
+	if (info->status != UPPER_READY) {
 		tag_info_t tag;
 		tag.TID = tid;
 		tag.SelectSpecID = info->select_spec->SelectSpecID;
@@ -1873,9 +1870,9 @@ static int upper_process_SetDeviceConfig(upper_info_t * info, LLRP_tSSetDeviceCo
 	LLRP_SetDeviceConfigAck_setStatus(pSDC_Ack, pStatus);
 
   out:
-	lock_upper(&info->upload_lock);
+	lock_upper(&info->lock);
 	upper_send_message(info, &pSDC_Ack->hdr);
-	unlock_upper(&info->upload_lock);
+	unlock_upper(&info->lock);
 
 	if (pThis != NULL)
 		LLRP_SetDeviceConfig_destruct(pThis);
@@ -2031,9 +2028,9 @@ static void upper_process_ActiveVersion(upper_info_t * info, LLRP_tSActiveVersio
 
 	LLRP_ActiveVersionAck_setStatus(pAck, pStatus);
 
-	lock_upper(&info->upload_lock);
+	lock_upper(&info->lock);
 	upper_send_message(info, &pAck->hdr);
-	unlock_upper(&info->upload_lock);
+	unlock_upper(&info->lock);
 
   out:
 	if (pThis != NULL)
@@ -2515,7 +2512,7 @@ void *upper_read_loop(void *data)
 
 	while (true) {
 		/* Need enqueue pMessage into queue */
-		pMessage = LLRP_Conn_recvMessage(pConn, -1);
+		pMessage = LLRP_Conn_recvMessage(pConn, 1000);
 		if (pMessage == NULL) {
 			if (pError->eResultCode == LLRP_RC_RecvIOError ||
 				pError->eResultCode == LLRP_RC_RecvEOF ||
@@ -2575,7 +2572,7 @@ void stop_upper(upper_info_t * info)
 	info->status = UPPER_STOP;
 
 	lock_upper(&info->disconnect_lock);
-	pthread_cond_wait(&info->disconnect_cond, &info->disconnect_lock);
+	pthread_cond_broadcast(&info->disconnect_cond);
 	unlock_upper(&info->disconnect_lock);
 
 	if (info->sock > 0)
@@ -2594,6 +2591,7 @@ int start_upper(upper_info_t * info)
 		if (info->sock < 0) {
 			printf("%s: start server failed, error:%s, ret = %d.\n", __func__,
 				   info->pConn->pConnectErrorStr, info->sock);
+			ret = info->sock;
 			goto retry;
 		}
 
@@ -2637,6 +2635,7 @@ int start_upper(upper_info_t * info)
 		unlock_upper(&info->disconnect_lock);
 	  retry:
 		info->status = UPPER_STOP;
+		info->unrsp_cnt = 0;
 
 		if (info->retry++ == 5)
 			break;
@@ -2657,9 +2656,12 @@ int start_upper(upper_info_t * info)
 			shutdown(info->pConn->fd, SHUT_RDWR);
 			close(info->pConn->fd);
 			info->pConn->fd = -1;
+			shutdown(info->sock, SHUT_RDWR);
+			close(info->sock);
+			info->sock = -1;
 		}
 
-		sleep(2);				/* workaround to release the link */
+		sleep(3);				/* workaround to release the link */
 	}
 
 	if (ret < 0)
