@@ -244,8 +244,6 @@ static inline ssize_t us_sync_read(struct uhf_security *uhf)
 
 	us_data.len = m.actual_length;
 
-	//printk(KERN_ALERT "%s: len:%d, actual_length=%d\n", __func__, us_data.len, m.actual_length);
-
 	us_copy_to_cache(uhf, us_data);
 
 	return (UHF_SPI_MTU - m.actual_length);
@@ -321,8 +319,6 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
     uhf = filp->private_data;
 
-//	printk(KERN_ALERT "%s: +\n", __func__);
-
     if (down_interruptible(&uhf->sem))
 		return -ERESTARTSYS;
 
@@ -343,7 +339,6 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	/* ok, data is there, return something */
 	/* count0 is the number of readable data bytes */
 	count0 = uhf->cache->recv_head - uhf->cache->recv_tail;
-	//printk(KERN_ALERT "%s: count0=%d, count=%d\n", __func__, count0, count);
 	if (count0 < 0) /* wrapped */
 		count0 = uhf->cache->recv_buf + UHF_CACHE_SIZE - uhf->cache->recv_tail;
 
@@ -352,7 +347,6 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
 	temp = (struct uhf_security_data *)uhf->cache->recv_tail;
 	temp->len = *(uint16_t *)(temp->data + 2) + 5;
-//	printk(KERN_ALERT "%s: len = %d\n", __func__, temp->len);
 
 	if (copy_to_user((uint8_t __user *)buf, (char *)temp->data, temp->len)) {
 		up(&uhf->sem);
@@ -362,7 +356,6 @@ ssize_t us_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 	us_incr_cache_tail(uhf, count);
 	up(&uhf->sem);
 
-//	printk(KERN_ALERT "%s: -\n", __func__);
 	return temp->len;
 }
 
@@ -442,26 +435,11 @@ struct file_operations us_fops = {
 };
 
 /*-------------------------------------------------------------------------*/
-
-static void us_recv_func(struct work_struct *work)
-{
-	struct uhf_security *uhf = container_of(work, struct uhf_security, recv_work);
-
-//	printk(KERN_ALERT "%s: irq no:%d\n", __func__, uhf->spi->irq);
-
-	us_sync_read(uhf);
-	us_enable_irq(uhf);
-}
-
 static irqreturn_t us_intr_handler(int irq, void *handle)
 {
 	struct uhf_security *uhf = (struct uhf_security *)handle;
 
-	us_disable_irq(uhf);
-
-//	printk(KERN_ALERT "%s Enter\n", __func__);
-
-	queue_work(uhf->recv_queue, &uhf->recv_work);
+	us_sync_read(uhf);
 
     return IRQ_HANDLED;
 }
@@ -834,27 +812,18 @@ static int us_probe(struct spi_device *spi)
     uhf->irq_enabled = true;
 
     /* Initializes uhf security INT irq. */
-    ret = request_irq(uhf->irq, us_intr_handler,
-                      IRQF_TRIGGER_FALLING, "uhf_irq", uhf);
-    if (ret) {
+	ret = devm_request_threaded_irq(&spi->dev, uhf->irq, NULL, us_intr_handler,
+									IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+									"uhf_irq", uhf);
+	if (ret) {
         printk(KERN_ERR "failed to request irq_handler, ret=%d\n", ret);
         goto irq_fail;
-    }
-
-    INIT_WORK(&uhf->recv_work, us_recv_func);
-    uhf->recv_queue = create_singlethread_workqueue("us_wq");
-    if (!uhf->recv_queue){
-        printk(KERN_ERR"create singlethread workqueue ERROR\n");
-        ret = -ENOMEM;
-        goto queue_fail;
     }
 
 	__uhf = uhf;
 
     return ret;
 
-queue_fail:
-    free_irq(uhf->irq, uhf);
 irq_fail:
     device_remove_file(uhf->dev, &dev_attr_us_sys);
 sys_fail:
@@ -893,9 +862,6 @@ static int us_remove(struct spi_device *spi)
 
     if (uhf->users == 0)
         kfree(uhf);
-
-    if (uhf->recv_queue)
-        destroy_workqueue(uhf->recv_queue);
 
 	__uhf = NULL;
 

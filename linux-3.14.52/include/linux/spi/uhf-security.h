@@ -89,9 +89,6 @@ struct uhf_security {
     struct mutex buf_lock;
     struct semaphore sem;
 
-    struct work_struct recv_work;
-    struct workqueue_struct *recv_queue;
-
     bool irq_enabled;
 
     int irq;
