@@ -29,6 +29,8 @@
 #define UPPER_CONNECTED		0x02
 #define UPPER_READY			0x03
 
+#define CHECK_PORT_PATH	"/uhf/check_port.txt"
+
 typedef struct data_param {
 #define TYPE_CID	0x8801
 #define TYPE_FPDH	0x8802

@@ -2522,8 +2522,8 @@ void *upper_read_loop(void *data)
 					   __func__, pError->eResultCode, pError->pWhatStr);
 				break;
 			} else {
-				printf("%s: error code:%d, error message:%s.\n",
-					   __func__, pError->eResultCode, pError->pWhatStr);
+				//printf("%s: error code:%d, error message:%s.\n",
+				//	   __func__, pError->eResultCode, pError->pWhatStr);
 				continue;
 			}
 		}
@@ -2564,6 +2564,37 @@ void upper_signal_upload(upper_info_t * info)
 	}
 }
 
+int upper_check_port_avaliable()
+{
+	pid_t status;
+	int loop_count = 90;
+	int ret = NO_ERROR;
+	char cmd[64] = { 0 };
+	unsigned long file_size = -1;
+
+	sprintf(cmd, "netstat -ant | grep 5084 > %s", CHECK_PORT_PATH);
+
+	while (loop_count --) {
+		status = system(cmd);
+		if (-1 == status) {
+			printf("%s: system error!\n", __func__);
+			ret = -FAILED;
+			break;
+		}
+
+		if (!file_get_size(CHECK_PORT_PATH, &file_size)) {
+			if (0 == file_size) {
+				printf("%s: the llrp port has been released!\n", __func__);
+				break;
+			}
+		}
+
+		sleep(1);
+	}
+
+	return ret;
+}
+
 void stop_upper(upper_info_t * info)
 {
 	if (info == NULL)
@@ -2586,6 +2617,7 @@ int start_upper(upper_info_t * info)
 	pthread_attr_t attr;
 
 	while (true) {
+		upper_check_port_avaliable();
 		printf("[UPPER] Start the server.....\n");
 		info->sock = LLRP_Conn_startServerForUpper(info->pConn);
 		if (info->sock < 0) {
